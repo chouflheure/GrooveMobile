@@ -2,23 +2,21 @@
 
 ## Fichiers
 - `profile_screen.dart` — Vue complète avec CustomScrollView
-- `profile_view_model.dart` — State (user courant + bookings)
+- `profile_view_model.dart` — State (user courant + bookings, Firestore live)
 
 ## Sections
 1. **Header** : avatar, nom, classement FFT, localisation, rating, matchs/mois (fond gradient vert)
-2. **Stats grid 2x2** : matchs joués, victoires, win rate (calculé), heures jouées
-3. **Surfaces préférées** : 3 progress bars (Terre battue, Dur, Gazon)
-4. **Réservations à venir** : `upcomingBookings` (non passées + confirmées)
-5. **Historique** : `pastBookings` (passées avec résultat W/L)
-6. **Settings** : Notifications, Paramètres, Déconnexion (placeholders)
+2. **Stats grid** : matchs joués, heures jouées (victoires et win rate retirés)
+3. **Réservations à venir** : `upcomingBookings` (non passées + confirmées)
+4. **Historique** : `pastBookings` (toutes les réservations passées, avec ou sans résultat enregistré)
+5. **Settings** : Notifications, Paramètres, Déconnexion (placeholders)
+
+Le dernier élément du `CustomScrollView` (spacer sous Settings) inclut `MediaQuery.paddingOf(context).bottom` pour ne pas passer sous la bottom nav bar (même pattern que `courts_screen.dart`).
 
 ## Computed getters (ProfileState)
-- `pastBookings` : bookings avec `result != null` et date passée
+- `pastBookings` : bookings dont la date est passée (`isPast`), peu importe si un résultat/score a été renseigné
 - `upcomingBookings` : bookings non passés et non annulés
 
-## addBooking()
-Appelé depuis `CourtsScreen` et `CourtDetailScreen` après confirmation d'une réservation. Met à jour la liste locale.
-
-## Migration Firestore
-- `user` : lire `users/{currentUserId}` au démarrage (+ écoute snapshot)
-- `bookings` : query `bookings` where `userId == currentUserId`, orderBy `date desc`
+## Firestore (déjà branché)
+`ProfileViewModel` watch `BookingRepository.watchByUser(currentUser.id)` en temps réel. `addBooking()`/`updateBooking()`/`cancelBooking()` écrivent directement dans Firestore (collection `bookings`) — voir `data/repositories/booking_repository.dart`.
+`user` reste `MockData.currentUser` (pas d'auth Firebase pour l'instant).

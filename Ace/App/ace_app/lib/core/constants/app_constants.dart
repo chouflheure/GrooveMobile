@@ -34,4 +34,22 @@ class AppConstants {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
   }
+
+  /// Grace period after a slot's start time during which it can still be
+  /// booked (e.g. showing up a bit late for a 15:00 slot at 15:30 is fine).
+  static const Duration slotBookingGracePeriod = Duration(minutes: 45);
+
+  /// Whether a `HH:mm` slot on the given day is past its booking grace
+  /// period — used to hide same-day slots that are truly too late to book.
+  static bool isSlotPast(DateTime date, String time) {
+    final parts = time.split(':');
+    final start = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+    return start.add(slotBookingGracePeriod).isBefore(DateTime.now());
+  }
 }

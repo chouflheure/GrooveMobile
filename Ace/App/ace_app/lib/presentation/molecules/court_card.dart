@@ -151,6 +151,12 @@ class _SurfaceBadge extends StatelessWidget {
 
   const _SurfaceBadge({required this.court});
 
+  Color get _color => switch (court.surface) {
+        CourtSurface.clay => AppColors.clay,
+        CourtSurface.grass => AppColors.grass,
+        CourtSurface.hard => AppColors.hard,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -159,7 +165,7 @@ class _SurfaceBadge extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: _color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
       ),
       child: Row(

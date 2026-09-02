@@ -58,9 +58,33 @@ class BookingModel extends Equatable {
   });
 
   bool get isConfirmed => status == BookingStatus.confirmed;
-  bool get isPast => date.isBefore(DateTime.now());
+
+  DateTime _timeOn(String hhmm) {
+    final parts = hhmm.split(':');
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+  }
+
+  /// A booking stays "upcoming" for its whole duration, not just until its
+  /// start time — otherwise a match in progress would flip to "history"
+  /// the moment it starts.
+  bool get isPast => _timeOn(endTime).isBefore(DateTime.now());
+
   bool get isUpcoming => !isPast && status != BookingStatus.cancelled;
   bool get hasPartner => partnerId != null;
+
+  DateTime get startDateTime => _timeOn(startTime);
+
+  /// Cancellation is blocked once the slot is within 5 minutes of starting
+  /// (or already under way) — cancelling a booking that's about to happen
+  /// or happening isn't meaningful.
+  bool get canCancel =>
+      DateTime.now().isBefore(_timeOn(startTime).subtract(const Duration(minutes: 5)));
 
   /// Groups bookings by court + day + start time so Firestore can enforce
   /// "one booking per slot" via a deterministic document id.

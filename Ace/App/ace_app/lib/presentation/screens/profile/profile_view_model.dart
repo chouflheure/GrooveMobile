@@ -18,7 +18,7 @@ class ProfileState {
   });
 
   List<BookingModel> get pastBookings =>
-      bookings.where((b) => b.isPast && b.result != null).toList();
+      bookings.where((b) => b.isPast).toList();
 
   List<BookingModel> get upcomingBookings =>
       bookings.where((b) => b.isUpcoming).toList();

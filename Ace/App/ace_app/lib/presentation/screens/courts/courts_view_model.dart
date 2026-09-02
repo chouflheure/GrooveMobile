@@ -97,9 +97,9 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
   Map<String, Set<String>> _bookedSlots = const {};
 
   void _recompute() {
+    final today = AppConstants.today();
     final courts = _rawCourts.map((court) {
-      final booked = _bookedSlots[court.id];
-      if (booked == null || booked.isEmpty) return court;
+      final booked = _bookedSlots[court.id] ?? const <String>{};
       return CourtModel(
         id: court.id,
         name: court.name,
@@ -112,7 +112,8 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
         description: court.description,
         amenities: court.amenities,
         availableSlots: court.availableSlots
-            .map((s) => booked.contains(s.time)
+            .map((s) => booked.contains(s.time) ||
+                    AppConstants.isSlotPast(today, s.time)
                 ? TimeSlot(time: s.time, isAvailable: false)
                 : s)
             .toList(),
@@ -143,6 +144,10 @@ final courtRepositoryProvider = Provider<CourtRepository>(
 
 final bookingRepositoryProvider = Provider<BookingRepository>(
   (_) => BookingRepository(),
+);
+
+final courtByIdProvider = StreamProvider.family<CourtModel?, String>(
+  (ref, id) => ref.watch(courtRepositoryProvider).watchById(id),
 );
 
 final courtsViewModelProvider =

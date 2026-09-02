@@ -23,10 +23,6 @@ class CourtDetailArgs {
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-final _courtByIdProvider = StreamProvider.family<CourtModel?, String>(
-  (ref, id) => ref.watch(courtRepositoryProvider).watchById(id),
-);
-
 final _bookedSlotsProvider =
     StreamProvider.family<Set<String>, ({String courtId, DateTime date})>(
   (ref, args) => ref
@@ -55,7 +51,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
     // data has loaded, then tracks Firestore so the template + booked slots
     // for the selected day stay current.
     final template =
-        ref.watch(_courtByIdProvider(widget.court.id)).valueOrNull ??
+        ref.watch(courtByIdProvider(widget.court.id)).valueOrNull ??
             widget.court;
     final booked = ref
             .watch(_bookedSlotsProvider((
@@ -135,7 +131,6 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
   }
 
   CourtModel _withBookedSlots(CourtModel template, Set<String> booked) {
-    if (booked.isEmpty) return template;
     return CourtModel(
       id: template.id,
       name: template.name,
@@ -148,7 +143,8 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       description: template.description,
       amenities: template.amenities,
       availableSlots: template.availableSlots
-          .map((s) => booked.contains(s.time)
+          .map((s) => booked.contains(s.time) ||
+                  AppConstants.isSlotPast(_selectedDate, s.time)
               ? TimeSlot(time: s.time, isAvailable: false)
               : s)
           .toList(),

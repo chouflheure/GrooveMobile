@@ -198,6 +198,7 @@ class _BookingConfirmationSheetState
       date: widget.date,
       startTime: widget.selectedSlot,
       endTime: _endTime,
+      courtAddress: widget.court.location,
       status: BookingStatus.confirmed,
       price: _price,
       createdAt: DateTime.now(),

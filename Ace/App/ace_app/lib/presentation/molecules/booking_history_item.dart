@@ -53,7 +53,23 @@ class BookingHistoryItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(booking.courtName, style: AppTypography.headlineSmall.copyWith(color: titleColor)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          booking.courtName,
+                          style: AppTypography.headlineSmall.copyWith(color: titleColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (booking.isUpcoming) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        _CountdownPill(startDateTime: booking.startDateTime),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '$dateStr · ${booking.startTime} – ${booking.endTime}',
@@ -75,6 +91,39 @@ class BookingHistoryItem extends StatelessWidget {
               color: AppColors.textTertiary,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CountdownPill extends StatelessWidget {
+  final DateTime startDateTime;
+
+  const _CountdownPill({required this.startDateTime});
+
+  String get _label {
+    final remaining = startDateTime.difference(DateTime.now());
+    if (remaining.isNegative) return 'en cours';
+    if (remaining.inHours > 23) return 'dans ${remaining.inDays}j';
+    final hours = remaining.inHours.toString().padLeft(2, '0');
+    final minutes = (remaining.inMinutes % 60).toString().padLeft(2, '0');
+    return 'dans $hours:$minutes';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      ),
+      child: Text(
+        _label,
+        style: AppTypography.labelSmall.copyWith(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

@@ -8,8 +8,15 @@ import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../booking_detail/booking_detail_screen.dart';
 import '../edit_profile/edit_profile_screen.dart';
+import '../notification_settings/notification_settings_screen.dart';
 import 'all_bookings_screen.dart';
 import 'profile_view_model.dart';
+
+const _headerGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
+);
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -17,7 +24,6 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(profileViewModelProvider);
-    final user = state.user;
 
     if (state.isLoading) {
       return const Scaffold(
@@ -29,14 +35,17 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _ProfileHeader(state: state)),
+          _ProfileHeader(state: state),
           SliverToBoxAdapter(child: _StatsGrid(state: state)),
-          SliverToBoxAdapter(child: _SurfacesSection(user: user)),
           SliverToBoxAdapter(
             child: _BookingsSection(state: state),
           ),
           SliverToBoxAdapter(child: _SettingsSection()),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
+            ),
+          ),
         ],
       ),
     );
@@ -50,67 +59,71 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = state.user;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(AppSpacing.radiusXl),
-          bottomRight: Radius.circular(AppSpacing.radiusXl),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xxl,
-            AppSpacing.lg,
-            AppSpacing.xxl,
-            AppSpacing.xxl,
+    return SliverAppBar(
+      expandedHeight: 230,
+      pinned: true,
+      stretch: true,
+      automaticallyImplyLeading: false,
+      backgroundColor: AppColors.primary,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: _headerGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(AppSpacing.radiusXl),
+              bottomRight: Radius.circular(AppSpacing.radiusXl),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppAvatar(
-                initials: user.initials,
-                size: 72,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xxl,
+                AppSpacing.lg,
+                AppSpacing.xxl,
+                AppSpacing.lg,
               ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.name,
-                          style: AppTypography.headlineLarge.copyWith(color: Colors.white),
-                        ),
-                        Text(
-                          'Membre depuis ${_formatMemberSince(user.memberSince)}',
-                          style: AppTypography.bodySmall.copyWith(color: Colors.white70),
-                        ),
-                      ],
-                    ),
+                  AppAvatar(
+                    initials: user.initials,
+                    size: 72,
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                   ),
-                  AppBadge.ranking(user.ranking),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name,
+                              style: AppTypography.headlineLarge.copyWith(color: Colors.white),
+                            ),
+                            Text(
+                              'Membre depuis ${_formatMemberSince(user.memberSince)}',
+                              style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppBadge.ranking(user.ranking),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    spacing: AppSpacing.md,
+                    children: [
+                      _InfoPill(Icons.location_on_rounded, user.location),
+                      _InfoPill(Icons.calendar_today_rounded, '${user.matchesPerMonth} matchs/mois'),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              Wrap(
-                spacing: AppSpacing.md,
-                children: [
-                  _InfoPill(Icons.location_on_rounded, user.location),
-                  _InfoPill(Icons.star_rounded, '${user.rating}/5'),
-                  _InfoPill(Icons.calendar_today_rounded, '${user.matchesPerMonth} matchs/mois'),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -152,71 +165,19 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final stats = state.user.stats;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      child: GridView.count(
-        crossAxisCount: 2,
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+      child: GridView(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: AppSpacing.md,
-        crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.3,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: AppSpacing.md,
+          crossAxisSpacing: AppSpacing.md,
+          mainAxisExtent: 136,
+        ),
         children: [
           StatCard(emoji: '🎾', value: '${stats.matchesPlayed}', label: 'Matchs joués'),
-          StatCard(emoji: '🏆', value: '${stats.wins}', label: 'Victoires'),
-          StatCard(
-            emoji: '📈',
-            value: '${(stats.winRate * 100).round()}%',
-            label: 'Win rate',
-          ),
           StatCard(emoji: '⏱', value: '${stats.hoursPlayed}h', label: 'Heures jouées'),
-        ],
-      ),
-    );
-  }
-}
-
-class _SurfacesSection extends StatelessWidget {
-  final UserModel user;
-  const _SurfacesSection({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🎯', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: AppSpacing.sm),
-              Text('Surfaces préférées', style: AppTypography.headlineSmall),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppSurfaceProgress(
-            label: 'Terre battue',
-            value: user.surfaces.clay,
-            color: AppColors.clay,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppSurfaceProgress(
-            label: 'Dur',
-            value: user.surfaces.hard,
-            color: AppColors.hard,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppSurfaceProgress(
-            label: 'Gazon',
-            value: user.surfaces.grass,
-            color: AppColors.grass,
-          ),
         ],
       ),
     );
@@ -245,7 +206,7 @@ class _BookingsSection extends StatelessWidget {
           if (upcoming.isNotEmpty) ...[
             _SectionHeader(title: 'Réservations à venir', count: upcoming.length),
             const SizedBox(height: AppSpacing.sm),
-            ...upcoming.take(2).map(
+            ...upcoming.map(
                   (b) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: BookingHistoryItem(
@@ -259,14 +220,14 @@ class _BookingsSection extends StatelessWidget {
           _SectionHeader(
             title: 'Historique des réservations',
             count: past.length,
-            onViewMore: past.length > 4
+            onViewMore: past.length > 3
                 ? () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => AllBookingsScreen(bookings: past)),
                     )
                 : null,
           ),
           const SizedBox(height: AppSpacing.sm),
-          ...past.take(4).map(
+          ...past.take(3).map(
                 (b) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: BookingHistoryItem(
@@ -318,14 +279,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatefulWidget {
-  @override
-  State<_SettingsSection> createState() => _SettingsSectionState();
-}
-
-class _SettingsSectionState extends State<_SettingsSection> {
-  bool _notificationsEnabled = false;
-
+class _SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -335,12 +289,11 @@ class _SettingsSectionState extends State<_SettingsSection> {
           _SettingsCard(
             icon: Icons.notifications_outlined,
             label: 'Notifications',
-            subtitle: _notificationsEnabled ? 'Activées' : 'Désactivées',
-            trailing: Switch.adaptive(
-              value: _notificationsEnabled,
-              onChanged: (v) => setState(() => _notificationsEnabled = v),
-              activeThumbColor: AppColors.primary,
-              activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
+            subtitle: 'Gérer mes notifications',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const NotificationSettingsScreen(),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -372,7 +325,6 @@ class _SettingsCard extends StatelessWidget {
   final String subtitle;
   final Color color;
   final VoidCallback? onTap;
-  final Widget? trailing;
 
   const _SettingsCard({
     required this.icon,
@@ -380,7 +332,6 @@ class _SettingsCard extends StatelessWidget {
     required this.subtitle,
     this.color = AppColors.textPrimary,
     this.onTap,
-    this.trailing,
   });
 
   @override
@@ -417,11 +368,10 @@ class _SettingsCard extends StatelessWidget {
                 ],
               ),
             ),
-            trailing ??
-                Icon(Icons.chevron_right_rounded,
-                    color: onTap != null
-                        ? AppColors.textTertiary
-                        : Colors.transparent),
+            Icon(Icons.chevron_right_rounded,
+                color: onTap != null
+                    ? AppColors.textTertiary
+                    : Colors.transparent),
           ],
         ),
       ),

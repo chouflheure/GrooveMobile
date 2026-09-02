@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -9,6 +10,7 @@ import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/providers/favorites_provider.dart';
 import '../../atoms/atoms.dart';
+import '../courts/courts_view_model.dart';
 import '../profile/profile_view_model.dart';
 
 class BookingDetailScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final partner = _booking.partnerId != null
         ? MockData.allUsers.where((u) => u.id == _booking.partnerId).firstOrNull
         : null;
+    final liveCourt = ref.watch(courtByIdProvider(_booking.courtId)).valueOrNull;
+    final address = liveCourt?.location ?? _booking.courtAddress;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -45,9 +49,20 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           onTap: () => Navigator.of(context).pop(),
           child: const Icon(Icons.arrow_back_rounded),
         ),
+        actions: [
+          IconButton(
+            onPressed: () => _share(context, address),
+            icon: const Icon(Icons.ios_share_rounded),
+          ),
+        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           _StatusCard(booking: _booking),
           const SizedBox(height: AppSpacing.lg),
@@ -56,8 +71,12 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             icon: Icons.sports_tennis_rounded,
             children: [
               _InfoRow(label: 'Nom', value: _booking.courtName),
-              if (_booking.courtAddress != null)
-                _InfoRow(label: 'Adresse', value: _booking.courtAddress!),
+              _InfoRow(
+                label: 'Adresse',
+                value: (address == null || address.trim().isEmpty)
+                    ? 'Pas renseigné'
+                    : address,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -123,12 +142,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               onTap: () => _showPartnerPicker(),
             ),
             const SizedBox(height: AppSpacing.md),
-            _ActionButton(
-              icon: Icons.cancel_outlined,
-              label: 'Annuler la réservation',
-              color: AppColors.error,
-              onTap: () => _confirmCancel(),
-            ),
+            if (_booking.canCancel)
+              _ActionButton(
+                icon: Icons.cancel_outlined,
+                label: 'Annuler la réservation',
+                color: AppColors.error,
+                onTap: () => _confirmCancel(),
+              )
+            else
+              _NonCancelableNotice(),
           ],
           const SizedBox(height: AppSpacing.xxxl),
         ],
@@ -200,6 +222,18 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  void _share(BuildContext context, String? address) {
+    final dateStr = DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_booking.date);
+    final lines = [
+      'Réservation — ${_booking.courtName}',
+      _capitalize(dateStr),
+      '${_booking.startTime} – ${_booking.endTime}',
+      if (address != null && address.trim().isNotEmpty) address,
+      if (_booking.gateCode != null) "Code d'accès : ${_booking.gateCode}",
+    ];
+    SharePlus.instance.share(ShareParams(text: lines.join('\n')));
+  }
 }
 
 class _StatusCard extends StatelessWidget {
@@ -210,6 +244,14 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isConfirmed = booking.status == BookingStatus.confirmed;
     final isPast = booking.isPast;
+
+    // Past bookings use a light gradient — white text/icons on it would be
+    // unreadable, so switch to dark, high-contrast colors instead.
+    final fgColor = isPast ? AppColors.textPrimary : Colors.white;
+    final fgColorSecondary = isPast ? AppColors.textSecondary : Colors.white70;
+    final iconBgColor =
+        isPast ? AppColors.primary.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.2);
+    final iconColor = isPast ? AppColors.primary : Colors.white;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -228,12 +270,12 @@ class _StatusCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: iconBgColor,
               shape: BoxShape.circle,
             ),
             child: Icon(
               isConfirmed ? Icons.check_circle_rounded : Icons.pending_rounded,
-              color: Colors.white,
+              color: iconColor,
               size: 28,
             ),
           ),
@@ -245,12 +287,16 @@ class _StatusCard extends StatelessWidget {
                 Text(
                   booking.courtName,
                   style: AppTypography.headlineMedium
-                      .copyWith(color: Colors.white),
+                      .copyWith(color: fgColor),
                 ),
                 Text(
-                  isConfirmed ? 'Réservation confirmée' : 'En attente de confirmation',
+                  !isConfirmed
+                      ? 'En attente de confirmation'
+                      : isPast
+                          ? 'Réservation finie'
+                          : 'Réservation confirmée',
                   style: AppTypography.bodySmall
-                      .copyWith(color: Colors.white70),
+                      .copyWith(color: fgColorSecondary),
                 ),
               ],
             ),
@@ -434,6 +480,33 @@ class _GateCodeCard extends StatelessWidget {
             'Valable uniquement le jour de votre réservation.',
             style: AppTypography.bodySmall
                 .copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NonCancelableNotice extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded,
+              size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              "Cette réservation n'est plus annulable (moins de 5 minutes avant le créneau ou créneau en cours).",
+              style: AppTypography.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
+            ),
           ),
         ],
       ),

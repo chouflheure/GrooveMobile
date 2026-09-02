@@ -30,4 +30,12 @@ class CourtRepository {
               .toList(),
         );
   }
+
+  Stream<CourtModel?> watchById(String id) {
+    return _collection.doc(id).snapshots().map(
+          (doc) => doc.exists
+              ? CourtModel.fromJson({...doc.data()!, 'id': doc.id})
+              : null,
+        );
+  }
 }

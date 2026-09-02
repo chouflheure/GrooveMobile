@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
-import '../booking_confirmation/booking_confirmation_screen.dart';
+import '../booking_confirmation/booking_confirmation_sheet.dart';
 import '../courts/courts_view_model.dart';
 
 /// Args passed via `GoRouter`'s `extra` when navigating to `/court/:id`.
@@ -17,6 +19,21 @@ class CourtDetailArgs {
 
   const CourtDetailArgs({required this.court, this.initialSlot});
 }
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+final _courtByIdProvider = StreamProvider.family<CourtModel?, String>(
+  (ref, id) => ref.watch(courtRepositoryProvider).watchById(id),
+);
+
+final _bookedSlotsProvider =
+    StreamProvider.family<Set<String>, ({String courtId, DateTime date})>(
+  (ref, args) => ref
+      .watch(bookingRepositoryProvider)
+      .watchBookedSlotsForDate(args.date)
+      .map((byCourtId) => byCourtId[args.courtId] ?? const <String>{}),
+);
 
 class CourtDetailScreen extends ConsumerStatefulWidget {
   final CourtModel court;
@@ -29,18 +46,26 @@ class CourtDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
+  late DateTime _selectedDate = AppConstants.today();
   late String? _selectedSlot = widget.initialSlot;
 
   @override
   Widget build(BuildContext context) {
     // Falls back to the snapshot passed at navigation time until the live
-    // list has loaded, then tracks Firestore so booked slots disappear
-    // immediately (including bookings made from this screen).
-    final liveCourts = ref.watch(courtsViewModelProvider).courts;
-    final court = liveCourts
-        .where((c) => c.id == widget.court.id)
-        .firstOrNull ??
-        widget.court;
+    // data has loaded, then tracks Firestore so the template + booked slots
+    // for the selected day stay current.
+    final template =
+        ref.watch(_courtByIdProvider(widget.court.id)).valueOrNull ??
+            widget.court;
+    final booked = ref
+            .watch(_bookedSlotsProvider((
+              courtId: template.id,
+              date: _selectedDate,
+            )))
+            .valueOrNull ??
+        const <String>{};
+    final court = _withBookedSlots(template, booked);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -73,11 +98,25 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   _Section(
-                    title: 'Créneaux disponibles',
-                    child: _SlotsSection(
-                      court: court,
-                      selectedSlot: _selectedSlot,
-                      onSelect: (slot) => setState(() => _selectedSlot = slot),
+                    title: 'Réserver un créneau',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _DateSelector(
+                          selectedDate: _selectedDate,
+                          onSelect: (date) => setState(() {
+                            _selectedDate = date;
+                            _selectedSlot = null;
+                          }),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _SlotsSection(
+                          court: court,
+                          selectedSlot: _selectedSlot,
+                          onSelect: (slot) =>
+                              setState(() => _selectedSlot = slot),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
@@ -90,20 +129,39 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       bottomNavigationBar: _BottomBar(
         court: court,
         selectedSlot: _selectedSlot,
-        onBook: () => _openBooking(context),
+        onBook: () => _openBooking(context, court),
       ),
     );
   }
 
-  void _openBooking(BuildContext context) {
+  CourtModel _withBookedSlots(CourtModel template, Set<String> booked) {
+    if (booked.isEmpty) return template;
+    return CourtModel(
+      id: template.id,
+      name: template.name,
+      type: template.type,
+      surface: template.surface,
+      location: template.location,
+      pricePerHour: template.pricePerHour,
+      rating: template.rating,
+      imageUrl: template.imageUrl,
+      description: template.description,
+      amenities: template.amenities,
+      availableSlots: template.availableSlots
+          .map((s) => booked.contains(s.time)
+              ? TimeSlot(time: s.time, isAvailable: false)
+              : s)
+          .toList(),
+    );
+  }
+
+  void _openBooking(BuildContext context, CourtModel court) {
     if (_selectedSlot == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BookingConfirmationScreen(
-          court: widget.court,
-          selectedSlot: _selectedSlot!,
-        ),
-      ),
+    BookingConfirmationSheet.show(
+      context,
+      court: court,
+      selectedSlot: _selectedSlot!,
+      date: _selectedDate,
     ).then((_) => setState(() => _selectedSlot = null));
   }
 }
@@ -209,10 +267,11 @@ class _QuickInfoRow extends StatelessWidget {
           color: AppColors.primary,
         ),
         const Spacer(),
-        Text(
-          '${court.pricePerHour.toInt()}€/h',
-          style: AppTypography.headlineLarge.copyWith(color: AppColors.primary),
-        ),
+        if (court.pricePerHour > 0)
+          Text(
+            '${court.pricePerHour.toInt()}€/h',
+            style: AppTypography.headlineLarge.copyWith(color: AppColors.primary),
+          ),
       ],
     );
   }
@@ -345,13 +404,100 @@ class _AmenitiesGrid extends StatelessWidget {
                 vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                border: Border.all(color: AppColors.border),
               ),
-              child: Text(a, style: AppTypography.bodySmall),
+              child: Text(
+                a,
+                style: AppTypography.bodySmall.copyWith(color: Colors.black),
+              ),
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _DateSelector extends StatelessWidget {
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onSelect;
+
+  const _DateSelector({required this.selectedDate, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final today = AppConstants.today();
+    final days = List.generate(
+      AppConstants.bookingCalendarDays,
+      (i) => today.add(Duration(days: i)),
+    );
+    return SizedBox(
+      height: 64,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: days.length,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (_, i) {
+          final day = days[i];
+          return _DateChip(
+            date: day,
+            isSelected: _isSameDay(day, selectedDate),
+            onTap: () => onSelect(day),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DateChip extends StatelessWidget {
+  final DateTime date;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DateChip({
+    required this.date,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 52,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              DateFormat('E', 'fr_FR').format(date),
+              style: AppTypography.labelSmall.copyWith(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${date.day}',
+              style: AppTypography.headlineSmall.copyWith(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -406,6 +552,12 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = switch ((selectedSlot, court.pricePerHour > 0)) {
+      (null, _) => 'Sélectionner un créneau',
+      (final slot?, true) =>
+        'Réserver à $slot — ${(court.pricePerHour * 1.5).toInt()}€',
+      (final slot?, false) => 'Réserver à $slot',
+    };
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxl,
@@ -418,9 +570,7 @@ class _BottomBar extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: AppButton(
-        label: selectedSlot != null
-            ? 'Réserver à $selectedSlot — ${(court.pricePerHour * 1.5).toInt()}€'
-            : 'Sélectionner un créneau',
+        label: label,
         onTap: selectedSlot != null ? onBook : null,
       ),
     );

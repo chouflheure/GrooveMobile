@@ -25,8 +25,13 @@ class AppConstants {
 
   static const double bookingDurationHours = 1.5;
 
-  /// The app doesn't have a date picker yet — every booking flow targets
-  /// "tomorrow". Centralized here so all call sites agree on the same day.
-  static DateTime defaultBookingDate() =>
-      DateTime.now().add(const Duration(days: 1));
+  /// How many days ahead the court detail screen's date picker shows.
+  static const int bookingCalendarDays = 10;
+
+  /// Midnight of the current day — anchors "today" across the app (home
+  /// list availability, the first selectable day in the date picker).
+  static DateTime today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 }

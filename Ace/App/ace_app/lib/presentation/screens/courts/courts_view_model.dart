@@ -80,7 +80,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
       _recompute();
     });
     _bookingsSubscription = _bookingRepository
-        .watchBookedSlotsForDate(AppConstants.defaultBookingDate())
+        .watchBookedSlotsForDate(AppConstants.today())
         .listen((bookedSlots) {
       _bookedSlots = bookedSlots;
       _recompute();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/mock/mock_data.dart';
@@ -12,23 +11,48 @@ import '../../atoms/atoms.dart';
 import '../profile/profile_view_model.dart';
 import '../user_profile/user_profile_screen.dart';
 
-class BookingConfirmationScreen extends ConsumerStatefulWidget {
+/// Bottom sheet (70% of the screen) used to confirm a booking — same content
+/// as the old full-page confirmation flow, minus the court hero image.
+class BookingConfirmationSheet extends ConsumerStatefulWidget {
   final CourtModel court;
   final String selectedSlot;
+  final DateTime date;
 
-  const BookingConfirmationScreen({
+  const BookingConfirmationSheet({
     super.key,
     required this.court,
     required this.selectedSlot,
+    required this.date,
   });
 
+  static Future<void> show(
+    BuildContext context, {
+    required CourtModel court,
+    required String selectedSlot,
+    required DateTime date,
+  }) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.7,
+        child: BookingConfirmationSheet(
+          court: court,
+          selectedSlot: selectedSlot,
+          date: date,
+        ),
+      ),
+    );
+  }
+
   @override
-  ConsumerState<BookingConfirmationScreen> createState() =>
-      _BookingConfirmationScreenState();
+  ConsumerState<BookingConfirmationSheet> createState() =>
+      _BookingConfirmationSheetState();
 }
 
-class _BookingConfirmationScreenState
-    extends ConsumerState<BookingConfirmationScreen> {
+class _BookingConfirmationSheetState
+    extends ConsumerState<BookingConfirmationSheet> {
   UserModel? _selectedPartner;
   String _searchQuery = '';
   bool _isLoading = false;
@@ -68,19 +92,52 @@ class _BookingConfirmationScreenState
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _SliverHeader(court: widget.court),
-          SliverToBoxAdapter(
-            child: Padding(
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        children: [
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.lg,
+              AppSpacing.xxl,
+              0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Réservation', style: AppTypography.headlineLarge),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _CourtSummaryCard(
                     court: widget.court,
+                    date: widget.date,
                     slot: widget.selectedSlot,
                     endTime: _endTime,
                     price: _price,
@@ -111,18 +168,17 @@ class _BookingConfirmationScreenState
                           MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
                         ),
                       )),
-                  const SizedBox(height: AppSpacing.xxxl),
                 ],
               ),
             ),
           ),
+          _BottomBar(
+            selectedPartner: _selectedPartner,
+            price: _price,
+            isLoading: _isLoading,
+            onConfirm: _confirm,
+          ),
         ],
-      ),
-      bottomNavigationBar: _BottomBar(
-        selectedPartner: _selectedPartner,
-        price: _price,
-        isLoading: _isLoading,
-        onConfirm: _confirm,
       ),
     );
   }
@@ -139,7 +195,7 @@ class _BookingConfirmationScreenState
       partnerId: _selectedPartner!.id,
       partnerName:
           '${_selectedPartner!.name.split(' ').first} ${_selectedPartner!.name.split(' ').last[0]}.',
-      date: AppConstants.defaultBookingDate(),
+      date: widget.date,
       startTime: widget.selectedSlot,
       endTime: _endTime,
       status: BookingStatus.confirmed,
@@ -178,71 +234,16 @@ class _BookingConfirmationScreenState
   }
 }
 
-class _SliverHeader extends StatelessWidget {
-  final CourtModel court;
-  const _SliverHeader({required this.court});
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 220,
-      pinned: true,
-      backgroundColor: AppColors.surface,
-      leading: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Container(
-          margin: const EdgeInsets.all(AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-        ),
-      ),
-      title: const Text(
-        'Réservation',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              court.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: AppColors.surfaceVariant,
-                child: const Icon(Icons.sports_tennis,
-                    size: 64, color: AppColors.textTertiary),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.6),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _CourtSummaryCard extends StatelessWidget {
   final CourtModel court;
+  final DateTime date;
   final String slot;
   final String endTime;
   final double price;
 
   const _CourtSummaryCard({
     required this.court,
+    required this.date,
     required this.slot,
     required this.endTime,
     required this.price,
@@ -271,21 +272,25 @@ class _CourtSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           _Row(
-            icon: Icons.access_time_rounded,
-            label: '$slot – $endTime (1h30)',
+            icon: Icons.calendar_today_rounded,
+            label: '${date.day.toString().padLeft(2, '0')}/'
+                '${date.month.toString().padLeft(2, '0')}/'
+                '${date.year} · $slot – $endTime (1h30)',
           ),
-          const Divider(height: AppSpacing.xl),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total', style: AppTypography.headlineSmall),
-              Text(
-                '${price.toInt()}€',
-                style: AppTypography.headlineLarge
-                    .copyWith(color: AppColors.primary),
-              ),
-            ],
-          ),
+          if (price > 0) ...[
+            const Divider(height: AppSpacing.xl),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total', style: AppTypography.headlineSmall),
+                Text(
+                  '${price.toInt()}€',
+                  style: AppTypography.headlineLarge
+                      .copyWith(color: AppColors.primary),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -482,6 +487,9 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final confirmLabel = price > 0
+        ? 'Confirmer — ${price.toInt()}€'
+        : 'Confirmer';
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxl,
@@ -496,7 +504,7 @@ class _BottomBar extends StatelessWidget {
       child: AppButton(
         label: selectedPartner == null
             ? 'Sélectionner un partenaire'
-            : 'Confirmer — ${price.toInt()}€',
+            : confirmLabel,
         onTap: selectedPartner == null || isLoading ? null : onConfirm,
         isLoading: isLoading,
       ),

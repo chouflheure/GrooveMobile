@@ -1,0 +1,83 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/booking_model.dart';
+
+/// Thrown when a booking is attempted on a slot another booking already holds.
+class SlotAlreadyBookedException implements Exception {
+  const SlotAlreadyBookedException();
+
+  @override
+  String toString() => 'Ce créneau vient d\'être réservé par quelqu\'un d\'autre.';
+}
+
+class BookingRepository {
+  BookingRepository({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
+
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection('bookings');
+
+  static String _dateKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  /// Creates a booking, using `${courtId}_${date}_${startTime}` as the
+  /// document id so Firestore's transaction get+set gives us an atomic
+  /// "only one active booking per slot" guarantee — Firestore transactions
+  /// can only read a specific document, not a query, so the uniqueness key
+  /// has to live in the id itself.
+  Future<void> create(BookingModel booking) async {
+    final docRef = _collection.doc(booking.slotKey);
+
+    await _firestore.runTransaction((tx) async {
+      final existing = await tx.get(docRef);
+      if (existing.exists) {
+        final status = existing.data()?['status'] as String?;
+        if (status != BookingStatus.cancelled.jsonValue) {
+          throw const SlotAlreadyBookedException();
+        }
+      }
+      tx.set(docRef, _withDateKey(booking.copyWith(id: docRef.id)));
+    });
+  }
+
+  Future<void> update(BookingModel booking) {
+    return _collection.doc(booking.id).set(_withDateKey(booking));
+  }
+
+  Map<String, dynamic> _withDateKey(BookingModel booking) =>
+      {...booking.toJson(), 'dateKey': _dateKey(booking.date)};
+
+  Future<void> cancel(String bookingId) {
+    return _collection
+        .doc(bookingId)
+        .update({'status': BookingStatus.cancelled.jsonValue});
+  }
+
+  Stream<List<BookingModel>> watchByUser(String userId) {
+    return _collection.where('userId', isEqualTo: userId).snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromJson(doc.data()))
+              .toList(),
+        );
+  }
+
+  /// Streams, for a given day, which `courtId + startTime` slots are held by
+  /// a non-cancelled booking — used to grey out slots across all courts.
+  Stream<Map<String, Set<String>>> watchBookedSlotsForDate(DateTime date) {
+    return _collection
+        .where('dateKey', isEqualTo: _dateKey(date))
+        .snapshots()
+        .map((snapshot) {
+      final result = <String, Set<String>>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['status'] == BookingStatus.cancelled.jsonValue) continue;
+        final courtId = data['courtId'] as String;
+        final startTime = data['startTime'] as String;
+        result.putIfAbsent(courtId, () => {}).add(startTime);
+      }
+      return result;
+    });
+  }
+}

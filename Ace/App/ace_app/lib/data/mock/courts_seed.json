@@ -1,0 +1,107 @@
+[
+  {
+    "id": "court_1",
+    "name": "Court Philippe Chatrier",
+    "type": "outdoor",
+    "surface": "clay",
+    "location": "Stade Roland Garros, Paris 16e",
+    "pricePerHour": 25.0,
+    "rating": 4.8,
+    "imageUrl": "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800",
+    "description": "Le court le plus emblématique de Paris, avec une surface en terre battue parfaitement entretenue. Vue imprenable sur le stade.",
+    "amenities": ["Vestiaires", "Douches", "Parking", "Éclairage", "Café"],
+    "availableSlots": [
+      { "time": "08:00", "isAvailable": true },
+      { "time": "09:30", "isAvailable": true },
+      { "time": "11:00", "isAvailable": true },
+      { "time": "12:30", "isAvailable": false },
+      { "time": "14:00", "isAvailable": true },
+      { "time": "15:30", "isAvailable": false },
+      { "time": "16:00", "isAvailable": true },
+      { "time": "18:30", "isAvailable": true }
+    ]
+  },
+  {
+    "id": "court_2",
+    "name": "Court Central Indoor",
+    "type": "indoor",
+    "surface": "hard",
+    "location": "Paris Tennis Club, Paris 12e",
+    "pricePerHour": 35.0,
+    "rating": 4.9,
+    "imageUrl": "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800",
+    "description": "Court intérieur climatisé avec surface dure (résine) de haute qualité. Idéal toute l'année, même par mauvais temps.",
+    "amenities": ["Climatisation", "Vestiaires", "Douches", "Pro shop", "Restaurant"],
+    "availableSlots": [
+      { "time": "07:00", "isAvailable": true },
+      { "time": "08:30", "isAvailable": false },
+      { "time": "10:00", "isAvailable": true },
+      { "time": "12:30", "isAvailable": true },
+      { "time": "15:00", "isAvailable": true },
+      { "time": "17:30", "isAvailable": true },
+      { "time": "20:00", "isAvailable": true }
+    ]
+  },
+  {
+    "id": "court_3",
+    "name": "Court Arthur Ashe",
+    "type": "outdoor",
+    "surface": "hard",
+    "location": "Tennis Park Vincennes, Vincennes",
+    "pricePerHour": 20.0,
+    "rating": 4.6,
+    "imageUrl": "https://images.unsplash.com/photo-1551773188-0801da12ddae?w=800",
+    "description": "Court extérieur en surface dure, idéal pour les amateurs de jeu rapide. Situé en plein cœur du bois de Vincennes.",
+    "amenities": ["Parking", "Éclairage", "Vestiaires"],
+    "availableSlots": [
+      { "time": "08:00", "isAvailable": false },
+      { "time": "09:30", "isAvailable": true },
+      { "time": "11:00", "isAvailable": true },
+      { "time": "14:00", "isAvailable": true },
+      { "time": "15:30", "isAvailable": true },
+      { "time": "17:00", "isAvailable": false },
+      { "time": "18:30", "isAvailable": true }
+    ]
+  },
+  {
+    "id": "court_4",
+    "name": "Court Wimbledon",
+    "type": "outdoor",
+    "surface": "grass",
+    "location": "British Club Paris, Paris 16e",
+    "pricePerHour": 45.0,
+    "rating": 4.7,
+    "imageUrl": "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=800",
+    "description": "L'unique court en gazon naturel de Paris. Une expérience Wimbledon à portée de main, entretenu avec soin toute la saison.",
+    "amenities": ["Gazon naturel", "Vestiaires premium", "Bar anglais", "Parking privé"],
+    "availableSlots": [
+      { "time": "10:00", "isAvailable": true },
+      { "time": "11:30", "isAvailable": true },
+      { "time": "13:00", "isAvailable": false },
+      { "time": "14:30", "isAvailable": true },
+      { "time": "16:00", "isAvailable": false },
+      { "time": "17:30", "isAvailable": true }
+    ]
+  },
+  {
+    "id": "court_5",
+    "name": "Tennis Club Montmartre",
+    "type": "indoor",
+    "surface": "clay",
+    "location": "Montmartre, Paris 18e",
+    "pricePerHour": 28.0,
+    "rating": 4.5,
+    "imageUrl": "https://images.unsplash.com/photo-1531315396756-905d68d21b56?w=800",
+    "description": "Court en terre battue indoor, rare à Paris. Parfait pour travailler sa technique sur terre battue même en hiver.",
+    "amenities": ["Chauffage", "Vestiaires", "Cours avec moniteur disponibles"],
+    "availableSlots": [
+      { "time": "07:30", "isAvailable": true },
+      { "time": "09:00", "isAvailable": true },
+      { "time": "10:30", "isAvailable": false },
+      { "time": "13:00", "isAvailable": true },
+      { "time": "16:00", "isAvailable": true },
+      { "time": "19:00", "isAvailable": true },
+      { "time": "20:30", "isAvailable": false }
+    ]
+  }
+]

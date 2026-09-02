@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /courts/{courtId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // No Firebase Auth wired up yet, so this can't be scoped to "own
+    // bookings" via request.auth — tighten once auth exists.
+    match /bookings/{bookingId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if false;
+    }
+  }
+}

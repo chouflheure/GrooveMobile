@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "93012964636",
+    "project_id": "ace-tennis-41dc7",
+    "storage_bucket": "ace-tennis-41dc7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93012964636:android:123c700a8b1ef42b7936d9",
+        "android_client_info": {
+          "package_name": "com.courtconnect.ace_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOXtW863XCA9vQb9Me3MsjKj6f4otww_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93012964636:android:388d5f4c0ea8a2fc7936d9",
+        "android_client_info": {
+          "package_name": "com.example.ace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOXtW863XCA9vQb9Me3MsjKj6f4otww_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

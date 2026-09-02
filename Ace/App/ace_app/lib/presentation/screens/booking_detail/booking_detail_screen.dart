@@ -168,12 +168,13 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (_) => _PartnerPickerSheet(
         users: candidates,
         selectedId: _booking.partnerId,
         favorites: favorites,
         onSelect: (user) {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
           final updated = _booking.copyWith(
             partnerId: user.id,
             partnerName:

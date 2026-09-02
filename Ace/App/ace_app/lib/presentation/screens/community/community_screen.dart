@@ -115,10 +115,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (_) => _NewConversationSheet(
         users: candidates,
         onSelect: (user) {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
           _openChat(
             context,
             conversationId: vm.conversationIdWith(user.id),
@@ -264,7 +265,7 @@ class _AnnouncementsTab extends StatelessWidget {
           const _EmptyPlaceholder(
             icon: Icons.campaign_outlined,
             title: 'Aucune annonce',
-            subtitle: 'Sois le premier à proposer un créneau !',
+            subtitle: 'Proposez un créneau aux joueurs du club',
           )
         else
           ...announcements.map(

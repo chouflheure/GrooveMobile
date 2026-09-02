@@ -35,6 +35,7 @@ class BookingConfirmationSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.7,
         child: BookingConfirmationSheet(
@@ -123,7 +124,7 @@ class _BookingConfirmationSheetState
               children: [
                 Text('Réservation', style: AppTypography.headlineLarge),
                 GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
+                  onTap: () => Navigator.of(context, rootNavigator: true).pop(),
                   child: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
                 ),
               ],
@@ -164,7 +165,7 @@ class _BookingConfirmationSheetState
                           _selectedPartner =
                               _selectedPartner?.id == user.id ? null : user;
                         }),
-                        onViewProfile: () => Navigator.of(context).push(
+                        onViewProfile: () => Navigator.of(context, rootNavigator: true).push(
                           MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
                         ),
                       )),
@@ -207,7 +208,7 @@ class _BookingConfirmationSheetState
     try {
       await ref.read(profileViewModelProvider.notifier).addBooking(booking);
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

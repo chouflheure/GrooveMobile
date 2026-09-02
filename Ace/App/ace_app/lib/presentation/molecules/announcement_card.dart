@@ -85,6 +85,7 @@ class _Header extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (_) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -110,7 +111,7 @@ class _Header extends StatelessWidget {
               leading: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
               title: Text('Modifier', style: AppTypography.bodyMedium),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(context, rootNavigator: true).pop();
                 onEdit?.call();
               },
             ),
@@ -118,7 +119,7 @@ class _Header extends StatelessWidget {
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
               title: Text('Supprimer', style: AppTypography.bodyMedium.copyWith(color: Colors.red)),
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.of(context, rootNavigator: true).pop();
                 onDelete?.call();
               },
             ),

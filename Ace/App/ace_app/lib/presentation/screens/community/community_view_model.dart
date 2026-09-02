@@ -69,13 +69,13 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     final now = DateTime.now();
     return list.where((a) {
       final parts = a.time.split(':');
-      final matchDateTime = DateTime(
-        a.date.year,
-        a.date.month,
-        a.date.day,
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-      );
+      final hour = parts.length == 2 ? int.tryParse(parts[0]) : null;
+      final minute = parts.length == 2 ? int.tryParse(parts[1]) : null;
+      // No specific time set (e.g. "À définir") — keep the announcement
+      // visible until the end of its day instead of crashing on the parse.
+      final matchDateTime = (hour == null || minute == null)
+          ? DateTime(a.date.year, a.date.month, a.date.day, 23, 59)
+          : DateTime(a.date.year, a.date.month, a.date.day, hour, minute);
       return now.isBefore(matchDateTime.add(const Duration(hours: 2)));
     }).toList();
   }

@@ -5,6 +5,7 @@ import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../data/models/models.dart';
 import '../atoms/atoms.dart';
+import '../screens/announcement_detail/announcement_detail_screen.dart';
 
 class AnnouncementCard extends StatelessWidget {
   final AnnouncementModel announcement;
@@ -26,54 +27,79 @@ class AnnouncementCard extends StatelessWidget {
 
   bool get _isOwn => announcement.userId == currentUserId;
 
+  void _showDetail(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => AnnouncementDetailScreen(
+          announcement: announcement,
+          currentUserId: currentUserId,
+          onInterested: onInterested,
+          onUserTap: onUserTap,
+          onEdit: onEdit,
+          onDelete: onDelete,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isInterested = announcement.interestedUserIds.contains(currentUserId);
     final dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(announcement.date);
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Header(
-            announcement: announcement,
-            isOwn: _isOwn,
-            onUserTap: _isOwn ? null : onUserTap,
-            onEdit: onEdit,
-            onDelete: onDelete,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(announcement.message, style: AppTypography.bodyMedium),
-          const SizedBox(height: AppSpacing.md),
-          _Tags(announcement: announcement, dateStr: dateStr),
-          if (!_isOwn) ...[
-            const SizedBox(height: AppSpacing.md),
-            _Footer(
+    return GestureDetector(
+      onTap: () => _showDetail(context),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnnouncementHeader(
               announcement: announcement,
-              isInterested: isInterested,
-              onInterested: onInterested,
+              isOwn: _isOwn,
+              onUserTap: _isOwn ? null : onUserTap,
+              onEdit: onEdit,
+              onDelete: onDelete,
             ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              announcement.message,
+              style: AppTypography.bodyMedium,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AnnouncementTags(announcement: announcement, dateStr: dateStr),
+            if (!_isOwn) ...[
+              const SizedBox(height: AppSpacing.md),
+              AnnouncementFooter(
+                announcement: announcement,
+                isInterested: isInterested,
+                onInterested: onInterested,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
+class AnnouncementHeader extends StatelessWidget {
   final AnnouncementModel announcement;
   final bool isOwn;
   final VoidCallback? onUserTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
-  const _Header({
+  const AnnouncementHeader({
+    super.key,
     required this.announcement,
     this.isOwn = false,
     this.onUserTap,
@@ -169,11 +195,11 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Tags extends StatelessWidget {
+class AnnouncementTags extends StatelessWidget {
   final AnnouncementModel announcement;
   final String dateStr;
 
-  const _Tags({required this.announcement, required this.dateStr});
+  const AnnouncementTags({super.key, required this.announcement, required this.dateStr});
 
   @override
   Widget build(BuildContext context) {
@@ -228,12 +254,13 @@ class _TagChip extends StatelessWidget {
   }
 }
 
-class _Footer extends StatelessWidget {
+class AnnouncementFooter extends StatelessWidget {
   final AnnouncementModel announcement;
   final bool isInterested;
   final VoidCallback? onInterested;
 
-  const _Footer({
+  const AnnouncementFooter({
+    super.key,
     required this.announcement,
     required this.isInterested,
     this.onInterested,
@@ -249,7 +276,10 @@ class _Footer extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         Icon(Icons.group_outlined, size: 14, color: AppColors.textSecondary),
         const SizedBox(width: 4),
-        Text('${announcement.interestedCount} intéressés', style: AppTypography.bodySmall),
+        Text(
+          '${announcement.interestedCount} intéressé${announcement.interestedCount > 1 ? 's' : ''}',
+          style: AppTypography.bodySmall,
+        ),
         const Spacer(),
         GestureDetector(
           onTap: onInterested,

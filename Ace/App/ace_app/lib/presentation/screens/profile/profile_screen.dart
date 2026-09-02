@@ -242,7 +242,7 @@ class _BookingsSection extends StatelessWidget {
   const _BookingsSection({required this.state});
 
   void _openDetail(BuildContext context, BookingModel booking) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking)),
     );
   }
@@ -274,7 +274,7 @@ class _BookingsSection extends StatelessWidget {
             title: 'Historique des réservations',
             count: past.length,
             onViewMore: past.length > 3
-                ? () => Navigator.of(context).push(
+                ? () => Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(builder: (_) => AllBookingsScreen(bookings: past)),
                     )
                 : null,
@@ -343,7 +343,7 @@ class _SettingsSection extends ConsumerWidget {
             icon: Icons.notifications_outlined,
             label: 'Notifications',
             subtitle: 'Gérer mes notifications',
-            onTap: () => Navigator.of(context).push(
+            onTap: () => Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(
                 builder: (_) => const NotificationSettingsScreen(),
               ),
@@ -354,7 +354,7 @@ class _SettingsSection extends ConsumerWidget {
             icon: Icons.settings_outlined,
             label: 'Paramètres',
             subtitle: 'Modifier mon profil',
-            onTap: () => Navigator.of(context).push(
+            onTap: () => Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (_) => const EditProfileScreen()),
             ),
           ),

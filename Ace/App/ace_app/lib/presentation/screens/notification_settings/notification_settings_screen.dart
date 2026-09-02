@@ -56,7 +56,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         title: const Text('Notifications'),
         leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),
         ),
       ),

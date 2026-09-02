@@ -13,6 +13,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String otherUserId;
   final String otherUserName;
   final String otherUserInitials;
+  final String? titleOverride;
 
   const ChatScreen({
     super.key,
@@ -20,6 +21,7 @@ class ChatScreen extends ConsumerStatefulWidget {
     required this.otherUserId,
     required this.otherUserName,
     required this.otherUserInitials,
+    this.titleOverride,
   });
 
   @override
@@ -79,13 +81,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Row(
-          children: [
-            AppAvatar(initials: widget.otherUserInitials, size: 36),
-            const SizedBox(width: AppSpacing.sm),
-            Text(widget.otherUserName, style: AppTypography.headlineSmall),
-          ],
-        ),
+        title: widget.titleOverride != null
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.titleOverride!, style: AppTypography.headlineSmall),
+                  Text(widget.otherUserName, style: AppTypography.bodySmall),
+                ],
+              )
+            : Row(
+                children: [
+                  AppAvatar(initials: widget.otherUserInitials, size: 36),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(widget.otherUserName, style: AppTypography.headlineSmall),
+                ],
+              ),
       ),
       body: Column(
         children: [

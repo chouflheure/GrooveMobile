@@ -19,7 +19,7 @@ class AllBookingsScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
         title: Text('Historique des matchs', style: AppTypography.headlineLarge),
         leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
         ),
       ),
@@ -41,7 +41,7 @@ class AllBookingsScreen extends StatelessWidget {
               itemBuilder: (_, i) => BookingHistoryItem(
                 booking: bookings[i],
                 titleColor: AppColors.primary,
-                onTap: () => Navigator.of(context).push(
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: bookings[i])),
                 ),
               ),

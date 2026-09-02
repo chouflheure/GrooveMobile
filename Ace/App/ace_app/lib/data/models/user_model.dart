@@ -85,6 +85,10 @@ class UserModel extends Equatable {
   final SurfacePreferences surfaces;
   final UserRole role;
   final Map<String, bool> notifications;
+  // Denormalized reference to every booking this user is part of (as
+  // booker or invited partner) — the `bookings` collection (queried by
+  // `userId`) stays the source of truth, this is just a link on the profile.
+  final List<String> bookingIds;
 
   const UserModel({
     required this.id,
@@ -101,6 +105,7 @@ class UserModel extends Equatable {
     required this.surfaces,
     this.role = UserRole.player,
     this.notifications = const {},
+    this.bookingIds = const [],
   });
 
   /// Whether a given notification kind is on — defaults to off if the user
@@ -132,6 +137,7 @@ class UserModel extends Equatable {
     SurfacePreferences? surfaces,
     UserRole? role,
     Map<String, bool>? notifications,
+    List<String>? bookingIds,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -149,6 +155,7 @@ class UserModel extends Equatable {
       surfaces: surfaces ?? this.surfaces,
       role: role ?? this.role,
       notifications: notifications ?? this.notifications,
+      bookingIds: bookingIds ?? this.bookingIds,
     );
   }
 
@@ -175,6 +182,9 @@ class UserModel extends Equatable {
         notifications: json['notifications'] != null
             ? Map<String, bool>.from(json['notifications'] as Map)
             : const {},
+        bookingIds: json['bookingIds'] != null
+            ? List<String>.from(json['bookingIds'] as List)
+            : const [],
       );
 
   Map<String, dynamic> toJson() => {
@@ -192,6 +202,7 @@ class UserModel extends Equatable {
         'surfaces': surfaces.toJson(),
         'role': role.jsonValue,
         'notifications': notifications,
+        'bookingIds': bookingIds,
       };
 
   @override

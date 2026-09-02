@@ -47,7 +47,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         scrolledUnderElevation: 0,
         title: const Text('Détails réservation'),
         leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),
         ),
         actions: [
@@ -213,7 +213,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
     if (confirmed == true && mounted) {
       ref.read(profileViewModelProvider.notifier).cancelBooking(_booking.id);
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Réservation annulée.'),

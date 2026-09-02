@@ -18,6 +18,9 @@ class BookingRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('bookings');
 
+  CollectionReference<Map<String, dynamic>> get _usersCollection =>
+      _firestore.collection('users');
+
   static String _dateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
@@ -38,6 +41,18 @@ class BookingRepository {
         }
       }
       tx.set(docRef, _withDateKey(booking.copyWith(id: docRef.id)));
+
+      // Link the booking on both players' profiles — the `bookings`
+      // collection (queried by userId) is still the source of truth, this
+      // is just a reference kept on each user doc.
+      tx.update(_usersCollection.doc(booking.userId), {
+        'bookingIds': FieldValue.arrayUnion([docRef.id]),
+      });
+      if (booking.partnerId != null && booking.partnerId!.isNotEmpty) {
+        tx.update(_usersCollection.doc(booking.partnerId), {
+          'bookingIds': FieldValue.arrayUnion([docRef.id]),
+        });
+      }
     });
   }
 

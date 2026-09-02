@@ -49,7 +49,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         scrolledUnderElevation: 0,
         title: const Text('Modifier le profil'),
         leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),
         ),
       ),
@@ -130,7 +130,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             location: _locationController.text.trim(),
           ));
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profil mis à jour !'),

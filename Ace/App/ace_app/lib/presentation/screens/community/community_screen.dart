@@ -134,6 +134,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         otherUserId: author.id,
         otherUserName: author.name,
         otherUserInitials: author.initials,
+        titleOverride: 'Proposition de match',
       );
     }
   }
@@ -175,14 +176,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     required String otherUserId,
     required String otherUserName,
     required String otherUserInitials,
+    String? titleOverride,
   }) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => ChatScreen(
           conversationId: conversationId,
           otherUserId: otherUserId,
           otherUserName: otherUserName,
           otherUserInitials: otherUserInitials,
+          titleOverride: titleOverride,
         ),
       ),
     );
@@ -322,7 +325,7 @@ class _AnnouncementsTab extends StatelessWidget {
                   final user =
                       allUsers.where((u) => u.id == a.userId).firstOrNull;
                   if (user != null && user.id != currentUserId) {
-                    Navigator.of(context).push(
+                    Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
                     );
                   }

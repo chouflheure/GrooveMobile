@@ -63,20 +63,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       )
                     : _MessagesTab(
                         conversations: state.conversations,
-                        onTap: (conv) => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              conversation: conv,
-                              currentUserId: MockData.currentUser.id,
-                              currentUserName: MockData.currentUser.name,
-                              onSend: (content) => vm.sendMessage(
-                                conv.id,
-                                content,
-                                MockData.currentUser.id,
-                                MockData.currentUser.name,
-                              ),
-                            ),
-                          ),
+                        onTap: (conv) => _openChat(
+                          context,
+                          conversationId: conv.id,
+                          otherUserId: conv.participantIds
+                              .firstWhere((id) => id != MockData.currentUser.id),
+                          otherUserName:
+                              conv.otherParticipantName(MockData.currentUser.id),
+                          otherUserInitials:
+                              conv.otherParticipantInitials(MockData.currentUser.id),
                         ),
                       ),
           ),
@@ -100,28 +95,13 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           .firstOrNull;
       if (author == null) return;
 
-      final conv = vm.createConversation(
-        author,
-        MockData.currentUser.id,
-        MockData.currentUser.name,
-      );
-      if (conv == null || !mounted) return;
-
       vm.setTab(CommunityTab.messages);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            conversation: conv,
-            currentUserId: MockData.currentUser.id,
-            currentUserName: MockData.currentUser.name,
-            onSend: (content) => vm.sendMessage(
-              conv.id,
-              content,
-              MockData.currentUser.id,
-              MockData.currentUser.name,
-            ),
-          ),
-        ),
+      _openChat(
+        context,
+        conversationId: vm.conversationIdWith(author.id),
+        otherUserId: author.id,
+        otherUserName: author.name,
+        otherUserInitials: author.initials,
       );
     }
   }
@@ -138,30 +118,34 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       builder: (_) => _NewConversationSheet(
         users: candidates,
         onSelect: (user) {
-          final conv = vm.createConversation(
-            user,
-            MockData.currentUser.id,
-            MockData.currentUser.name,
+          Navigator.of(context).pop();
+          _openChat(
+            context,
+            conversationId: vm.conversationIdWith(user.id),
+            otherUserId: user.id,
+            otherUserName: user.name,
+            otherUserInitials: user.initials,
           );
-          if (conv != null && mounted) {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ChatScreen(
-                  conversation: conv,
-                  currentUserId: MockData.currentUser.id,
-                  currentUserName: MockData.currentUser.name,
-                  onSend: (content) => vm.sendMessage(
-                    conv.id,
-                    content,
-                    MockData.currentUser.id,
-                    MockData.currentUser.name,
-                  ),
-                ),
-              ),
-            );
-          }
         },
+      ),
+    );
+  }
+
+  void _openChat(
+    BuildContext context, {
+    required String conversationId,
+    required String otherUserId,
+    required String otherUserName,
+    required String otherUserInitials,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          conversationId: conversationId,
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+          otherUserInitials: otherUserInitials,
+        ),
       ),
     );
   }
@@ -276,29 +260,68 @@ class _AnnouncementsTab extends StatelessWidget {
       children: [
         _ProposeButton(onTap: onPropose),
         const SizedBox(height: AppSpacing.md),
-        ...announcements.map(
-          (a) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: AnnouncementCard(
-              announcement: a,
-              currentUserId: MockData.currentUser.id,
-              onInterested: () => onInterested(a),
-              onEdit: () => onEdit(a),
-              onDelete: () => onDelete(a.id),
-              onUserTap: () {
-                final user = MockData.allUsers
-                    .where((u) => u.id == a.userId)
-                    .firstOrNull;
-                if (user != null && user.id != MockData.currentUser.id) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
-                  );
-                }
-              },
+        if (announcements.isEmpty)
+          const _EmptyPlaceholder(
+            icon: Icons.campaign_outlined,
+            title: 'Aucune annonce',
+            subtitle: 'Sois le premier à proposer un créneau !',
+          )
+        else
+          ...announcements.map(
+            (a) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: AnnouncementCard(
+                announcement: a,
+                currentUserId: MockData.currentUser.id,
+                onInterested: () => onInterested(a),
+                onEdit: () => onEdit(a),
+                onDelete: () => onDelete(a.id),
+                onUserTap: () {
+                  final user = MockData.allUsers
+                      .where((u) => u.id == a.userId)
+                      .firstOrNull;
+                  if (user != null && user.id != MockData.currentUser.id) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
+                    );
+                  }
+                },
+              ),
             ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+class _EmptyPlaceholder extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _EmptyPlaceholder({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.huge),
+      child: Column(
+        children: [
+          Icon(icon, size: 64, color: AppColors.textTertiary),
+          const SizedBox(height: AppSpacing.md),
+          Text(title, style: AppTypography.headlineMedium),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -413,18 +436,11 @@ class _MessagesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (conversations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.chat_bubble_outline_rounded,
-              size: 64,
-              color: AppColors.textTertiary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text('Aucune conversation', style: AppTypography.headlineMedium),
-          ],
+      return const Center(
+        child: _EmptyPlaceholder(
+          icon: Icons.chat_bubble_outline_rounded,
+          title: 'Aucune conversation',
+          subtitle: 'Discute avec un joueur depuis une annonce, ou lance une\nnouvelle conversation avec le bouton en bas à droite.',
         ),
       );
     }

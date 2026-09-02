@@ -11,14 +11,14 @@ import '../../atoms/atoms.dart';
 import '../courts/courts_view_model.dart';
 
 class ProposeSlotModal extends ConsumerStatefulWidget {
-  final Function(AnnouncementModel) onConfirm;
+  final Future<void> Function(AnnouncementModel) onConfirm;
   final AnnouncementModel? initial;
 
   const ProposeSlotModal({super.key, required this.onConfirm, this.initial});
 
   static Future<void> show(
     BuildContext context, {
-    required Function(AnnouncementModel) onConfirm,
+    required Future<void> Function(AnnouncementModel) onConfirm,
     AnnouncementModel? initial,
   }) {
     return showModalBottomSheet(
@@ -40,6 +40,7 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
   late String? _selectedTime;
   int _durationMinutes = 90;
   late MatchType _matchType;
+  bool _isLoading = false;
 
   bool get _isEdit => widget.initial != null;
 
@@ -198,7 +199,8 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
             const SizedBox(height: AppSpacing.xxl),
             AppButton(
               label: _isEdit ? 'Mettre à jour' : "Publier l'annonce",
-              onTap: _isValid ? _confirm : null,
+              onTap: _isValid && !_isLoading ? _confirm : null,
+              isLoading: _isLoading,
             ),
           ],
         ),
@@ -206,12 +208,13 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
     );
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
+    setState(() => _isLoading = true);
     final courts = ref.read(courtsViewModelProvider).courts;
     final selectedCourt =
         courts.where((c) => c.id == _selectedCourtId).firstOrNull;
     final announcement = AnnouncementModel(
-      id: widget.initial?.id ?? 'ann_new_${DateTime.now().millisecondsSinceEpoch}',
+      id: widget.initial?.id ?? '',
       userId: MockData.currentUser.id,
       userName:
           '${MockData.currentUser.name.split(' ').first} ${MockData.currentUser.name.split(' ').last[0]}.',
@@ -227,8 +230,22 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
       interestedCount: 0,
       createdAt: DateTime.now(),
     );
-    widget.onConfirm(announcement);
-    Navigator.of(context).pop();
+
+    try {
+      await widget.onConfirm(announcement);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Une erreur est survenue, réessaie.'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }
 

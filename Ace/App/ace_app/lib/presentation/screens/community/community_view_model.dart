@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
+import '../../../data/repositories/broadcast_repository.dart';
+import '../../../data/repositories/message_repository.dart';
 
 enum CommunityTab { announcements, messages }
 
@@ -33,19 +37,31 @@ class CommunityState {
 }
 
 class CommunityViewModel extends StateNotifier<CommunityState> {
-  CommunityViewModel() : super(const CommunityState()) {
-    _load();
+  CommunityViewModel(this._broadcastRepository, this._messageRepository)
+      : super(const CommunityState()) {
+    state = state.copyWith(isLoading: true);
+    _announcementsSubscription = _broadcastRepository.watchAll().listen((list) {
+      state = state.copyWith(announcements: _filterExpired(list), isLoading: false);
+    });
+    _conversationsSubscription = _messageRepository
+        .watchConversationsForUser(
+      MockData.currentUser.id,
+      resolveName: _resolveName,
+    )
+        .listen((conversations) {
+      state = state.copyWith(conversations: conversations);
+    });
   }
 
-  void _load() {
-    state = state.copyWith(isLoading: true);
-    Future.delayed(const Duration(milliseconds: 200), () {
-      state = state.copyWith(
-        announcements: _filterExpired(MockData.announcements),
-        conversations: MockData.conversations,
-        isLoading: false,
-      );
-    });
+  final BroadcastRepository _broadcastRepository;
+  final MessageRepository _messageRepository;
+  late final StreamSubscription<List<AnnouncementModel>> _announcementsSubscription;
+  late final StreamSubscription<List<ConversationModel>> _conversationsSubscription;
+
+  String _resolveName(String userId) {
+    if (userId == MockData.currentUser.id) return MockData.currentUser.name;
+    return MockData.allUsers.where((u) => u.id == userId).firstOrNull?.name ??
+        'Utilisateur';
   }
 
   // Retire les annonces dont le créneau est passé depuis plus de 2h.
@@ -68,122 +84,68 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     state = state.copyWith(activeTab: tab);
   }
 
-  void toggleInterested(String announcementId, String userId) {
-    final updated = state.announcements.map((a) {
-      if (a.id != announcementId) return a;
-      final ids = List<String>.from(a.interestedUserIds);
-      if (ids.contains(userId)) {
-        ids.remove(userId);
-        return AnnouncementModel(
-          id: a.id,
-          userId: a.userId,
-          userName: a.userName,
-          userRanking: a.userRanking,
-          userImageUrl: a.userImageUrl,
-          courtId: a.courtId,
-          courtName: a.courtName,
-          date: a.date,
-          time: a.time,
-          message: a.message,
-          matchType: a.matchType,
-          level: a.level,
-          responsesCount: a.responsesCount,
-          interestedCount: a.interestedCount - 1,
-          createdAt: a.createdAt,
-          interestedUserIds: ids,
-        );
-      } else {
-        ids.add(userId);
-        return AnnouncementModel(
-          id: a.id,
-          userId: a.userId,
-          userName: a.userName,
-          userRanking: a.userRanking,
-          userImageUrl: a.userImageUrl,
-          courtId: a.courtId,
-          courtName: a.courtName,
-          date: a.date,
-          time: a.time,
-          message: a.message,
-          matchType: a.matchType,
-          level: a.level,
-          responsesCount: a.responsesCount,
-          interestedCount: a.interestedCount + 1,
-          createdAt: a.createdAt,
-          interestedUserIds: ids,
-        );
-      }
-    }).toList();
-    state = state.copyWith(announcements: updated);
+  Future<void> toggleInterested(String announcementId, String userId) {
+    final announcement =
+        state.announcements.where((a) => a.id == announcementId).firstOrNull;
+    if (announcement == null) return Future.value();
+    final isInterested = announcement.interestedUserIds.contains(userId);
+    return _broadcastRepository.setInterested(announcementId, userId, !isInterested);
   }
 
-  void addAnnouncement(AnnouncementModel announcement) {
-    state = state.copyWith(
-      announcements: [announcement, ...state.announcements],
-    );
+  Future<void> addAnnouncement(AnnouncementModel announcement) {
+    return _broadcastRepository.create(announcement);
   }
 
-  void updateAnnouncement(AnnouncementModel updated) {
-    state = state.copyWith(
-      announcements: state.announcements
-          .map((a) => a.id == updated.id ? updated : a)
-          .toList(),
-    );
+  Future<void> updateAnnouncement(AnnouncementModel updated) {
+    return _broadcastRepository.update(updated);
   }
 
-  void deleteAnnouncement(String id) {
-    state = state.copyWith(
-      announcements: state.announcements.where((a) => a.id != id).toList(),
-    );
+  Future<void> deleteAnnouncement(String id) {
+    return _broadcastRepository.delete(id);
   }
 
-  ConversationModel? createConversation(UserModel user, String currentUserId, String currentUserName) {
-    // Vérifie si une conversation existe déjà avec cet utilisateur
-    final existing = state.conversations.where((c) =>
-        c.participantIds.contains(user.id) &&
-        c.participantIds.contains(currentUserId)).firstOrNull;
-    if (existing != null) return existing;
+  /// Deterministic id — no Firestore round-trip needed just to know which
+  /// conversation two users share.
+  String conversationIdWith(String otherUserId) =>
+      MessageRepository.conversationIdFor(MockData.currentUser.id, otherUserId);
 
-    final conv = ConversationModel(
-      id: 'conv_${DateTime.now().millisecondsSinceEpoch}',
-      participantIds: [currentUserId, user.id],
-      participantNames: [currentUserName, user.name],
-      lastMessage: '',
-      lastMessageAt: DateTime.now(),
-    );
-    state = state.copyWith(conversations: [conv, ...state.conversations]);
-    return conv;
-  }
-
-  void sendMessage(String conversationId, String content, String senderId, String senderName) {
-    final msg = MessageModel(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+  Future<void> sendMessage(String conversationId, String otherUserId, String content) {
+    return _messageRepository.sendMessage(
       conversationId: conversationId,
-      senderId: senderId,
-      senderName: senderName,
+      participantIds: [MockData.currentUser.id, otherUserId],
+      senderId: MockData.currentUser.id,
+      senderName: MockData.currentUser.name,
       content: content,
-      createdAt: DateTime.now(),
-      isRead: false,
     );
+  }
 
-    final updated = state.conversations.map((c) {
-      if (c.id != conversationId) return c;
-      return ConversationModel(
-        id: c.id,
-        participantIds: c.participantIds,
-        participantNames: c.participantNames,
-        lastMessage: content,
-        lastMessageAt: DateTime.now(),
-        unreadCount: 0,
-        messages: [...c.messages, msg],
-      );
-    }).toList();
-
-    state = state.copyWith(conversations: updated);
+  @override
+  void dispose() {
+    _announcementsSubscription.cancel();
+    _conversationsSubscription.cancel();
+    super.dispose();
   }
 }
 
+final broadcastRepositoryProvider = Provider<BroadcastRepository>(
+  (_) => BroadcastRepository(),
+);
+
+final messageRepositoryProvider = Provider<MessageRepository>(
+  (_) => MessageRepository(),
+);
+
+final conversationMessagesProvider =
+    StreamProvider.family<List<MessageModel>, String>(
+  (ref, conversationId) => ref
+      .watch(messageRepositoryProvider)
+      .watchMessagesForConversation(conversationId),
+);
+
 final communityViewModelProvider =
     StateNotifierProvider<CommunityViewModel, CommunityState>(
-  (_) => CommunityViewModel(),
+  (ref) => CommunityViewModel(
+    ref.watch(broadcastRepositoryProvider),
+    ref.watch(messageRepositoryProvider),
+  ),
 );

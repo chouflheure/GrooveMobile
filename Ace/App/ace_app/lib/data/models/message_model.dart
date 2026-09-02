@@ -3,6 +3,10 @@ import 'package:equatable/equatable.dart';
 class MessageModel extends Equatable {
   final String id;
   final String conversationId;
+  // Denormalized onto every message so Firestore can answer "which
+  // conversations is this user part of" with a single `array-contains`
+  // query, without a separate conversations collection.
+  final List<String> participantIds;
   final String senderId;
   final String senderName;
   final String content;
@@ -12,6 +16,7 @@ class MessageModel extends Equatable {
   const MessageModel({
     required this.id,
     required this.conversationId,
+    required this.participantIds,
     required this.senderId,
     required this.senderName,
     required this.content,
@@ -19,10 +24,34 @@ class MessageModel extends Equatable {
     this.isRead = false,
   });
 
+  factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
+        id: json['id'] as String,
+        conversationId: json['conversationId'] as String,
+        participantIds: List<String>.from(json['participantIds'] as List),
+        senderId: json['senderId'] as String,
+        senderName: json['senderName'] as String,
+        content: json['content'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        isRead: json['isRead'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'conversationId': conversationId,
+        'participantIds': participantIds,
+        'senderId': senderId,
+        'senderName': senderName,
+        'content': content,
+        'createdAt': createdAt.toIso8601String(),
+        'isRead': isRead,
+      };
+
   @override
   List<Object?> get props => [id, conversationId, senderId];
 }
 
+/// Derived, read-only view of a conversation — built by grouping `messages`
+/// documents client-side, not stored as its own Firestore document.
 class ConversationModel extends Equatable {
   final String id;
   final List<String> participantIds;

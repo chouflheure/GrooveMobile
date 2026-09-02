@@ -15,5 +15,19 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if false;
     }
+
+    match /broadcasts/{broadcastId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /messages/{messageId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if false;
+    }
   }
 }

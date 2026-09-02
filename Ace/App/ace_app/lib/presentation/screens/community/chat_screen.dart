@@ -1,37 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import 'community_view_model.dart';
 
-class ChatScreen extends StatefulWidget {
-  final ConversationModel conversation;
-  final String currentUserId;
-  final String currentUserName;
-  final Function(String) onSend;
+class ChatScreen extends ConsumerStatefulWidget {
+  final String conversationId;
+  final String otherUserId;
+  final String otherUserName;
+  final String otherUserInitials;
 
   const ChatScreen({
     super.key,
-    required this.conversation,
-    required this.currentUserId,
-    required this.currentUserName,
-    required this.onSend,
+    required this.conversationId,
+    required this.otherUserId,
+    required this.otherUserName,
+    required this.otherUserInitials,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  late List<MessageModel> _messages;
 
   @override
   void initState() {
     super.initState();
-    _messages = List.from(widget.conversation.messages);
+    ref
+        .read(messageRepositoryProvider)
+        .markConversationRead(widget.conversationId, MockData.currentUser.id);
   }
 
   @override
@@ -41,23 +45,15 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _send() async {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
-    final msg = MessageModel(
-      id: 'msg_local_${DateTime.now().millisecondsSinceEpoch}',
-      conversationId: widget.conversation.id,
-      senderId: widget.currentUserId,
-      senderName: widget.currentUserName,
-      content: content,
-      createdAt: DateTime.now(),
-      isRead: false,
-    );
-    setState(() {
-      _messages.add(msg);
-      _controller.clear();
-    });
-    widget.onSend(content);
+    _controller.clear();
+    await ref.read(communityViewModelProvider.notifier).sendMessage(
+          widget.conversationId,
+          widget.otherUserId,
+          content,
+        );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -71,30 +67,40 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final otherName = widget.conversation.otherParticipantName(widget.currentUserId);
-    final otherInitials = widget.conversation.otherParticipantInitials(widget.currentUserId);
+    final messagesAsync = ref.watch(conversationMessagesProvider(widget.conversationId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Row(
           children: [
-            AppAvatar(initials: otherInitials, size: 36),
+            AppAvatar(initials: widget.otherUserInitials, size: 36),
             const SizedBox(width: AppSpacing.sm),
-            Text(otherName, style: AppTypography.headlineSmall),
+            Text(widget.otherUserName, style: AppTypography.headlineSmall),
           ],
         ),
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: _messages.length,
-              itemBuilder: (_, i) => _MessageBubble(
-                message: _messages[i],
-                isMe: _messages[i].senderId == widget.currentUserId,
+            child: messagesAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (_, _) => Center(
+                child: Text(
+                  "Impossible de charger la conversation.",
+                  style: AppTypography.bodySmall,
+                ),
+              ),
+              data: (messages) => ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: messages.length,
+                itemBuilder: (_, i) => _MessageBubble(
+                  message: messages[i],
+                  isMe: messages[i].senderId == MockData.currentUser.id,
+                ),
               ),
             ),
           ),

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
-import '../../data/mock/mock_data.dart';
+import '../screens/auth/auth_view_model.dart';
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends ConsumerWidget {
   final Widget child;
 
   const MainScaffold({super.key, required this.child});
@@ -24,9 +25,9 @@ class MainScaffold extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final isAdmin = MockData.currentUser.isAdmin;
+    final isAdmin = ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
     final tabs = isAdmin ? [..._tabs, _adminTab] : _tabs;
 
     int currentIndex = tabs.indexWhere((t) => location.startsWith(t.path));

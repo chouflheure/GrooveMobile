@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/court_repository.dart';
+import '../auth/auth_view_model.dart';
 import '../courts/courts_view_model.dart';
 
 class AdminBookingForm {
@@ -79,18 +80,19 @@ class AdminState {
 }
 
 class AdminViewModel extends StateNotifier<AdminState> {
-  AdminViewModel(this._courtRepository) : super(const AdminState()) {
-    _load();
+  AdminViewModel(this._courtRepository, List<UserModel> allUsers)
+      : super(const AdminState()) {
+    _load(allUsers);
   }
 
   final CourtRepository _courtRepository;
 
-  Future<void> _load() async {
+  Future<void> _load(List<UserModel> allUsers) async {
     state = state.copyWith(isLoading: true);
     final courts = await _courtRepository.fetchAll();
     state = state.copyWith(
       courts: courts,
-      users: MockData.allUsers.where((u) => !u.isAdmin).toList(),
+      users: allUsers.where((u) => !u.isAdmin).toList(),
       allBookings: MockData.bookings,
       isLoading: false,
     );
@@ -173,5 +175,8 @@ class AdminViewModel extends StateNotifier<AdminState> {
 
 final adminViewModelProvider =
     StateNotifierProvider<AdminViewModel, AdminState>(
-  (ref) => AdminViewModel(ref.watch(courtRepositoryProvider)),
+  (ref) => AdminViewModel(
+    ref.watch(courtRepositoryProvider),
+    ref.watch(allUsersProvider).valueOrNull ?? const [],
+  ),
 );

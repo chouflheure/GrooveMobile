@@ -6,10 +6,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/providers/favorites_provider.dart';
 import '../../atoms/atoms.dart';
+import '../auth/auth_view_model.dart';
 import '../courts/courts_view_model.dart';
 import '../profile/profile_view_model.dart';
 
@@ -34,8 +34,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_booking.date);
+    final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
     final partner = _booking.partnerId != null
-        ? MockData.allUsers.where((u) => u.id == _booking.partnerId).firstOrNull
+        ? allUsers.where((u) => u.id == _booking.partnerId).firstOrNull
         : null;
     final liveCourt = ref.watch(courtByIdProvider(_booking.courtId)).valueOrNull;
     final address = liveCourt?.location ?? _booking.courtAddress;
@@ -160,8 +161,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   void _showPartnerPicker() {
     final favorites = ref.read(favoritesProvider);
-    final candidates = MockData.allUsers
-        .where((u) => u.id != MockData.currentUser.id && !u.isAdmin)
+    final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
+    final candidates = (ref.read(allUsersProvider).valueOrNull ?? const [])
+        .where((u) => u.id != currentUserId && !u.isAdmin)
         .toList();
 
     showModalBottomSheet(

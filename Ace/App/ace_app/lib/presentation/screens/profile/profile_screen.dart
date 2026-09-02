@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../auth/auth_view_model.dart';
 import '../booking_detail/booking_detail_screen.dart';
 import '../edit_profile/edit_profile_screen.dart';
 import '../notification_settings/notification_settings_screen.dart';
@@ -23,22 +25,39 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(profileViewModelProvider);
+    final userAsync = ref.watch(currentUserProvider);
+    final user = userAsync.valueOrNull;
 
-    if (state.isLoading) {
+    if (userAsync.isLoading && !userAsync.hasValue) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: _GuestProfilePrompt(),
+      );
+    }
+
+    final state = ref.watch(profileViewModelProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          _ProfileHeader(state: state),
-          SliverToBoxAdapter(child: _StatsGrid(state: state)),
+          _ProfileHeader(user: user),
+          SliverToBoxAdapter(child: _StatsGrid(user: user)),
           SliverToBoxAdapter(
-            child: _BookingsSection(state: state),
+            child: state.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(AppSpacing.xxl),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  )
+                : _BookingsSection(state: state),
           ),
           SliverToBoxAdapter(child: _SettingsSection()),
           SliverToBoxAdapter(
@@ -52,13 +71,47 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
-  final ProfileState state;
-  const _ProfileHeader({required this.state});
+class _GuestProfilePrompt extends StatelessWidget {
+  const _GuestProfilePrompt();
 
   @override
   Widget build(BuildContext context) {
-    final user = state.user;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.person_outline_rounded, size: 64, color: AppColors.textTertiary),
+            const SizedBox(height: AppSpacing.md),
+            Text('Pas encore connecté', style: AppTypography.headlineMedium),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Connecte-toi pour voir ton profil, tes statistiques et tes réservations.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                label: 'Se connecter',
+                onTap: () => context.go('/login'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  final UserModel user;
+  const _ProfileHeader({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 230,
       pinned: true,
@@ -158,12 +211,12 @@ class _InfoPill extends StatelessWidget {
 }
 
 class _StatsGrid extends StatelessWidget {
-  final ProfileState state;
-  const _StatsGrid({required this.state});
+  final UserModel user;
+  const _StatsGrid({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final stats = state.user.stats;
+    final stats = user.stats;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
       child: GridView(
@@ -279,9 +332,9 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
+class _SettingsSection extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
       child: Column(
@@ -311,7 +364,10 @@ class _SettingsSection extends StatelessWidget {
             label: 'Déconnexion',
             subtitle: 'Se déconnecter du compte',
             color: AppColors.error,
-            onTap: () {},
+            onTap: () async {
+              await ref.read(authViewModelProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),

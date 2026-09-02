@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/broadcast_repository.dart';
 import '../../../data/repositories/message_repository.dart';
+import '../auth/auth_view_model.dart';
 
 enum CommunityTab { announcements, messages }
 
@@ -12,12 +12,14 @@ class CommunityState {
   final CommunityTab activeTab;
   final List<AnnouncementModel> announcements;
   final List<ConversationModel> conversations;
+  final List<UserModel> allUsers;
   final bool isLoading;
 
   const CommunityState({
     this.activeTab = CommunityTab.announcements,
     this.announcements = const [],
     this.conversations = const [],
+    this.allUsers = const [],
     this.isLoading = false,
   });
 
@@ -25,44 +27,47 @@ class CommunityState {
     CommunityTab? activeTab,
     List<AnnouncementModel>? announcements,
     List<ConversationModel>? conversations,
+    List<UserModel>? allUsers,
     bool? isLoading,
   }) {
     return CommunityState(
       activeTab: activeTab ?? this.activeTab,
       announcements: announcements ?? this.announcements,
       conversations: conversations ?? this.conversations,
+      allUsers: allUsers ?? this.allUsers,
       isLoading: isLoading ?? this.isLoading,
     );
   }
 }
 
 class CommunityViewModel extends StateNotifier<CommunityState> {
-  CommunityViewModel(this._broadcastRepository, this._messageRepository)
-      : super(const CommunityState()) {
+  CommunityViewModel(
+    this._broadcastRepository,
+    this._messageRepository,
+    List<UserModel> allUsers,
+    this._currentUserId,
+  ) : super(CommunityState(allUsers: allUsers)) {
     state = state.copyWith(isLoading: true);
     _announcementsSubscription = _broadcastRepository.watchAll().listen((list) {
       state = state.copyWith(announcements: _filterExpired(list), isLoading: false);
     });
-    _conversationsSubscription = _messageRepository
-        .watchConversationsForUser(
-      MockData.currentUser.id,
-      resolveName: _resolveName,
-    )
-        .listen((conversations) {
-      state = state.copyWith(conversations: conversations);
-    });
+    if (_currentUserId != null) {
+      _conversationsSubscription = _messageRepository
+          .watchConversationsForUser(_currentUserId, resolveName: _resolveName)
+          .listen((conversations) {
+        state = state.copyWith(conversations: conversations);
+      });
+    }
   }
 
   final BroadcastRepository _broadcastRepository;
   final MessageRepository _messageRepository;
+  final String? _currentUserId;
   late final StreamSubscription<List<AnnouncementModel>> _announcementsSubscription;
-  late final StreamSubscription<List<ConversationModel>> _conversationsSubscription;
+  StreamSubscription<List<ConversationModel>>? _conversationsSubscription;
 
-  String _resolveName(String userId) {
-    if (userId == MockData.currentUser.id) return MockData.currentUser.name;
-    return MockData.allUsers.where((u) => u.id == userId).firstOrNull?.name ??
-        'Utilisateur';
-  }
+  String _resolveName(String userId) =>
+      state.allUsers.where((u) => u.id == userId).firstOrNull?.name ?? 'Utilisateur';
 
   // Retire les annonces dont le créneau est passé depuis plus de 2h.
   List<AnnouncementModel> _filterExpired(List<AnnouncementModel> list) {
@@ -106,15 +111,23 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
 
   /// Deterministic id — no Firestore round-trip needed just to know which
   /// conversation two users share.
-  String conversationIdWith(String otherUserId) =>
-      MessageRepository.conversationIdFor(MockData.currentUser.id, otherUserId);
+  String? conversationIdWith(String otherUserId) => _currentUserId == null
+      ? null
+      : MessageRepository.conversationIdFor(_currentUserId, otherUserId);
 
-  Future<void> sendMessage(String conversationId, String otherUserId, String content) {
+  Future<void> sendMessage(
+    String conversationId,
+    String otherUserId,
+    String senderName,
+    String content,
+  ) {
+    final userId = _currentUserId;
+    if (userId == null) return Future.value();
     return _messageRepository.sendMessage(
       conversationId: conversationId,
-      participantIds: [MockData.currentUser.id, otherUserId],
-      senderId: MockData.currentUser.id,
-      senderName: MockData.currentUser.name,
+      participantIds: [userId, otherUserId],
+      senderId: userId,
+      senderName: senderName,
       content: content,
     );
   }
@@ -122,7 +135,7 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
   @override
   void dispose() {
     _announcementsSubscription.cancel();
-    _conversationsSubscription.cancel();
+    _conversationsSubscription?.cancel();
     super.dispose();
   }
 }
@@ -143,9 +156,14 @@ final conversationMessagesProvider =
 );
 
 final communityViewModelProvider =
-    StateNotifierProvider<CommunityViewModel, CommunityState>(
-  (ref) => CommunityViewModel(
+    StateNotifierProvider<CommunityViewModel, CommunityState>((ref) {
+  final userId =
+      ref.watch(currentUserProvider.select((async) => async.valueOrNull?.id));
+  final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
+  return CommunityViewModel(
     ref.watch(broadcastRepositoryProvider),
     ref.watch(messageRepositoryProvider),
-  ),
-);
+    allUsers,
+    userId,
+  );
+});

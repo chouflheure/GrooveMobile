@@ -18,7 +18,10 @@ Index composites requis (déjà dans `firestore.indexes.json`, déployés) :
 - `messages` : `conversationId ASC, createdAt ASC`
 - `messages` : `participantIds ARRAY_CONTAINS, createdAt DESC`
 
-Règles Firestore (`firestore.rules`) : lecture publique sur les deux collections, écriture ouverte (pas d'auth Firebase pour l'instant — à restreindre plus tard comme pour `bookings`).
+Règles Firestore (`firestore.rules`) : lecture publique sur les deux collections, écriture ouverte (contrairement à `users`, pas encore scopée par `request.auth` — à durcir plus tard).
+
+## Auth / invités
+Poster une annonce, "Je suis dispo", envoyer un message et lancer une conversation nécessitent un compte (voir `_requireAuth` dans `community_screen.dart`, qui redirige vers `/login` si `currentUserProvider` est `null`). Parcourir les annonces reste possible sans compte. Le tab Messages affiche un message "Connecte-toi pour discuter" pour les invités.
 
 ## Tab Annonces
 - Feed des `AnnouncementModel` (stream `BroadcastRepository.watchAll()`), triées par `createdAt desc`, filtrées côté client (créneau passé depuis +2h retiré)
@@ -35,5 +38,5 @@ Règles Firestore (`firestore.rules`) : lecture publique sur les deux collection
 - Un joueur ne peut pas être intéressé deux fois (toggle, `arrayUnion`/`arrayRemove`)
 - `ProposeSlotModal` requiert terrain + message (validation `isValid`)
 
-## Limite connue
-Les noms affichés (auteur d'annonce, participants de conversation) sont résolus via `MockData.allUsers`/`MockData.currentUser` — il n'y a pas encore de collection Firestore `users`. Si un jour elle existe, remplacer `_resolveName` dans `CommunityViewModel` par un vrai lookup Firestore.
+## Utilisateurs
+Les noms affichés (auteur d'annonce, participants de conversation) sont résolus via `allUsersProvider` (collection Firestore `users`, partagée avec le reste de l'app — voir `screens/auth/auth_view_model.dart`). Plus de `MockData.allUsers`.

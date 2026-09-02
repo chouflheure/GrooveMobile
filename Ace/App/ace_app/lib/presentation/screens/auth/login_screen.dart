@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import 'auth_view_model.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -25,15 +26,30 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
+    final success = await ref.read(authViewModelProvider.notifier).signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    context.go('/courts');
+    if (success) {
+      context.go('/courts');
+    } else {
+      final error = ref.read(authViewModelProvider).errorMessage;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(authViewModelProvider).isLoading;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: Column(
@@ -107,27 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _PrimaryButton(
                       label: 'Se connecter',
                       onTap: _login,
-                      isLoading: _isLoading,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    _OrDivider(),
-                    const SizedBox(height: AppSpacing.lg),
-                    _SocialButton(
-                      label: 'Continuer avec Google',
-                      onTap: _login,
-                      icon: _GoogleIcon(),
-                      backgroundColor: AppColors.surface,
-                      textColor: AppColors.textPrimary,
-                      borderColor: const Color(0xFF4285F4),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _SocialButton(
-                      label: 'Continuer avec Apple',
-                      onTap: _login,
-                      icon: const Icon(Icons.apple_rounded,
-                          color: Colors.white, size: 20),
-                      backgroundColor: AppColors.textPrimary,
-                      textColor: Colors.white,
+                      isLoading: isLoading,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                   ],
@@ -152,9 +148,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       .copyWith(color: AppColors.textSecondary),
                 ),
                 GestureDetector(
-                  onTap: () => context.push('/register'),
+                  onTap: () => context.go('/courts'),
                   child: Text(
-                    "S'inscrire",
+                    "Essayer l'app",
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -329,94 +325,3 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _OrDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(
-            'ou',
-            style:
-                AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
-          ),
-        ),
-        const Expanded(child: Divider()),
-      ],
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final Widget icon;
-  final Color backgroundColor;
-  final Color textColor;
-  final Color? borderColor;
-
-  const _SocialButton({
-    required this.label,
-    required this.onTap,
-    required this.icon,
-    required this.backgroundColor,
-    required this.textColor,
-    this.borderColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          side: BorderSide(color: borderColor ?? Colors.transparent, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              label,
-              style: AppTypography.labelLarge.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GoogleIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: const BoxDecoration(shape: BoxShape.circle),
-      child: const Text(
-        'G',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF4285F4),
-          height: 1.3,
-        ),
-      ),
-    );
-  }
-}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
@@ -9,6 +10,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../auth/auth_view_model.dart';
 import '../booking_confirmation/booking_confirmation_sheet.dart';
 import '../courts/courts_view_model.dart';
 
@@ -61,6 +63,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
             .valueOrNull ??
         const <String>{};
     final court = _withBookedSlots(template, booked);
+    final isAuthenticated = ref.watch(currentUserProvider).valueOrNull != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -125,7 +128,10 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       bottomNavigationBar: _BottomBar(
         court: court,
         selectedSlot: _selectedSlot,
-        onBook: () => _openBooking(context, court),
+        isAuthenticated: isAuthenticated,
+        onBook: () => isAuthenticated
+            ? _openBooking(context, court)
+            : context.go('/login'),
       ),
     );
   }
@@ -538,22 +544,26 @@ class _SlotsSection extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   final CourtModel court;
   final String? selectedSlot;
+  final bool isAuthenticated;
   final VoidCallback onBook;
 
   const _BottomBar({
     required this.court,
     required this.selectedSlot,
+    required this.isAuthenticated,
     required this.onBook,
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = switch ((selectedSlot, court.pricePerHour > 0)) {
-      (null, _) => 'Sélectionner un créneau',
-      (final slot?, true) =>
-        'Réserver à $slot — ${(court.pricePerHour * 1.5).toInt()}€',
-      (final slot?, false) => 'Réserver à $slot',
-    };
+    final label = !isAuthenticated
+        ? 'Se connecter pour réserver'
+        : switch ((selectedSlot, court.pricePerHour > 0)) {
+            (null, _) => 'Sélectionner un créneau',
+            (final slot?, true) =>
+              'Réserver à $slot — ${(court.pricePerHour * 1.5).toInt()}€',
+            (final slot?, false) => 'Réserver à $slot',
+          };
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxl,
@@ -567,7 +577,7 @@ class _BottomBar extends StatelessWidget {
       ),
       child: AppButton(
         label: label,
-        onTap: selectedSlot != null ? onBook : null,
+        onTap: (isAuthenticated && selectedSlot == null) ? null : onBook,
       ),
     );
   }

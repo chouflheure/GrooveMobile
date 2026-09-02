@@ -5,9 +5,9 @@
 - `admin_view_model.dart` — State + logique de création de réservations
 
 ## Accès
-- Visible uniquement si `MockData.currentUser.role == UserRole.admin`
+- Visible uniquement si `currentUserProvider` (Firestore `users/{uid}`, voir `screens/auth/auth_view_model.dart`) a `role == UserRole.admin`
 - Tab "Admin" apparaît dans le `MainScaffold` uniquement pour les admins
-- Changer `MockData.currentUser` vers `adminUser` pour tester la vue admin
+- Pour tester : mettre `role: "admin"` sur le document Firestore de l'utilisateur voulu
 
 ## Fonctionnement
 1. **Stats row** : nombre de terrains, total réservations, réservations confirmées
@@ -25,7 +25,11 @@
 - `isValid` : courtId + date + startTime + au moins 1 joueur invité
 - `invitedUserIds` : multi-select avec toggle
 
-## Migration Firestore
-- Remplacer `MockData.courts` et `MockData.allUsers` par des Repository
-- `createBooking()` : écrire dans `bookings/` via `BookingRepository.create()`
+## Firestore (branché)
+- `courts` et `users` viennent de leurs Repository respectifs (`CourtRepository`, `UserRepository`)
+- `allBookings` vient encore de `MockData.bookings` (seed statique) — pas encore migré vers une requête Firestore globale
+- `createBooking()` écrit dans `bookings/` via `BookingRepository.create()`
+
+## Reste à faire
+- Migrer `allBookings` vers une vraie requête Firestore (toutes les réservations, pas le seed mock)
 - Envoyer notifications push aux joueurs invités via Firebase Messaging

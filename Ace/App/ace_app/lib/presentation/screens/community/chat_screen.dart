@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import '../auth/auth_view_model.dart';
 import 'community_view_model.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -33,9 +33,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    ref
-        .read(messageRepositoryProvider)
-        .markConversationRead(widget.conversationId, MockData.currentUser.id);
+    final userId = ref.read(currentUserProvider).valueOrNull?.id;
+    if (userId != null) {
+      ref
+          .read(messageRepositoryProvider)
+          .markConversationRead(widget.conversationId, userId);
+    }
   }
 
   @override
@@ -48,10 +51,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _send() async {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
+    final senderName = ref.read(currentUserProvider).valueOrNull?.name;
+    if (senderName == null) return;
     _controller.clear();
     await ref.read(communityViewModelProvider.notifier).sendMessage(
           widget.conversationId,
           widget.otherUserId,
+          senderName,
           content,
         );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,6 +74,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(conversationMessagesProvider(widget.conversationId));
+    final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -99,7 +106,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (_, i) => _MessageBubble(
                   message: messages[i],
-                  isMe: messages[i].senderId == MockData.currentUser.id,
+                  isMe: messages[i].senderId == currentUserId,
                 ),
               ),
             ),

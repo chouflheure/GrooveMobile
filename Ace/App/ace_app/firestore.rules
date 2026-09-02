@@ -29,5 +29,14 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if false;
     }
+
+    // Real Firebase Auth is wired up, so unlike the collections above this
+    // can (and should) be scoped to "only the owner can write their doc".
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
   }
 }

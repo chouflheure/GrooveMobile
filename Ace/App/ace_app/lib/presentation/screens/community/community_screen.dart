@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../auth/auth_view_model.dart';
 import 'community_view_model.dart';
 import 'chat_screen.dart';
 import 'propose_slot_modal.dart';
@@ -24,13 +25,17 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(communityViewModelProvider);
     final vm = ref.read(communityViewModelProvider.notifier);
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
     final isMessages = state.activeTab == CommunityTab.messages;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: isMessages
           ? FloatingActionButton(
-              onPressed: () => _showNewConversationPicker(vm),
+              onPressed: () => _requireAuth(
+                currentUser,
+                () => _showNewConversationPicker(vm, currentUser!, state.allUsers),
+              ),
               backgroundColor: AppColors.primary,
               child: const Icon(Icons.edit_rounded, color: Colors.white),
             )
@@ -49,56 +54,83 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 : state.activeTab == CommunityTab.announcements
                     ? _AnnouncementsTab(
                         announcements: state.announcements,
-                        onInterested: (a) => _onInterested(context, vm, a),
+                        allUsers: state.allUsers,
+                        currentUserId: currentUser?.id,
+                        onInterested: (a) => _requireAuth(
+                          currentUser,
+                          () => _onInterested(vm, currentUser!, state.allUsers, a),
+                        ),
                         onEdit: (a) => ProposeSlotModal.show(
                           context,
                           initial: a,
                           onConfirm: vm.updateAnnouncement,
                         ),
                         onDelete: (id) => vm.deleteAnnouncement(id),
-                        onPropose: () => ProposeSlotModal.show(
-                          context,
-                          onConfirm: vm.addAnnouncement,
+                        onPropose: () => _requireAuth(
+                          currentUser,
+                          () => ProposeSlotModal.show(
+                            context,
+                            onConfirm: vm.addAnnouncement,
+                          ),
                         ),
                       )
-                    : _MessagesTab(
-                        conversations: state.conversations,
-                        onTap: (conv) => _openChat(
-                          context,
-                          conversationId: conv.id,
-                          otherUserId: conv.participantIds
-                              .firstWhere((id) => id != MockData.currentUser.id),
-                          otherUserName:
-                              conv.otherParticipantName(MockData.currentUser.id),
-                          otherUserInitials:
-                              conv.otherParticipantInitials(MockData.currentUser.id),
-                        ),
-                      ),
+                    : currentUser == null
+                        ? const _EmptyPlaceholder(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            title: 'Connecte-toi pour discuter',
+                            subtitle:
+                                'La messagerie est réservée aux joueurs connectés.',
+                          )
+                        : _MessagesTab(
+                            conversations: state.conversations,
+                            currentUserId: currentUser.id,
+                            onTap: (conv) => _openChat(
+                              context,
+                              conversationId: conv.id,
+                              otherUserId: conv.participantIds
+                                  .firstWhere((id) => id != currentUser.id),
+                              otherUserName:
+                                  conv.otherParticipantName(currentUser.id),
+                              otherUserInitials:
+                                  conv.otherParticipantInitials(currentUser.id),
+                            ),
+                          ),
           ),
         ],
       ),
     );
   }
 
+  /// Guards an action behind login — guests get sent to `/login` instead.
+  void _requireAuth(UserModel? currentUser, VoidCallback action) {
+    if (currentUser == null) {
+      context.go('/login');
+    } else {
+      action();
+    }
+  }
+
   void _onInterested(
-    BuildContext context,
     CommunityViewModel vm,
+    UserModel currentUser,
+    List<UserModel> allUsers,
     AnnouncementModel announcement,
   ) {
     final alreadyInterested =
-        announcement.interestedUserIds.contains(MockData.currentUser.id);
-    vm.toggleInterested(announcement.id, MockData.currentUser.id);
+        announcement.interestedUserIds.contains(currentUser.id);
+    vm.toggleInterested(announcement.id, currentUser.id);
 
     if (!alreadyInterested) {
-      final author = MockData.allUsers
-          .where((u) => u.id == announcement.userId)
-          .firstOrNull;
+      final author =
+          allUsers.where((u) => u.id == announcement.userId).firstOrNull;
       if (author == null) return;
 
       vm.setTab(CommunityTab.messages);
+      final conversationId = vm.conversationIdWith(author.id);
+      if (conversationId == null) return;
       _openChat(
         context,
-        conversationId: vm.conversationIdWith(author.id),
+        conversationId: conversationId,
         otherUserId: author.id,
         otherUserName: author.name,
         otherUserInitials: author.initials,
@@ -106,10 +138,13 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     }
   }
 
-  void _showNewConversationPicker(CommunityViewModel vm) {
-    final candidates = MockData.allUsers
-        .where((u) => u.id != MockData.currentUser.id && !u.isAdmin)
-        .toList();
+  void _showNewConversationPicker(
+    CommunityViewModel vm,
+    UserModel currentUser,
+    List<UserModel> allUsers,
+  ) {
+    final candidates =
+        allUsers.where((u) => u.id != currentUser.id && !u.isAdmin).toList();
 
     showModalBottomSheet(
       context: context,
@@ -120,9 +155,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         users: candidates,
         onSelect: (user) {
           Navigator.of(context, rootNavigator: true).pop();
+          final conversationId = vm.conversationIdWith(user.id);
+          if (conversationId == null) return;
           _openChat(
             context,
-            conversationId: vm.conversationIdWith(user.id),
+            conversationId: conversationId,
             otherUserId: user.id,
             otherUserName: user.name,
             otherUserInitials: user.initials,
@@ -241,6 +278,8 @@ class _Tab extends StatelessWidget {
 
 class _AnnouncementsTab extends StatelessWidget {
   final List<AnnouncementModel> announcements;
+  final List<UserModel> allUsers;
+  final String? currentUserId;
   final ValueChanged<AnnouncementModel> onInterested;
   final ValueChanged<AnnouncementModel> onEdit;
   final ValueChanged<String> onDelete;
@@ -248,6 +287,8 @@ class _AnnouncementsTab extends StatelessWidget {
 
   const _AnnouncementsTab({
     required this.announcements,
+    required this.allUsers,
+    required this.currentUserId,
     required this.onInterested,
     required this.onEdit,
     required this.onDelete,
@@ -273,15 +314,14 @@ class _AnnouncementsTab extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: AnnouncementCard(
                 announcement: a,
-                currentUserId: MockData.currentUser.id,
+                currentUserId: currentUserId ?? '',
                 onInterested: () => onInterested(a),
                 onEdit: () => onEdit(a),
                 onDelete: () => onDelete(a.id),
                 onUserTap: () {
-                  final user = MockData.allUsers
-                      .where((u) => u.id == a.userId)
-                      .firstOrNull;
-                  if (user != null && user.id != MockData.currentUser.id) {
+                  final user =
+                      allUsers.where((u) => u.id == a.userId).firstOrNull;
+                  if (user != null && user.id != currentUserId) {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
                     );
@@ -430,9 +470,14 @@ class _NewConversationSheet extends StatelessWidget {
 
 class _MessagesTab extends StatelessWidget {
   final List<ConversationModel> conversations;
+  final String currentUserId;
   final ValueChanged<ConversationModel> onTap;
 
-  const _MessagesTab({required this.conversations, required this.onTap});
+  const _MessagesTab({
+    required this.conversations,
+    required this.currentUserId,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -450,7 +495,7 @@ class _MessagesTab extends StatelessWidget {
       separatorBuilder: (_, _) => const Divider(height: 1, indent: 80),
       itemBuilder: (_, i) => ConversationItem(
         conversation: conversations[i],
-        currentUserId: MockData.currentUser.id,
+        currentUserId: currentUserId,
         onTap: () => onTap(conversations[i]),
       ),
     );

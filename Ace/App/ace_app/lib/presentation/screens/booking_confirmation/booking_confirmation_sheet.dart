@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/providers/favorites_provider.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../atoms/atoms.dart';
+import '../auth/auth_view_model.dart';
 import '../profile/profile_view_model.dart';
 import '../user_profile/user_profile_screen.dart';
 
@@ -73,8 +73,9 @@ class _BookingConfirmationSheetState
 
   List<UserModel> get _filteredPartners {
     final query = _searchQuery.toLowerCase().trim();
-    return MockData.allUsers
-        .where((u) => u.id != MockData.currentUser.id && !u.isAdmin)
+    final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
+    return (ref.watch(allUsersProvider).valueOrNull ?? const [])
+        .where((u) => u.id != currentUserId && !u.isAdmin)
         .where((u) =>
             query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
@@ -186,13 +187,15 @@ class _BookingConfirmationSheetState
 
   Future<void> _confirm() async {
     if (_selectedPartner == null) return;
+    final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
+    if (currentUserId == null) return;
     setState(() => _isLoading = true);
 
     final booking = BookingModel(
       id: '',
       courtId: widget.court.id,
       courtName: widget.court.name,
-      userId: MockData.currentUser.id,
+      userId: currentUserId,
       partnerId: _selectedPartner!.id,
       partnerName:
           '${_selectedPartner!.name.split(' ').first} ${_selectedPartner!.name.split(' ').last[0]}.',

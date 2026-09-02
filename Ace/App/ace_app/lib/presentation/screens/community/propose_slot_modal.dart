@@ -5,9 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import '../auth/auth_view_model.dart';
 import '../courts/courts_view_model.dart';
 
 class ProposeSlotModal extends ConsumerStatefulWidget {
@@ -237,16 +237,21 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
   }
 
   Future<void> _confirm() async {
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    if (currentUser == null) return;
     setState(() => _isLoading = true);
     final courts = ref.read(courtsViewModelProvider).courts;
     final selectedCourt =
         courts.where((c) => c.id == _selectedCourtId).firstOrNull;
+    final nameParts = currentUser.name.trim().split(' ');
+    final displayName = nameParts.length >= 2
+        ? '${nameParts.first} ${nameParts.last[0]}.'
+        : currentUser.name;
     final announcement = AnnouncementModel(
       id: widget.initial?.id ?? '',
-      userId: MockData.currentUser.id,
-      userName:
-          '${MockData.currentUser.name.split(' ').first} ${MockData.currentUser.name.split(' ').last[0]}.',
-      userRanking: MockData.currentUser.ranking,
+      userId: currentUser.id,
+      userName: displayName,
+      userRanking: currentUser.ranking,
       courtId: selectedCourt?.id ?? '',
       courtName: selectedCourt?.name ??
           (_noSpecificCourt ? 'Terrain, on verra' : 'Terrain à définir'),
@@ -254,7 +259,7 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
       time: _selectedTime ?? 'À définir',
       message: _messageController.text.trim(),
       matchType: _matchType,
-      level: MockData.currentUser.ranking,
+      level: currentUser.ranking,
       responsesCount: 0,
       interestedCount: 0,
       createdAt: DateTime.now(),

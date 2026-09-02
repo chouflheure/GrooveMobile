@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
-import '../../../data/mock/mock_data.dart';
+import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import '../auth/auth_view_model.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
@@ -22,7 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final user = MockData.currentUser;
+    final user = ref.read(currentUserProvider).value!;
     _nameController = TextEditingController(text: user.name);
     _emailController = TextEditingController(text: user.email);
     _phoneController = TextEditingController(text: user.phone ?? '');
@@ -40,6 +42,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider).value!;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -57,7 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Stack(
               children: [
                 AppAvatar(
-                  initials: MockData.currentUser.initials,
+                  initials: user.initials,
                   size: 80,
                   backgroundColor:
                       AppColors.primary.withValues(alpha: 0.15),
@@ -107,7 +110,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: AppSpacing.xxl),
           AppButton(
             label: 'Enregistrer',
-            onTap: _isSaving ? null : _save,
+            onTap: _isSaving ? null : () => _save(user),
             isLoading: _isSaving,
           ),
         ],
@@ -115,19 +118,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Future<void> _save() async {
+  Future<void> _save(UserModel user) async {
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profil mis à jour !'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    try {
+      await ref.read(userRepositoryProvider).update(user.copyWith(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            phone: _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
+            location: _locationController.text.trim(),
+          ));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profil mis à jour !'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Une erreur est survenue, réessaie.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }
 

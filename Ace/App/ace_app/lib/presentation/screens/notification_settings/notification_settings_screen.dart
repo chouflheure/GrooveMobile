@@ -1,25 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../data/models/models.dart';
+import '../auth/auth_view_model.dart';
 
-class NotificationSettingsScreen extends StatefulWidget {
-  const NotificationSettingsScreen({super.key});
-
-  @override
-  State<NotificationSettingsScreen> createState() =>
-      _NotificationSettingsScreenState();
+class _NotificationMeta {
+  final IconData icon;
+  final String subtitle;
+  const _NotificationMeta(this.icon, this.subtitle);
 }
 
-class _NotificationSettingsScreenState
-    extends State<NotificationSettingsScreen> {
-  bool _messages = false;
-  bool _gameRequests = false;
-  bool _slotReminder = false;
-  bool _newSlotAvailable = false;
+const _kMeta = <String, _NotificationMeta>{
+  'Messages': _NotificationMeta(
+    Icons.chat_bubble_outline_rounded,
+    'Recevoir des notifs de message',
+  ),
+  'Demandes de jeu': _NotificationMeta(
+    Icons.sports_tennis_rounded,
+    'Recevoir des notifs de demande de jeu',
+  ),
+  'Rappel de créneau': _NotificationMeta(
+    Icons.notifications_active_outlined,
+    'Recevoir des notifs 30 minutes avant créneau',
+  ),
+  'Nouveaux créneaux': _NotificationMeta(
+    Icons.event_available_rounded,
+    'Nouveau créneau dispo',
+  ),
+};
+
+class NotificationSettingsScreen extends ConsumerWidget {
+  const NotificationSettingsScreen({super.key});
+
+  Future<void> _toggle(
+    WidgetRef ref,
+    UserModel user,
+    String key,
+    bool value,
+  ) {
+    final notifications = {...user.notifications, key: value};
+    return ref
+        .read(userRepositoryProvider)
+        .update(user.copyWith(notifications: notifications));
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).valueOrNull;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -30,47 +60,34 @@ class _NotificationSettingsScreenState
           child: const Icon(Icons.arrow_back_rounded),
         ),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.lg,
-          AppSpacing.lg,
-          AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
-        ),
-        children: [
-          _NotificationToggle(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'Messages',
-            subtitle: 'Recevoir des notifs de message',
-            value: _messages,
-            onChanged: (v) => setState(() => _messages = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _NotificationToggle(
-            icon: Icons.sports_tennis_rounded,
-            label: 'Demandes de jeu',
-            subtitle: 'Recevoir des notifs de demande de jeu',
-            value: _gameRequests,
-            onChanged: (v) => setState(() => _gameRequests = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _NotificationToggle(
-            icon: Icons.notifications_active_outlined,
-            label: 'Rappel de créneau',
-            subtitle: 'Recevoir des notifs 30 minutes avant créneau',
-            value: _slotReminder,
-            onChanged: (v) => setState(() => _slotReminder = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _NotificationToggle(
-            icon: Icons.event_available_rounded,
-            label: 'Nouveaux créneaux',
-            subtitle: 'Nouveau créneau dispo',
-            value: _newSlotAvailable,
-            onChanged: (v) => setState(() => _newSlotAvailable = v),
-          ),
-        ],
-      ),
+      body: user == null
+          ? Center(
+              child: Text(
+                'Connecte-toi pour gérer tes notifications.',
+                style: AppTypography.bodySmall,
+              ),
+            )
+          : ListView.separated(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
+              ),
+              itemCount: kNotificationKeys.length,
+              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+              itemBuilder: (_, i) {
+                final key = kNotificationKeys[i];
+                final meta = _kMeta[key]!;
+                return _NotificationToggle(
+                  icon: meta.icon,
+                  label: key,
+                  subtitle: meta.subtitle,
+                  value: user.isNotificationEnabled(key),
+                  onChanged: (v) => _toggle(ref, user, key, v),
+                );
+              },
+            ),
     );
   }
 }

@@ -36,14 +36,23 @@ class BookingConfirmationSheet extends ConsumerStatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       useRootNavigator: true,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.7,
-        child: BookingConfirmationSheet(
-          court: court,
-          selectedSlot: selectedSlot,
-          date: date,
-        ),
-      ),
+      builder: (sheetContext) {
+        // Grow the sheet while the keyboard is up, and lift it clear of the
+        // keyboard, so fields further down (the partner search bar) and the
+        // confirm button aren't hidden behind it.
+        final keyboardHeight = MediaQuery.of(sheetContext).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: keyboardHeight),
+          child: FractionallySizedBox(
+            heightFactor: keyboardHeight > 0 ? 0.95 : 0.7,
+            child: BookingConfirmationSheet(
+              court: court,
+              selectedSlot: selectedSlot,
+              date: date,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -97,6 +106,9 @@ class _BookingConfirmationSheetState
   @override
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
+    // Collapse the summary card and intro text while the keyboard is up —
+    // otherwise there's barely any room left to show search results.
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -135,12 +147,20 @@ class _BookingConfirmationSheetState
               ],
             ),
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          // Fixed header (never scrolls away) — keeps the search bar in
+          // view and above the keyboard, instead of it (and the results
+          // below it) scrolling out of sight while typing.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.lg,
+              AppSpacing.xxl,
+              0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!keyboardOpen) ...[
                   _CourtSummaryCard(
                     court: widget.court,
                     date: widget.date,
@@ -148,21 +168,34 @@ class _BookingConfirmationSheetState
                     endTime: _endTime,
                     price: _price,
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Text('Inviter un partenaire',
-                      style: AppTypography.headlineMedium),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                Text('Inviter un partenaire', style: AppTypography.headlineMedium),
+                if (!keyboardOpen) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Une réservation nécessite deux joueurs.',
                     style: AppTypography.bodySmall,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _SearchBar(
-                    controller: _searchController,
-                    onChanged: (q) => setState(() => _searchQuery = q),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ..._filteredPartners.map((user) => _PartnerTile(
+                ],
+                const SizedBox(height: AppSpacing.lg),
+                _SearchBar(
+                  controller: _searchController,
+                  onChanged: (q) => setState(() => _searchQuery = q),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xxl,
+                AppSpacing.md,
+                AppSpacing.xxl,
+                AppSpacing.xxl,
+              ),
+              children: _filteredPartners
+                  .map((user) => _PartnerTile(
                         user: user,
                         isSelected: _selectedPartner?.id == user.id,
                         isFavorite: favorites.contains(user.id),
@@ -173,9 +206,8 @@ class _BookingConfirmationSheetState
                         onViewProfile: () => Navigator.of(context, rootNavigator: true).push(
                           MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
                         ),
-                      )),
-                ],
-              ),
+                      ))
+                  .toList(),
             ),
           ),
           _BottomBar(
@@ -287,7 +319,7 @@ class _CourtSummaryCard extends StatelessWidget {
             icon: Icons.calendar_today_rounded,
             label: '${date.day.toString().padLeft(2, '0')}/'
                 '${date.month.toString().padLeft(2, '0')}/'
-                '${date.year} · $slot – $endTime (1h30)',
+                '${date.year} · $slot – $endTime (1h)',
           ),
           if (price > 0) ...[
             const Divider(height: AppSpacing.xl),

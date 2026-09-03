@@ -12,7 +12,7 @@ class MainScaffold extends ConsumerWidget {
   const MainScaffold({super.key, required this.child});
 
   static const _tabs = [
-    _TabItem(path: '/courts', icon: Icons.location_on_outlined, activeIcon: Icons.location_on_rounded, label: 'Terrains'),
+    _TabItem(path: '/courts', icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Terrains'),
     _TabItem(path: '/community', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded, label: 'Communauté'),
     _TabItem(path: '/profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profil'),
   ];

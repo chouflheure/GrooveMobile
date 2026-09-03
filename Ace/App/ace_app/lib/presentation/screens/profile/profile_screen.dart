@@ -8,6 +8,7 @@ import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
+import '../auth/link_phone_screen.dart';
 import '../booking_detail/booking_detail_screen.dart';
 import '../courts/courts_view_model.dart';
 import '../edit_profile/edit_profile_screen.dart';
@@ -51,7 +52,6 @@ class ProfileScreen extends ConsumerWidget {
         slivers: [
           _ProfileHeader(user: user),
           SliverToBoxAdapter(child: _StatsGrid(user: user)),
-          if (user.isAdmin) SliverToBoxAdapter(child: _ManagerBanner()),
           SliverToBoxAdapter(
             child: state.isLoading
                 ? const Padding(
@@ -69,55 +69,6 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ManagerBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
-      child: GestureDetector(
-        onTap: () => Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(builder: (_) => const ManagerScreen()),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.primaryContainer,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: AppColors.primary),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                ),
-                child: const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Manager', style: AppTypography.headlineSmall.copyWith(color: AppColors.primary)),
-                    Text(
-                      'Organiser des matchs et gérer les réservations',
-                      style: AppTypography.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -427,6 +378,15 @@ class _SettingsSection extends ConsumerWidget {
             subtitle: 'Modifier mon profil',
             onTap: () => Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _SettingsCard(
+            icon: Icons.phone_iphone_rounded,
+            label: 'Numéro de téléphone',
+            subtitle: 'Lier un numéro pour te connecter aussi par SMS',
+            onTap: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const LinkPhoneScreen()),
             ),
           ),
           if (isAdmin) ...[

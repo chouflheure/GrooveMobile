@@ -490,5 +490,101 @@
       "club_2",
       "club_3"
     ]
+  },
+  {
+    "id": "FLl975fdU6ZOUOsCdjyWtxia4Vi2",
+    "name": "Calvignac Charles",
+    "email": "calvignaccharles@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "15/2",
+    "location": "Paris 10e",
+    "rating": 4.5,
+    "memberSince": "2025-02-11T00:00:00.000",
+    "matchesPerMonth": 8,
+    "stats": {
+      "matchesPlayed": 27,
+      "wins": 16,
+      "hoursPlayed": 51
+    },
+    "surfaces": {
+      "clay": 0.4,
+      "hard": 0.4,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": false,
+      "Nouveaux créneaux": true
+    },
+    "clubIds": [
+      "club_2"
+    ]
+  },
+  {
+    "id": "BcLioSeoY1bPIAJbAkJJbFlvaej2",
+    "name": "Lisa Viallon",
+    "email": "lisa.viallon@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "5/6",
+    "location": "Paris 12e",
+    "rating": 4.7,
+    "memberSince": "2024-06-20T00:00:00.000",
+    "matchesPerMonth": 11,
+    "stats": {
+      "matchesPlayed": 48,
+      "wins": 29,
+      "hoursPlayed": 92
+    },
+    "surfaces": {
+      "clay": 0.5,
+      "hard": 0.35,
+      "grass": 0.15
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_2"
+    ]
+  },
+  {
+    "id": "u0zMj0mKd2YhSuu9rLR7ABe9y7m2",
+    "name": "Luis Pedro",
+    "email": "luis.pedro@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "30/2",
+    "location": "Paris 18e",
+    "rating": 4.2,
+    "memberSince": "2025-01-05T00:00:00.000",
+    "matchesPerMonth": 5,
+    "stats": {
+      "matchesPlayed": 14,
+      "wins": 6,
+      "hoursPlayed": 26
+    },
+    "surfaces": {
+      "clay": 0.3,
+      "hard": 0.5,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_3"
+    ]
   }
 ]

@@ -6,7 +6,9 @@ import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/courts/courts_screen.dart';
 import '../../presentation/screens/court_detail/court_detail_screen.dart';
+import '../../presentation/screens/event_detail/event_detail_screen.dart';
 import '../../presentation/screens/community/community_screen.dart';
+import '../../data/models/models.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/manager/manager_screen.dart';
 import '../../presentation/templates/main_scaffold.dart';
@@ -87,6 +89,13 @@ final appRouter = GoRouter(
           court: args.court,
           initialSlot: args.initialSlot,
         );
+      },
+    ),
+    GoRoute(
+      path: '/event/:id',
+      builder: (context, state) {
+        final event = state.extra as ClubEventModel;
+        return EventDetailScreen(event: event);
       },
     ),
   ],

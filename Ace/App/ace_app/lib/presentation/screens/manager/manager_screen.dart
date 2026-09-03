@@ -9,6 +9,7 @@ import '../../molecules/molecules.dart';
 import '../courts/courts_view_model.dart';
 import 'court_form_screen.dart';
 import 'event_form_screen.dart';
+import 'group_chat_form_screen.dart';
 import 'manager_view_model.dart';
 
 class ManagerScreen extends ConsumerWidget {
@@ -34,12 +35,11 @@ class ManagerScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        title: const Text('Manager'),
-      ),
+      appBar: AppBar(scrolledUnderElevation: 0, title: const Text('Manager')),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.lg,
@@ -56,6 +56,8 @@ class ManagerScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xxl),
                   _EventsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
+                  _GroupChatSection(players: state.players),
+                  const SizedBox(height: AppSpacing.xxl),
                   _ActiveBookingsSection(state: state, vm: vm),
                   const SizedBox(height: AppSpacing.xxl),
                   _AdminsSection(admins: state.admins),
@@ -71,7 +73,11 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({required this.icon, required this.title, required this.child});
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +133,12 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
 
     // The form resets to empty after a successful batch create — clear the
     // (locally-controlled) title field to match instead of leaving stale text.
-    if (form.courtId == null && form.slots.isEmpty && _titleController.text.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _titleController.clear());
+    if (form.courtId == null &&
+        form.slots.isEmpty &&
+        _titleController.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _titleController.clear(),
+      );
     }
 
     return _SectionCard(
@@ -163,7 +173,10 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 borderSide: const BorderSide(color: AppColors.border),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
             ),
             onChanged: vm.setTitle,
           ),
@@ -174,7 +187,10 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Joueur A (optionnel)', style: AppTypography.labelLarge),
+                    Text(
+                      'Joueur A (optionnel)',
+                      style: AppTypography.labelLarge,
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     _PlayerDropdown(
                       players: state.players,
@@ -189,7 +205,10 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Joueur B (optionnel)', style: AppTypography.labelLarge),
+                    Text(
+                      'Joueur B (optionnel)',
+                      style: AppTypography.labelLarge,
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     _PlayerDropdown(
                       players: state.players,
@@ -226,11 +245,11 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
             )
           else
             ...form.slots.asMap().entries.map(
-                  (entry) => _SlotRow(
-                    slot: entry.value,
-                    onRemove: () => vm.removeSlot(entry.key),
-                  ),
-                ),
+              (entry) => _SlotRow(
+                slot: entry.value,
+                onRemove: () => vm.removeSlot(entry.key),
+              ),
+            ),
           const SizedBox(height: AppSpacing.sm),
           _AddSlotButton(
             court: state.courts.where((c) => c.id == form.courtId).firstOrNull,
@@ -243,7 +262,7 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
           AppButton(
             label: form.isValid
                 ? 'Créer ${form.slots.length} créneau(x)'
-                : 'Choisir un terrain et au moins un créneau',
+                : 'Choisir un terrain et un créneau',
             onTap: form.isValid ? vm.createMatch : null,
             isLoading: state.isSubmitting,
           ),
@@ -253,13 +272,16 @@ class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
   }
 }
 
-
 class _PlayerDropdown extends StatelessWidget {
   final List<UserModel> players;
   final String? value;
   final ValueChanged<String?> onChanged;
 
-  const _PlayerDropdown({required this.players, required this.value, required this.onChanged});
+  const _PlayerDropdown({
+    required this.players,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,17 +300,31 @@ class _PlayerDropdown extends StatelessWidget {
         ),
         filled: true,
         fillColor: AppColors.background,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
       ),
       items: [
         DropdownMenuItem<String?>(
           value: null,
-          child: Text('Aucun', style: AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary)),
+          child: Text(
+            'Aucun',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
         ),
-        ...players.map((u) => DropdownMenuItem<String?>(
-              value: u.id,
-              child: Text(u.name, style: AppTypography.bodyMedium, overflow: TextOverflow.ellipsis),
-            )),
+        ...players.map(
+          (u) => DropdownMenuItem<String?>(
+            value: u.id,
+            child: Text(
+              u.name,
+              style: AppTypography.bodyMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
       ],
       onChanged: onChanged,
     );
@@ -305,7 +341,10 @@ class _SlotRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -323,7 +362,11 @@ class _SlotRow extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onRemove,
-            child: const Icon(Icons.close_rounded, size: 18, color: AppColors.error),
+            child: const Icon(
+              Icons.close_rounded,
+              size: 18,
+              color: AppColors.error,
+            ),
           ),
         ],
       ),
@@ -361,7 +404,11 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
     );
-    if (picked != null) setState(() { _date = picked; _selectedTimes.clear(); });
+    if (picked != null)
+      setState(() {
+        _date = picked;
+        _selectedTimes.clear();
+      });
   }
 
   void _toggleTime(String time) {
@@ -399,25 +446,34 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
           b.date.day == _date!.day;
     }).firstOrNull;
 
-    final closurePeriod =
-        court.unavailablePeriods.where((p) => p.covers(_date!)).firstOrNull;
+    final closurePeriod = court.unavailablePeriods
+        .where((p) => p.covers(_date!))
+        .firstOrNull;
 
     final playerName = booking == null
         ? null
-        : widget.players.where((u) => u.id == booking.userId).firstOrNull?.name ??
-            booking.userId;
+        : widget.players
+                  .where((u) => u.id == booking.userId)
+                  .firstOrNull
+                  ?.name ??
+              booking.userId;
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(booking == null && closurePeriod != null ? 'Terrain fermé' : 'Réservation existante'),
+        title: Text(
+          booking == null && closurePeriod != null
+              ? 'Terrain fermé'
+              : 'Réservation existante',
+        ),
         content: booking == null
             ? Text(
                 closurePeriod == null
                     ? "Détail introuvable pour ce créneau."
-                    : closurePeriod.reason == null || closurePeriod.reason!.isEmpty
-                        ? 'Ce terrain est fermé à cette date.'
-                        : closurePeriod.reason!,
+                    : closurePeriod.reason == null ||
+                          closurePeriod.reason!.isEmpty
+                    ? 'Ce terrain est fermé à cette date.'
+                    : closurePeriod.reason!,
               )
             : Column(
                 mainAxisSize: MainAxisSize.min,
@@ -428,15 +484,23 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                     const SizedBox(height: 2),
                     Text(
                       booking.title!,
-                      style: AppTypography.labelMedium.copyWith(color: AppColors.primary),
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                   ],
                   const SizedBox(height: AppSpacing.xs),
-                  Text('$time - ${booking.endTime}', style: AppTypography.bodyMedium),
+                  Text(
+                    '$time - ${booking.endTime}',
+                    style: AppTypography.bodyMedium,
+                  ),
                   const SizedBox(height: AppSpacing.xs),
                   Text('Joueur : $playerName', style: AppTypography.bodySmall),
                   if (booking.partnerName != null)
-                    Text('Partenaire : ${booking.partnerName}', style: AppTypography.bodySmall),
+                    Text(
+                      'Partenaire : ${booking.partnerName}',
+                      style: AppTypography.bodySmall,
+                    ),
                 ],
               ),
         actions: [
@@ -450,7 +514,10 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                 Navigator.of(context, rootNavigator: true).pop();
                 widget.onCancelBooking(booking.id);
               },
-              child: const Text('Annuler la réservation', style: TextStyle(color: AppColors.error)),
+              child: const Text(
+                'Annuler la réservation',
+                style: TextStyle(color: AppColors.error),
+              ),
             ),
         ],
       ),
@@ -462,15 +529,17 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
     final court = widget.court;
     final bookedTimes = court != null && _date != null
         ? ref
-            .watch(bookedSlotsForCourtProvider((courtId: court.id, date: _date!)))
-            .valueOrNull
+              .watch(
+                bookedSlotsForCourtProvider((courtId: court.id, date: _date!)),
+              )
+              .valueOrNull
         : null;
     final isClosed = court != null && _date != null && court.isClosedOn(_date!);
     final closureReason = isClosed
         ? court.unavailablePeriods
-            .where((p) => p.covers(_date!))
-            .firstOrNull
-            ?.reason
+              .where((p) => p.covers(_date!))
+              .firstOrNull
+              ?.reason
         : null;
 
     return Container(
@@ -486,7 +555,10 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
           GestureDetector(
             onTap: _pickDate,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 12,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -502,13 +574,21 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (court == null)
-            Text('Choisis un terrain pour voir les créneaux.', style: AppTypography.bodySmall)
+            Text(
+              'Choisis un terrain pour voir les créneaux.',
+              style: AppTypography.bodySmall,
+            )
           else if (_date == null)
-            Text('Choisis une date pour voir les créneaux disponibles.', style: AppTypography.bodySmall)
+            Text(
+              'Choisis une date pour voir les créneaux disponibles.',
+              style: AppTypography.bodySmall,
+            )
           else if (bookedTimes == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
             )
           else ...[
             if (isClosed)
@@ -518,18 +598,26 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.block_rounded, size: 16, color: AppColors.error),
+                    const Icon(
+                      Icons.block_rounded,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         closureReason == null || closureReason.isEmpty
                             ? 'Terrain fermé à cette date.'
                             : 'Terrain fermé à cette date — $closureReason',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                   ],
@@ -549,7 +637,9 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                   time: s.time,
                   isBooked: isBooked,
                   isSelected: _selectedTimes.contains(s.time),
-                  onTap: () => isBooked ? _showBookingDetail(s.time) : _toggleTime(s.time),
+                  onTap: () => isBooked
+                      ? _showBookingDetail(s.time)
+                      : _toggleTime(s.time),
                 );
               }).toList(),
             ),
@@ -558,7 +648,9 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _date != null && _selectedTimes.isNotEmpty ? _add : null,
+              onPressed: _date != null && _selectedTimes.isNotEmpty
+                  ? _add
+                  : null,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text('Ajouter ${_selectedTimes.length} créneau(x)'),
             ),
@@ -585,16 +677,22 @@ class _ActiveBookingsSection extends StatelessWidget {
           ? Text('Aucune réservation active.', style: AppTypography.bodySmall)
           : Column(
               children: bookings
-                  .map((b) => _BookingRow(
-                        booking: b,
-                        onCancel: () => _confirmCancel(context, vm, b),
-                      ))
+                  .map(
+                    (b) => _BookingRow(
+                      booking: b,
+                      onCancel: () => _confirmCancel(context, vm, b),
+                    ),
+                  )
                   .toList(),
             ),
     );
   }
 
-  void _confirmCancel(BuildContext context, ManagerViewModel vm, BookingModel booking) {
+  void _confirmCancel(
+    BuildContext context,
+    ManagerViewModel vm,
+    BookingModel booking,
+  ) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -612,7 +710,10 @@ class _ActiveBookingsSection extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               vm.cancelBooking(booking.id);
             },
-            child: const Text('Annuler la réservation', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Annuler la réservation',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -646,7 +747,9 @@ class _BookingRow extends StatelessWidget {
                 if (booking.title != null && booking.title!.isNotEmpty)
                   Text(
                     booking.title!,
-                    style: AppTypography.labelSmall.copyWith(color: AppColors.primary),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 Text(
                   '${booking.date.day.toString().padLeft(2, '0')}/${booking.date.month.toString().padLeft(2, '0')} · ${booking.startTime}-${booking.endTime}'
@@ -658,7 +761,10 @@ class _BookingRow extends StatelessWidget {
           ),
           TextButton(
             onPressed: onCancel,
-            child: const Text('Annuler', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -688,10 +794,16 @@ class _CourtsManagementSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (state.courts.isEmpty)
-            Text('Aucun terrain pour le moment.', style: AppTypography.bodySmall)
+            Text(
+              'Aucun terrain pour le moment.',
+              style: AppTypography.bodySmall,
+            )
           else
             ...state.courts.map((c) {
-              final clubName = state.clubs.where((cl) => cl.id == c.clubId).firstOrNull?.name;
+              final clubName = state.clubs
+                  .where((cl) => cl.id == c.clubId)
+                  .firstOrNull
+                  ?.name;
               return GestureDetector(
                 onTap: () => _openForm(context, court: c),
                 child: Container(
@@ -717,7 +829,11 @@ class _CourtsManagementSection extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                      const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                     ],
                   ),
                 ),
@@ -746,7 +862,8 @@ class _EventsManagementSection extends StatelessWidget {
   void _openForm(BuildContext context) {
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => EventFormScreen(clubs: state.clubs, courts: state.courts),
+        builder: (_) =>
+            EventFormScreen(clubs: state.clubs, courts: state.courts),
       ),
     );
   }
@@ -764,27 +881,32 @@ class _EventsManagementSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (sorted.isEmpty)
-            Text('Aucun événement pour le moment.', style: AppTypography.bodySmall)
+            Text(
+              'Aucun événement pour le moment.',
+              style: AppTypography.bodySmall,
+            )
           else
-            ...sorted.map((e) => Container(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(e.title, style: AppTypography.headlineSmall),
-                      Text(
-                        '${_fmt(e.date)} · ${e.clubName} · ${e.participantIds.length} participant(s)',
-                        style: AppTypography.bodySmall,
-                      ),
-                    ],
-                  ),
-                )),
+            ...sorted.map(
+              (e) => Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(e.title, style: AppTypography.headlineSmall),
+                    Text(
+                      '${_fmt(e.date)} · ${e.clubName} · ${e.participantIds.length} participant(s)',
+                      style: AppTypography.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
             width: double.infinity,
@@ -792,6 +914,42 @@ class _EventsManagementSection extends StatelessWidget {
               onPressed: () => _openForm(context),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Créer un événement'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupChatSection extends StatelessWidget {
+  final List<UserModel> players;
+
+  const _GroupChatSection({required this.players});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.groups_rounded,
+      title: 'Conversation de groupe',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Démarre une conversation avec plusieurs joueurs à la fois.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => GroupChatFormScreen(players: players),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Créer une conversation de groupe'),
             ),
           ),
         ],
@@ -825,7 +983,10 @@ class _AdminsSection extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(u.name, style: AppTypography.headlineSmall),
+                                Text(
+                                  u.name,
+                                  style: AppTypography.headlineSmall,
+                                ),
                                 Text(u.email, style: AppTypography.bodySmall),
                               ],
                             ),

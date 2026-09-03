@@ -6,6 +6,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import 'auth_view_model.dart';
 import 'forgot_password_screen.dart';
+import 'phone_sign_in_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -127,6 +128,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       label: 'Se connecter',
                       onTap: _login,
                       isLoading: isLoading,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(builder: (_) => const PhoneSignInScreen()),
+                        ),
+                        child: Text(
+                          'Se connecter avec un numéro de téléphone',
+                          style: AppTypography.labelMedium.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                   ],

@@ -87,9 +87,20 @@ service cloud.firestore {
 
     match /messages/{messageId} {
       allow read: if true;
-      allow create: if true;
+      // A club's announcement channel (conversationId `club_broadcast_<clubId>`)
+      // is write-restricted to an admin of that same club; any other
+      // conversationId is a regular 1:1 DM, open to any signed-in write.
+      allow create: if
+        !request.resource.data.conversationId.matches('^club_broadcast_.*')
+        || (request.auth != null
+          && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+          && request.resource.data.conversationId.split('club_broadcast_')[1] in
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds);
+      // Update also covers marking as read (any participant), so it stays
+      // unrestricted like the rest of this collection; the app only shows
+      // the edit action on the sender's own bubble.
       allow update: if true;
-      allow delete: if false;
+      allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
     }
 
     // Real Firebase Auth is wired up, so unlike the collections above this

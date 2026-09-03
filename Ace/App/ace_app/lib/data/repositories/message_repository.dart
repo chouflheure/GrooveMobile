@@ -10,12 +10,41 @@ class MessageRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('messages');
 
+  /// A fresh id for a new group conversation (3+ participants) — unlike
+  /// the deterministic 1:1 id below, a group has no natural key of its
+  /// own, so it just gets a normal Firestore-generated id.
+  String newConversationId() => _collection.doc().id;
+
   /// Deterministic id for a 1:1 conversation — no separate "does this
   /// conversation exist" lookup needed, and it doubles as the value stored
   /// in every message's `conversationId` field.
   static String conversationIdFor(String userIdA, String userIdB) {
     final ids = [userIdA, userIdB]..sort();
     return '${ids[0]}_${ids[1]}';
+  }
+
+  /// Id of a club's read-only announcement channel — prefixed so it can
+  /// never collide with a 1:1 conversation id (those are two raw user ids
+  /// joined by `_`).
+  static String broadcastConversationIdFor(String clubId) =>
+      'club_broadcast_$clubId';
+
+  /// Posts to a club's announcement channel. Every member can read it
+  /// (screen-level `isAdmin` check gates who gets the input box — Firestore
+  /// rules should mirror that restriction server-side).
+  Future<void> sendBroadcastMessage({
+    required String clubId,
+    required String senderId,
+    required String senderName,
+    required String content,
+  }) {
+    return sendMessage(
+      conversationId: broadcastConversationIdFor(clubId),
+      participantIds: const [],
+      senderId: senderId,
+      senderName: senderName,
+      content: content,
+    );
   }
 
   Future<void> sendMessage({
@@ -83,6 +112,17 @@ class MessageRepository {
       }).toList()
         ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
     });
+  }
+
+  Future<void> editMessage(String messageId, String newContent) {
+    return _collection.doc(messageId).update({
+      'content': newContent,
+      'edited': true,
+    });
+  }
+
+  Future<void> deleteMessage(String messageId) {
+    return _collection.doc(messageId).delete();
   }
 
   Future<void> markConversationRead(String conversationId, String currentUserId) async {

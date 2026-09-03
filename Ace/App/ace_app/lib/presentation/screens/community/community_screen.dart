@@ -5,11 +5,14 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
-import '../../atoms/atoms.dart';
+import '../../../data/providers/tab_activity_provider.dart';
+import '../../../data/repositories/message_repository.dart';
 import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
+import '../courts/courts_view_model.dart';
 import 'community_view_model.dart';
 import 'chat_screen.dart';
+import 'club_broadcast_screen.dart';
 import 'propose_slot_modal.dart';
 import '../user_profile/user_profile_screen.dart';
 
@@ -22,29 +25,56 @@ class CommunityScreen extends ConsumerStatefulWidget {
 
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   @override
+  void initState() {
+    super.initState();
+    // Whichever tab is showing on arrival counts as "seen" — only tabs the
+    // user never actually looked at should carry the new-activity dot.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _markSeen(ref.read(communityViewModelProvider).activeTab);
+    });
+  }
+
+  void _markSeen(CommunityTab tab) {
+    final activityVm = ref.read(tabActivityProvider.notifier);
+    if (tab == CommunityTab.announcements) {
+      activityVm.markAnnouncementsSeen();
+    } else {
+      activityVm.markMessagesSeen();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(communityViewModelProvider);
     final vm = ref.read(communityViewModelProvider.notifier);
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
-    final isMessages = state.activeTab == CommunityTab.messages;
+    final activity = ref.watch(tabActivityProvider);
+
+    final latestAnnouncementAt = state.announcements.isEmpty
+        ? null
+        : state.announcements.map((a) => a.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
+    final latestMessageAt = state.conversations.isEmpty
+        ? null
+        : state.conversations.map((c) => c.lastMessageAt).reduce((a, b) => a.isAfter(b) ? a : b);
+    final hasNewAnnouncement = latestAnnouncementAt != null &&
+        (activity.lastSeenAnnouncements == null ||
+            latestAnnouncementAt.isAfter(activity.lastSeenAnnouncements!));
+    final hasNewMessage = latestMessageAt != null &&
+        (activity.lastSeenMessages == null || latestMessageAt.isAfter(activity.lastSeenMessages!));
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: isMessages
-          ? FloatingActionButton(
-              onPressed: () => _requireAuth(
-                currentUser,
-                () => _showNewConversationPicker(vm, currentUser!, state.allUsers),
-              ),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.edit_rounded, color: Colors.white),
-            )
-          : null,
       body: Column(
         children: [
           _TabBar(
             active: state.activeTab,
-            onSelect: vm.setTab,
+            hasNewAnnouncement: hasNewAnnouncement,
+            hasNewMessage: hasNewMessage,
+            onSelect: (tab) {
+              vm.setTab(tab);
+              _markSeen(tab);
+            },
           ),
           Expanded(
             child: state.isLoading
@@ -83,16 +113,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                           )
                         : _MessagesTab(
                             conversations: state.conversations,
-                            currentUserId: currentUser.id,
+                            currentUser: currentUser,
                             onTap: (conv) => _openChat(
                               context,
                               conversationId: conv.id,
-                              otherUserId: conv.participantIds
-                                  .firstWhere((id) => id != currentUser.id),
-                              otherUserName:
-                                  conv.otherParticipantName(currentUser.id),
-                              otherUserInitials:
-                                  conv.otherParticipantInitials(currentUser.id),
+                              otherParticipantIds: conv.otherParticipantIds(currentUser.id),
+                              title: conv.displayName(currentUser.id),
+                              avatarInitials: conv.isGroup
+                                  ? null
+                                  : conv.otherParticipantInitials(currentUser.id),
                             ),
                           ),
           ),
@@ -131,60 +160,30 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
       _openChat(
         context,
         conversationId: conversationId,
-        otherUserId: author.id,
-        otherUserName: author.name,
-        otherUserInitials: author.initials,
-        titleOverride: 'Proposition de match',
+        otherParticipantIds: [author.id],
+        title: author.name,
+        avatarInitials: author.initials,
+        subtitle: 'Proposition de match',
       );
     }
-  }
-
-  void _showNewConversationPicker(
-    CommunityViewModel vm,
-    UserModel currentUser,
-    List<UserModel> allUsers,
-  ) {
-    final candidates = allUsers.where((u) => u.id != currentUser.id).toList();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      builder: (_) => _NewConversationSheet(
-        users: candidates,
-        onSelect: (user) {
-          Navigator.of(context, rootNavigator: true).pop();
-          final conversationId = vm.conversationIdWith(user.id);
-          if (conversationId == null) return;
-          _openChat(
-            context,
-            conversationId: conversationId,
-            otherUserId: user.id,
-            otherUserName: user.name,
-            otherUserInitials: user.initials,
-          );
-        },
-      ),
-    );
   }
 
   void _openChat(
     BuildContext context, {
     required String conversationId,
-    required String otherUserId,
-    required String otherUserName,
-    required String otherUserInitials,
-    String? titleOverride,
+    required List<String> otherParticipantIds,
+    required String title,
+    String? avatarInitials,
+    String? subtitle,
   }) {
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => ChatScreen(
           conversationId: conversationId,
-          otherUserId: otherUserId,
-          otherUserName: otherUserName,
-          otherUserInitials: otherUserInitials,
-          titleOverride: titleOverride,
+          otherParticipantIds: otherParticipantIds,
+          title: title,
+          avatarInitials: avatarInitials,
+          subtitle: subtitle,
         ),
       ),
     );
@@ -193,9 +192,16 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 
 class _TabBar extends StatelessWidget {
   final CommunityTab active;
+  final bool hasNewAnnouncement;
+  final bool hasNewMessage;
   final ValueChanged<CommunityTab> onSelect;
 
-  const _TabBar({required this.active, required this.onSelect});
+  const _TabBar({
+    required this.active,
+    required this.hasNewAnnouncement,
+    required this.hasNewMessage,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +216,7 @@ class _TabBar extends StatelessWidget {
                 label: 'Annonces',
                 icon: Icons.campaign_rounded,
                 isActive: active == CommunityTab.announcements,
+                showBadge: hasNewAnnouncement,
                 onTap: () => onSelect(CommunityTab.announcements),
               ),
             ),
@@ -219,6 +226,7 @@ class _TabBar extends StatelessWidget {
                 label: 'Messages',
                 icon: Icons.chat_bubble_outline_rounded,
                 isActive: active == CommunityTab.messages,
+                showBadge: hasNewMessage,
                 onTap: () => onSelect(CommunityTab.messages),
               ),
             ),
@@ -233,12 +241,14 @@ class _Tab extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool isActive;
+  final bool showBadge;
   final VoidCallback onTap;
 
   const _Tab({
     required this.label,
     required this.icon,
     required this.isActive,
+    required this.showBadge,
     required this.onTap,
   });
 
@@ -246,33 +256,52 @@ class _Tab extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          border: Border.all(
-            color: isActive ? AppColors.primary : AppColors.border,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isActive ? Colors.white : AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              label,
-              style: AppTypography.labelLarge.copyWith(
-                color: isActive ? Colors.white : AppColors.textSecondary,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.primary : AppColors.surface,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+              border: Border.all(
+                color: isActive ? AppColors.primary : AppColors.border,
               ),
             ),
-          ],
-        ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: isActive ? Colors.white : AppColors.textSecondary,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  label,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: isActive ? Colors.white : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showBadge)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 1.5),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -410,95 +439,95 @@ class _ProposeButton extends StatelessWidget {
   }
 }
 
-class _NewConversationSheet extends StatelessWidget {
-  final List<UserModel> users;
-  final ValueChanged<UserModel> onSelect;
 
-  const _NewConversationSheet({required this.users, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            child: Row(
-              children: [
-                Text('Nouvelle conversation', style: AppTypography.headlineLarge),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ...users.map(
-            (u) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xxl,
-                vertical: AppSpacing.xs,
-              ),
-              leading: AppAvatar(initials: u.initials, size: 44),
-              title: Text(u.name, style: AppTypography.headlineSmall),
-              subtitle: Text('${u.location} · ${u.ranking}',
-                  style: AppTypography.bodySmall),
-              onTap: () {
-                Navigator.of(context).pop();
-                onSelect(u);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MessagesTab extends StatelessWidget {
+class _MessagesTab extends ConsumerWidget {
   final List<ConversationModel> conversations;
-  final String currentUserId;
+  final UserModel currentUser;
   final ValueChanged<ConversationModel> onTap;
 
   const _MessagesTab({
     required this.conversations,
-    required this.currentUserId,
+    required this.currentUser,
     required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (conversations.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final myClubs = ref
+            .watch(clubsProvider)
+            .valueOrNull
+            ?.where((c) => currentUser.clubIds.contains(c.id))
+            .toList() ??
+        const <ClubModel>[];
+
+    if (conversations.isEmpty && myClubs.isEmpty) {
       return const Center(
         child: _EmptyPlaceholder(
           icon: Icons.chat_bubble_outline_rounded,
           title: 'Aucune conversation',
-          subtitle: 'Discute avec un joueur depuis une annonce, ou lance une\nnouvelle conversation avec le bouton en bas à droite.',
+          subtitle: 'Discute avec un joueur depuis une annonce ou son profil.',
         ),
       );
     }
-    return ListView.separated(
-      itemCount: conversations.length,
-      separatorBuilder: (_, _) => const Divider(height: 1, indent: 80),
-      itemBuilder: (_, i) => ConversationItem(
-        conversation: conversations[i],
-        currentUserId: currentUserId,
-        onTap: () => onTap(conversations[i]),
+    return ListView(
+      children: [
+        ...myClubs.map(
+          (club) => _ClubBroadcastTile(club: club, canPost: currentUser.isAdmin),
+        ),
+        if (myClubs.isNotEmpty && conversations.isNotEmpty)
+          const Divider(height: 1, indent: 80),
+        ...conversations.map(
+          (conv) => ConversationItem(
+            conversation: conv,
+            currentUserId: currentUser.id,
+            onTap: () => onTap(conv),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClubBroadcastTile extends ConsumerWidget {
+  final ClubModel club;
+  final bool canPost;
+
+  const _ClubBroadcastTile({required this.club, required this.canPost});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final conversationId = MessageRepository.broadcastConversationIdFor(club.id);
+    final messages = ref.watch(conversationMessagesProvider(conversationId)).valueOrNull ?? const [];
+    final last = messages.isNotEmpty ? messages.last : null;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: const BoxDecoration(
+          color: AppColors.primaryContainer,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.campaign_rounded, color: AppColors.primary),
+      ),
+      title: Text('Annonces · ${club.name}', style: AppTypography.headlineSmall),
+      subtitle: Text(
+        last?.content ??
+            (canPost
+                ? 'Publiez une information pour tous les membres'
+                : 'Aucune annonce pour le moment'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTypography.bodySmall,
+      ),
+      onTap: () => Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) => ClubBroadcastScreen(club: club, canPost: canPost),
+        ),
       ),
     );
   }

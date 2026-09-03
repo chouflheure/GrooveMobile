@@ -12,6 +12,7 @@ class MessageModel extends Equatable {
   final String content;
   final DateTime createdAt;
   final bool isRead;
+  final bool edited;
 
   const MessageModel({
     required this.id,
@@ -22,6 +23,7 @@ class MessageModel extends Equatable {
     required this.content,
     required this.createdAt,
     this.isRead = false,
+    this.edited = false,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
@@ -33,6 +35,7 @@ class MessageModel extends Equatable {
         content: json['content'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),
         isRead: json['isRead'] as bool? ?? false,
+        edited: json['edited'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -44,6 +47,7 @@ class MessageModel extends Equatable {
         'content': content,
         'createdAt': createdAt.toIso8601String(),
         'isRead': isRead,
+        'edited': edited,
       };
 
   @override
@@ -71,14 +75,31 @@ class ConversationModel extends Equatable {
     this.messages = const [],
   });
 
-  String otherParticipantName(String currentUserId) {
-    final idx = participantIds.indexOf(currentUserId);
-    if (idx == 0) return participantNames[1];
-    return participantNames[0];
+  bool get isGroup => participantIds.length > 2;
+
+  List<String> otherParticipantNames(String currentUserId) {
+    final others = <String>[];
+    for (var i = 0; i < participantIds.length; i++) {
+      if (participantIds[i] != currentUserId) others.add(participantNames[i]);
+    }
+    return others;
   }
 
+  List<String> otherParticipantIds(String currentUserId) =>
+      participantIds.where((id) => id != currentUserId).toList();
+
+  /// The other person's name for a 1:1, or every other name joined for a
+  /// group — used wherever a single display title is needed.
+  String displayName(String currentUserId) {
+    final others = otherParticipantNames(currentUserId);
+    if (others.isEmpty) return 'Conversation';
+    return others.join(', ');
+  }
+
+  /// Only meaningful for a 1:1 (a group shows a generic icon instead).
   String otherParticipantInitials(String currentUserId) {
-    final name = otherParticipantName(currentUserId);
+    final others = otherParticipantNames(currentUserId);
+    final name = others.isEmpty ? '?' : others.first;
     final parts = name.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return parts[0][0].toUpperCase();

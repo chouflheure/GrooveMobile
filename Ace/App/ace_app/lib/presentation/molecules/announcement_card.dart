@@ -270,10 +270,6 @@ class AnnouncementFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(Icons.chat_bubble_outline_rounded, size: 14, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Text('${announcement.responsesCount} réponses', style: AppTypography.bodySmall),
-        const SizedBox(width: AppSpacing.md),
         Icon(Icons.group_outlined, size: 14, color: AppColors.textSecondary),
         const SizedBox(width: 4),
         Text(

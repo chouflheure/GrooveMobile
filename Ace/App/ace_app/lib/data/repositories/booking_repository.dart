@@ -128,8 +128,18 @@ class BookingRepository {
         .update({'status': BookingStatus.cancelled.jsonValue});
   }
 
+  /// Every booking this user is part of — as the booker or as the invited
+  /// partner, since a booking only ever lists `userId` on the doc itself.
   Stream<List<BookingModel>> watchByUser(String userId) {
-    return _collection.where('userId', isEqualTo: userId).snapshots().map(
+    return _collection
+        .where(
+          Filter.or(
+            Filter('userId', isEqualTo: userId),
+            Filter('partnerId', isEqualTo: userId),
+          ),
+        )
+        .snapshots()
+        .map(
           (snapshot) => snapshot.docs
               .map((doc) => BookingModel.fromJson(doc.data()))
               .toList(),

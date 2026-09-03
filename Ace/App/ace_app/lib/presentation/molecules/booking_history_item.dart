@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../data/models/models.dart';
 import '../atoms/atoms.dart';
+import '../screens/auth/auth_view_model.dart';
 
-class BookingHistoryItem extends StatelessWidget {
+class BookingHistoryItem extends ConsumerWidget {
   final BookingModel booking;
   final VoidCallback? onTap;
   final Color? titleColor;
@@ -14,10 +16,26 @@ class BookingHistoryItem extends StatelessWidget {
   const BookingHistoryItem({super.key, required this.booking, this.onTap, this.titleColor});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateStr = DateFormat('dd MMM yyyy', 'fr_FR').format(booking.date);
     final isWin = booking.result == BookingResult.win;
     final hasResult = booking.result != null;
+
+    // The doc only ever stores the invited partner's name — when it's
+    // viewed by that partner, "the other player" is actually the booker,
+    // whose name has to be looked up instead of just reusing partnerName.
+    final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
+    final String? opponentName;
+    if (currentUserId != null && currentUserId == booking.partnerId) {
+      opponentName = ref
+          .watch(allUsersProvider)
+          .valueOrNull
+          ?.where((u) => u.id == booking.userId)
+          .firstOrNull
+          ?.name;
+    } else {
+      opponentName = booking.partnerName;
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -75,9 +93,9 @@ class BookingHistoryItem extends StatelessWidget {
                     '$dateStr · ${booking.startTime} – ${booking.endTime}',
                     style: AppTypography.bodySmall,
                   ),
-                  if (booking.partnerName != null)
+                  if (opponentName != null)
                     Text(
-                      'vs ${booking.partnerName}${booking.score != null ? ' — ${booking.score}' : ''}',
+                      'vs $opponentName${booking.score != null ? ' — ${booking.score}' : ''}',
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
@@ -106,9 +124,12 @@ class _CountdownPill extends StatelessWidget {
     final remaining = startDateTime.difference(DateTime.now());
     if (remaining.isNegative) return 'en cours';
     if (remaining.inHours > 23) return 'dans ${remaining.inDays}j';
-    final hours = remaining.inHours.toString().padLeft(2, '0');
-    final minutes = (remaining.inMinutes % 60).toString().padLeft(2, '0');
-    return 'dans $hours:$minutes';
+    final hours = remaining.inHours;
+    final minutes = remaining.inMinutes % 60;
+    if (hours > 0) {
+      return 'dans ${hours}h ${minutes.toString().padLeft(2, '0')}';
+    }
+    return 'dans ${minutes}min';
   }
 
   @override

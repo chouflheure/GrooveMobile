@@ -40,6 +40,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         : null;
     final liveCourt = ref.watch(courtByIdProvider(_booking.courtId)).valueOrNull;
     final address = liveCourt?.location ?? _booking.courtAddress;
+    final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
+    // Only the person who made the booking can change who's playing —
+    // the invited partner can see it, but not reassign it.
+    final isOrganizer = currentUserId != null && currentUserId == _booking.userId;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -133,15 +137,17 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             ),
           ],
           if (_booking.isUpcoming) ...[
-            const SizedBox(height: AppSpacing.xl),
-            _ActionButton(
-              icon: Icons.person_add_alt_1_rounded,
-              label: _booking.partnerId == null
-                  ? 'Ajouter un partenaire'
-                  : 'Modifier le partenaire',
-              color: AppColors.primary,
-              onTap: () => _showPartnerPicker(),
-            ),
+            if (isOrganizer) ...[
+              const SizedBox(height: AppSpacing.xl),
+              _ActionButton(
+                icon: Icons.person_add_alt_1_rounded,
+                label: _booking.partnerId == null
+                    ? 'Ajouter un partenaire'
+                    : 'Modifier le partenaire',
+                color: AppColors.primary,
+                onTap: () => _showPartnerPicker(liveCourt?.clubId ?? ''),
+              ),
+            ],
             const SizedBox(height: AppSpacing.md),
             if (_booking.canCancel)
               _ActionButton(
@@ -159,11 +165,13 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     );
   }
 
-  void _showPartnerPicker() {
+  void _showPartnerPicker(String courtClubId) {
     final favorites = ref.read(favoritesProvider);
     final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
     final candidates = (ref.read(allUsersProvider).valueOrNull ?? const [])
         .where((u) => u.id != currentUserId)
+        // Only members of the court's club can be picked as a partner.
+        .where((u) => courtClubId.isEmpty || u.clubIds.contains(courtClubId))
         .toList();
 
     showModalBottomSheet(

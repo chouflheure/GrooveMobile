@@ -117,7 +117,7 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
 
   Future<void> sendMessage(
     String conversationId,
-    String otherUserId,
+    List<String> otherUserIds,
     String senderName,
     String content,
   ) {
@@ -125,11 +125,19 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     if (userId == null) return Future.value();
     return _messageRepository.sendMessage(
       conversationId: conversationId,
-      participantIds: [userId, otherUserId],
+      participantIds: [userId, ...otherUserIds],
       senderId: userId,
       senderName: senderName,
       content: content,
     );
+  }
+
+  Future<void> editMessage(String messageId, String newContent) {
+    return _messageRepository.editMessage(messageId, newContent);
+  }
+
+  Future<void> deleteMessage(String messageId) {
+    return _messageRepository.deleteMessage(messageId);
   }
 
   @override

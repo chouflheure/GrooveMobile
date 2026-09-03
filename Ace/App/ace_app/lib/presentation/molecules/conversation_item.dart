@@ -20,8 +20,9 @@ class ConversationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = conversation.otherParticipantName(currentUserId);
+    final name = conversation.displayName(currentUserId);
     final initials = conversation.otherParticipantInitials(currentUserId);
+    final isGroup = conversation.isGroup;
     final timeStr = DateFormat('HH:mm').format(conversation.lastMessageAt);
     final hasUnread = conversation.unreadCount > 0;
 
@@ -34,7 +35,17 @@ class ConversationItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            AppAvatar(initials: initials, size: 48),
+            isGroup
+                ? Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.groups_rounded, color: AppColors.primary, size: 22),
+                  )
+                : AppAvatar(initials: initials, size: 48),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

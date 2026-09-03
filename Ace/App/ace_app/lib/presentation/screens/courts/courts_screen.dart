@@ -20,8 +20,13 @@ class CourtsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(courtsViewModelProvider);
     final vm = ref.read(courtsViewModelProvider.notifier);
-    final events = ref.watch(clubEventsProvider).valueOrNull ?? const [];
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    // Guests (no club) see every event, same as they see every court;
+    // a signed-in player only sees events from a club they belong to.
+    final allEvents = ref.watch(clubEventsProvider).valueOrNull ?? const [];
+    final events = currentUser == null
+        ? allEvents
+        : allEvents.where((e) => currentUser.clubIds.contains(e.clubId)).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -57,7 +62,7 @@ class CourtsScreen extends ConsumerWidget {
                 AppSpacing.lg,
                 AppSpacing.lg,
                 AppSpacing.lg,
-                AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
+                events.isEmpty ? AppSpacing.lg + MediaQuery.paddingOf(context).bottom : 0,
               ),
               sliver: SliverList.separated(
                 itemCount: state.filteredCourts.length,
@@ -84,6 +89,7 @@ class CourtsScreen extends ConsumerWidget {
                 },
               ),
             ),
+          if (events.isNotEmpty) const SliverToBoxAdapter(child: SizedBox(height: 15)),
           if (events.isNotEmpty)
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
@@ -143,6 +149,7 @@ class _EventsSection extends StatelessWidget {
               event: e,
               isParticipating: currentUserId != null && e.participantIds.contains(currentUserId),
               onParticipate: () => onParticipate(e),
+              onTap: () => context.push('/event/${e.id}', extra: e),
             ),
           ),
         ),

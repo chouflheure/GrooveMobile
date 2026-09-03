@@ -8,7 +8,7 @@ import '../../presentation/screens/courts/courts_screen.dart';
 import '../../presentation/screens/court_detail/court_detail_screen.dart';
 import '../../presentation/screens/community/community_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
-import '../../presentation/screens/admin/admin_screen.dart';
+import '../../presentation/screens/manager/manager_screen.dart';
 import '../../presentation/templates/main_scaffold.dart';
 
 /// Bridges Firebase's auth stream to a [Listenable] so go_router re-runs
@@ -72,9 +72,9 @@ final appRouter = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/admin',
+          path: '/manager',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: AdminScreen(),
+            child: ManagerScreen(),
           ),
         ),
       ],

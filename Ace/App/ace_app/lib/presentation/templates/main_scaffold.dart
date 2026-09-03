@@ -17,18 +17,18 @@ class MainScaffold extends ConsumerWidget {
     _TabItem(path: '/profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profil'),
   ];
 
-  static const _adminTab = _TabItem(
-    path: '/admin',
-    icon: Icons.admin_panel_settings_outlined,
-    activeIcon: Icons.admin_panel_settings_rounded,
-    label: 'Admin',
+  static const _managerTab = _TabItem(
+    path: '/manager',
+    icon: Icons.shield_outlined,
+    activeIcon: Icons.shield_rounded,
+    label: 'Manager',
   );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     final isAdmin = ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
-    final tabs = isAdmin ? [..._tabs, _adminTab] : _tabs;
+    final tabs = isAdmin ? [..._tabs, _managerTab] : _tabs;
 
     int currentIndex = tabs.indexWhere((t) => location.startsWith(t.path));
     if (currentIndex == -1) currentIndex = 0;

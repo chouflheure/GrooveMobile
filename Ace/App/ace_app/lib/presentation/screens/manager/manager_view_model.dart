@@ -35,23 +35,23 @@ class MatchForm {
     this.slots = const [],
   });
 
+  /// Players are optional — an admin can block off a slot with no one
+  /// attached to it. If both are set they must be different people.
   bool get isValid =>
       courtId != null &&
-      playerAId != null &&
-      playerBId != null &&
-      playerAId != playerBId &&
-      slots.isNotEmpty;
+      slots.isNotEmpty &&
+      (playerAId == null || playerBId == null || playerAId != playerBId);
 
   MatchForm copyWith({
     String? courtId,
-    String? playerAId,
-    String? playerBId,
+    Object? playerAId = _sentinel,
+    Object? playerBId = _sentinel,
     List<MatchSlot>? slots,
   }) {
     return MatchForm(
       courtId: courtId ?? this.courtId,
-      playerAId: playerAId ?? this.playerAId,
-      playerBId: playerBId ?? this.playerBId,
+      playerAId: playerAId == _sentinel ? this.playerAId : playerAId as String?,
+      playerBId: playerBId == _sentinel ? this.playerBId : playerBId as String?,
       slots: slots ?? this.slots,
     );
   }
@@ -118,6 +118,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     this._courtRepository,
     this._bookingRepository,
     List<UserModel> allUsers,
+    this._currentUserId,
   ) : super(
           ManagerState(
             players: allUsers,
@@ -135,6 +136,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
 
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
+  final String? _currentUserId;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<List<BookingModel>> _bookingsSubscription;
 
@@ -142,11 +144,11 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     state = state.copyWith(form: state.form.copyWith(courtId: courtId));
   }
 
-  void setPlayerA(String userId) {
+  void setPlayerA(String? userId) {
     state = state.copyWith(form: state.form.copyWith(playerAId: userId));
   }
 
-  void setPlayerB(String userId) {
+  void setPlayerB(String? userId) {
     state = state.copyWith(form: state.form.copyWith(playerBId: userId));
   }
 
@@ -177,8 +179,16 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     state = state.copyWith(isSubmitting: true, message: null);
 
     final court = state.courts.firstWhere((c) => c.id == form.courtId);
-    final playerA = state.players.firstWhere((u) => u.id == form.playerAId);
-    final playerB = state.players.firstWhere((u) => u.id == form.playerBId);
+    final playerA = form.playerAId == null
+        ? null
+        : state.players.where((u) => u.id == form.playerAId).firstOrNull;
+    final playerB = form.playerBId == null
+        ? null
+        : state.players.where((u) => u.id == form.playerBId).firstOrNull;
+    // No players picked at all → this just blocks the slot, booked under
+    // the admin's own account.
+    final bookerId = playerA?.id ?? _currentUserId;
+    if (bookerId == null) return;
 
     var succeeded = 0;
     final failures = <String>[];
@@ -188,9 +198,9 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
         id: '',
         courtId: court.id,
         courtName: court.name,
-        userId: playerA.id,
-        partnerId: playerB.id,
-        partnerName: playerB.name,
+        userId: bookerId,
+        partnerId: playerB?.id,
+        partnerName: playerB?.name,
         date: slot.date,
         startTime: slot.startTime,
         endTime: _addHours(slot.startTime, slot.durationHours),
@@ -213,11 +223,17 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     // `dispose()` ran throws, so bail out instead.
     if (!mounted) return;
 
+    final summary = playerA == null
+        ? 'Créneau(x) bloqué(s) sur ${court.name}.'
+        : playerB == null
+            ? '$succeeded créneau(x) programmé(s) pour ${playerA.name}.'
+            : '$succeeded créneau(x) programmé(s) entre ${playerA.name} et ${playerB.name}.';
+
     state = state.copyWith(
       isSubmitting: false,
       form: succeeded == form.slots.length ? const MatchForm() : form,
       message: failures.isEmpty
-          ? '$succeeded créneau(x) programmé(s) entre ${playerA.name} et ${playerB.name}.'
+          ? summary
           : '$succeeded réussi(s), ${failures.length} échec(s) :\n${failures.join('\n')}',
     );
   }
@@ -244,5 +260,6 @@ final managerViewModelProvider =
     ref.watch(courtRepositoryProvider),
     ref.watch(bookingRepositoryProvider),
     ref.watch(allUsersProvider).valueOrNull ?? const [],
+    ref.watch(currentUserProvider).valueOrNull?.id,
   ),
 );

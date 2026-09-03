@@ -21,15 +21,22 @@ service cloud.firestore {
 
     match /bookings/{bookingId} {
       allow read: if true;
-      // Must be logged in, a booking always takes two players (no solo
-      // bookings), and the booker must belong to the court's club.
+      // A regular player booking always takes two players and must stay
+      // within the booker's club; an admin (doc present at admin/{uid})
+      // can create a booking solo or for no one at all, e.g. to just block
+      // a slot, and isn't club-restricted.
       allow create: if request.auth != null
-        && request.resource.data.partnerId is string
-        && request.resource.data.partnerId.size() > 0
-        // Courts without a club (legacy/unset) skip the membership check.
-        && (get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId == ''
-          || get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds);
+        && (
+          (request.resource.data.partnerId is string
+            && request.resource.data.partnerId.size() > 0
+            // Courts without a club (legacy/unset) skip the membership check.
+            && (get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId == ''
+              || (get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds
+                  && get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
+                    get(/databases/$(database)/documents/users/$(request.resource.data.partnerId)).data.clubIds)))
+          || exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        );
       allow update: if true;
       allow delete: if false;
     }

@@ -63,19 +63,23 @@ class _BookingConfirmationSheetState
     final parts = widget.selectedSlot.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
-    final totalMinutes = hour * 60 + minute + 90;
+    final totalMinutes = hour * 60 + minute + 60;
     final endHour = totalMinutes ~/ 60;
     final endMin = totalMinutes % 60;
     return '${endHour.toString().padLeft(2, '0')}:${endMin.toString().padLeft(2, '0')}';
   }
 
-  double get _price => widget.court.pricePerHour * 1.5;
+  double get _price => widget.court.pricePerHour;
 
   List<UserModel> get _filteredPartners {
     final query = _searchQuery.toLowerCase().trim();
     final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
+    final courtClubId = widget.court.clubId;
     return (ref.watch(allUsersProvider).valueOrNull ?? const [])
         .where((u) => u.id != currentUserId)
+        // A partner must belong to the same club as the court being
+        // booked — courts without a club (legacy/unset) skip this check.
+        .where((u) => courtClubId.isEmpty || u.clubIds.contains(courtClubId))
         .where((u) =>
             query.isEmpty ||
             u.name.toLowerCase().contains(query) ||

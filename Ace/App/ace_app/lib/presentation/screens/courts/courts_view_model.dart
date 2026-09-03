@@ -6,6 +6,7 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
+import '../auth/auth_view_model.dart';
 
 class CourtsState {
   final List<CourtModel> courts;
@@ -92,6 +93,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
     this._courtRepository,
     this._bookingRepository,
     this._clubRepository,
+    this._userClubIds,
   ) : super(const CourtsState()) {
     state = state.copyWith(isLoading: true);
     _courtsSubscription = _courtRepository.watchAll().listen((courts) {
@@ -105,13 +107,20 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
       _recompute();
     });
     _clubsSubscription = _clubRepository.watchAll().listen((clubs) {
-      state = state.copyWith(clubs: clubs);
+      state = state.copyWith(
+        clubs: _userClubIds == null
+            ? clubs
+            : clubs.where((c) => _userClubIds.contains(c.id)).toList(),
+      );
     });
   }
 
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
   final ClubRepository _clubRepository;
+  // Null for guests (no restriction, browse everything); a signed-in
+  // player only ever sees courts belonging to a club they're a member of.
+  final List<String>? _userClubIds;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<Map<String, Set<String>>>
       _bookingsSubscription;
@@ -122,7 +131,10 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
 
   void _recompute() {
     final today = AppConstants.today();
-    final courts = _rawCourts.map((court) {
+    final scoped = _userClubIds == null
+        ? _rawCourts
+        : _rawCourts.where((c) => _userClubIds.contains(c.clubId)).toList();
+    final courts = scoped.map((court) {
       final booked = _bookedSlots[court.id] ?? const <String>{};
       return CourtModel(
         id: court.id,
@@ -205,5 +217,6 @@ final courtsViewModelProvider =
     ref.watch(courtRepositoryProvider),
     ref.watch(bookingRepositoryProvider),
     ref.watch(clubRepositoryProvider),
+    ref.watch(currentUserProvider).valueOrNull?.clubIds,
   ),
 );

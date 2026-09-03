@@ -35,10 +35,6 @@ class ManagerScreen extends ConsumerWidget {
       appBar: AppBar(
         scrolledUnderElevation: 0,
         title: const Text('Manager'),
-        leading: GestureDetector(
-          onTap: () => Navigator.of(context, rootNavigator: true).pop(),
-          child: const Icon(Icons.arrow_back_rounded),
-        ),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -115,14 +111,10 @@ class _MatchOrganizerSection extends StatelessWidget {
         children: [
           Text('Terrain', style: AppTypography.labelLarge),
           const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String>(
-            initialValue: form.courtId,
-            hint: Text('Sélectionner un terrain', style: AppTypography.bodySmall),
-            decoration: _dropdownDecoration(),
-            items: state.courts
-                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, style: AppTypography.bodyMedium)))
-                .toList(),
-            onChanged: (id) { if (id != null) vm.setCourt(id); },
+          CourtPicker(
+            courts: state.courts,
+            selectedCourtId: form.courtId,
+            onSelect: vm.setCourt,
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
@@ -131,7 +123,7 @@ class _MatchOrganizerSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Joueur A', style: AppTypography.labelLarge),
+                    Text('Joueur A (optionnel)', style: AppTypography.labelLarge),
                     const SizedBox(height: AppSpacing.sm),
                     _PlayerDropdown(
                       players: state.players,
@@ -146,7 +138,7 @@ class _MatchOrganizerSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Joueur B', style: AppTypography.labelLarge),
+                    Text('Joueur B (optionnel)', style: AppTypography.labelLarge),
                     const SizedBox(height: AppSpacing.sm),
                     _PlayerDropdown(
                       players: state.players,
@@ -165,6 +157,12 @@ class _MatchOrganizerSection extends StatelessWidget {
             Text(
               'Les deux joueurs doivent être différents.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+            ),
+          ] else if (form.playerAId == null && form.playerBId == null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Laisse les deux vides pour juste bloquer le terrain, sans joueur.',
+              style: AppTypography.bodySmall,
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
@@ -188,49 +186,35 @@ class _MatchOrganizerSection extends StatelessWidget {
             allBookings: state.allBookings,
             players: state.players,
             onAddMany: (slots) => slots.forEach(vm.addSlot),
+            onCancelBooking: vm.cancelBooking,
           ),
           const SizedBox(height: AppSpacing.xl),
           AppButton(
             label: form.isValid
                 ? 'Créer ${form.slots.length} créneau(x)'
-                : 'Remplir tous les champs',
-            onTap: form.isValid && form.playerAId != form.playerBId
-                ? vm.createMatch
-                : null,
+                : 'Choisir un terrain et au moins un créneau',
+            onTap: form.isValid ? vm.createMatch : null,
             isLoading: state.isSubmitting,
           ),
         ],
       ),
     );
   }
-
-  InputDecoration _dropdownDecoration() => InputDecoration(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      borderSide: const BorderSide(color: AppColors.border),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      borderSide: const BorderSide(color: AppColors.border),
-    ),
-    filled: true,
-    fillColor: AppColors.background,
-    contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-  );
 }
+
 
 class _PlayerDropdown extends StatelessWidget {
   final List<UserModel> players;
   final String? value;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String?> onChanged;
 
   const _PlayerDropdown({required this.players, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return DropdownButtonFormField<String?>(
       initialValue: value,
-      hint: Text('Choisir', style: AppTypography.bodySmall),
+      hint: Text('Aucun', style: AppTypography.bodySmall),
       isExpanded: true,
       decoration: InputDecoration(
         border: OutlineInputBorder(
@@ -245,13 +229,17 @@ class _PlayerDropdown extends StatelessWidget {
         fillColor: AppColors.background,
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       ),
-      items: players
-          .map((u) => DropdownMenuItem(
-                value: u.id,
-                child: Text(u.name, style: AppTypography.bodyMedium, overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
-      onChanged: (id) { if (id != null) onChanged(id); },
+      items: [
+        DropdownMenuItem<String?>(
+          value: null,
+          child: Text('Aucun', style: AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary)),
+        ),
+        ...players.map((u) => DropdownMenuItem<String?>(
+              value: u.id,
+              child: Text(u.name, style: AppTypography.bodyMedium, overflow: TextOverflow.ellipsis),
+            )),
+      ],
+      onChanged: onChanged,
     );
   }
 }
@@ -297,12 +285,14 @@ class _AddSlotButton extends ConsumerStatefulWidget {
   final List<BookingModel> allBookings;
   final List<UserModel> players;
   final ValueChanged<List<MatchSlot>> onAddMany;
+  final ValueChanged<String> onCancelBooking;
 
   const _AddSlotButton({
     required this.court,
     required this.allBookings,
     required this.players,
     required this.onAddMany,
+    required this.onCancelBooking,
   });
 
   @override
@@ -312,7 +302,6 @@ class _AddSlotButton extends ConsumerStatefulWidget {
 class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
   DateTime? _date;
   final Set<String> _selectedTimes = {};
-  int _duration = 1;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -338,13 +327,12 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
     if (_date == null || _selectedTimes.isEmpty) return;
     widget.onAddMany(
       _selectedTimes
-          .map((time) => MatchSlot(date: _date!, startTime: time, durationHours: _duration))
+          .map((time) => MatchSlot(date: _date!, startTime: time))
           .toList(),
     );
     setState(() {
       _date = null;
       _selectedTimes.clear();
-      _duration = 1;
     });
   }
 
@@ -389,6 +377,14 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Fermer'),
           ),
+          if (booking != null)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                widget.onCancelBooking(booking.id);
+              },
+              child: const Text('Annuler la réservation', style: TextStyle(color: AppColors.error)),
+            ),
         ],
       ),
     );
@@ -413,47 +409,22 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: _pickDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      _date != null
-                          ? '${_date!.day.toString().padLeft(2, '0')}/${_date!.month.toString().padLeft(2, '0')}'
-                          : 'Date',
-                      style: AppTypography.bodySmall,
-                    ),
-                  ),
-                ),
+          GestureDetector(
+            onTap: _pickDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.border),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  initialValue: _duration,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                  ),
-                  items: [1, 2, 3]
-                      .map((h) => DropdownMenuItem(value: h, child: Text('${h}h', style: AppTypography.bodySmall)))
-                      .toList(),
-                  onChanged: (h) { if (h != null) setState(() => _duration = h); },
-                ),
+              child: Text(
+                _date != null
+                    ? '${_date!.day.toString().padLeft(2, '0')}/${_date!.month.toString().padLeft(2, '0')}'
+                    : 'Date',
+                style: AppTypography.bodySmall,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           if (court == null)

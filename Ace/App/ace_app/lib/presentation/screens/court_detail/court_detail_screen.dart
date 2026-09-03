@@ -583,7 +583,7 @@ class _BottomBar extends StatelessWidget {
         : switch ((selectedSlot, court.pricePerHour > 0)) {
             (null, _) => 'Sélectionner un créneau',
             (final slot?, true) =>
-              'Réserver à $slot — ${(court.pricePerHour * 1.5).toInt()}€',
+              'Réserver à $slot — ${court.pricePerHour.toInt()}€',
             (final slot?, false) => 'Réserver à $slot',
           };
     return Container(

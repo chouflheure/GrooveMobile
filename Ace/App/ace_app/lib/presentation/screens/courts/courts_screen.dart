@@ -25,7 +25,7 @@ class CourtsScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _SearchBar(onChanged: vm.setSearch)),
-          if (state.clubs.isNotEmpty)
+          if (state.clubs.length > 1)
             SliverToBoxAdapter(
               child: _ClubFilterBar(
                 clubs: state.clubs,

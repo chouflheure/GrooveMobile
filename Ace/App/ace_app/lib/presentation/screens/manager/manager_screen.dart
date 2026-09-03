@@ -374,13 +374,13 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
               ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             child: const Text('Fermer'),
           ),
           if (booking != null)
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context, rootNavigator: true).pop();
                 widget.onCancelBooking(booking.id);
               },
               child: const Text('Annuler la réservation', style: TextStyle(color: AppColors.error)),

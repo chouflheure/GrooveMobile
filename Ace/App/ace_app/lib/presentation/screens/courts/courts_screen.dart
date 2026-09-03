@@ -8,7 +8,9 @@ import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../auth/auth_view_model.dart';
 import '../court_detail/court_detail_screen.dart';
+import 'club_event_providers.dart';
 import 'courts_view_model.dart';
 
 class CourtsScreen extends ConsumerWidget {
@@ -18,6 +20,8 @@ class CourtsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(courtsViewModelProvider);
     final vm = ref.read(courtsViewModelProvider.notifier);
+    final events = ref.watch(clubEventsProvider).valueOrNull ?? const [];
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -80,8 +84,69 @@ class CourtsScreen extends ConsumerWidget {
                 },
               ),
             ),
+          if (events.isNotEmpty)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: _EventsSection(
+                  events: events,
+                  currentUserId: currentUser?.id,
+                  onParticipate: (event) {
+                    if (currentUser == null) {
+                      context.go('/login');
+                      return;
+                    }
+                    final isIn = event.participantIds.contains(currentUser.id);
+                    ref.read(clubEventRepositoryProvider).setParticipating(
+                          event.id,
+                          currentUser.id,
+                          !isIn,
+                        );
+                  },
+                ),
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _EventsSection extends StatelessWidget {
+  final List<ClubEventModel> events;
+  final String? currentUserId;
+  final ValueChanged<ClubEventModel> onParticipate;
+
+  const _EventsSection({
+    required this.events,
+    required this.currentUserId,
+    required this.onParticipate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...events]..sort((a, b) => a.date.compareTo(b.date));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Événements des clubs', style: AppTypography.headlineMedium),
+        const SizedBox(height: AppSpacing.md),
+        ...sorted.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: ClubEventCard(
+              event: e,
+              isParticipating: currentUserId != null && e.participantIds.contains(currentUserId),
+              onParticipate: () => onParticipate(e),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

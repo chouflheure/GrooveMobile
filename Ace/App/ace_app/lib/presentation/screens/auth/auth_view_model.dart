@@ -92,6 +92,25 @@ class AuthViewModel extends StateNotifier<AuthActionState> {
 
   Future<void> signOut() => _authRepository.signOut();
 
+  Future<bool> resetPassword(String email) async {
+    state = const AuthActionState(isLoading: true);
+    try {
+      await _authRepository.sendPasswordResetEmail(email);
+      state = const AuthActionState();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = AuthActionState(
+        errorMessage: e.code == 'user-not-found'
+            ? 'Aucun compte associé à cet email.'
+            : _messageFor(e),
+      );
+      return false;
+    } catch (_) {
+      state = const AuthActionState(errorMessage: 'Une erreur est survenue, réessaie.');
+      return false;
+    }
+  }
+
   String _messageFor(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':

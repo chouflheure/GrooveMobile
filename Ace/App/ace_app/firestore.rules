@@ -24,6 +24,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /events/{eventId} {
+      allow read: if true;
+      // Only an admin can create an event, and only for a club they're
+      // themselves a member of.
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && request.resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+      // Same admin/club scoping for a full edit; any signed-in user can
+      // otherwise only toggle themselves in/out of `participantIds`.
+      allow update: if request.auth != null && (
+        (exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+          && resource.data.clubId in
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds
+          && request.resource.data.clubId in
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds)
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds'])
+      );
+      allow delete: if false;
+    }
+
     // Presence of a doc here (not its contents) grants admin — managed by
     // hand in the console, not through the app.
     match /admin/{userId} {

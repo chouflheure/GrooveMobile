@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
+import '../../../data/repositories/club_event_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
 import '../auth/auth_view_model.dart';
+import '../courts/club_event_providers.dart';
 import '../courts/courts_view_model.dart';
 
 /// One planned slot within a multi-slot match — a court + player pair is
@@ -68,6 +70,7 @@ class ManagerState {
   final List<UserModel> players;
   final List<UserModel> admins;
   final List<BookingModel> allBookings;
+  final List<ClubEventModel> events;
   final MatchForm form;
   final bool isLoading;
   final bool isSubmitting;
@@ -79,6 +82,7 @@ class ManagerState {
     this.players = const [],
     this.admins = const [],
     this.allBookings = const [],
+    this.events = const [],
     this.form = const MatchForm(),
     this.isLoading = false,
     this.isSubmitting = false,
@@ -101,6 +105,7 @@ class ManagerState {
     List<UserModel>? players,
     List<UserModel>? admins,
     List<BookingModel>? allBookings,
+    List<ClubEventModel>? events,
     MatchForm? form,
     bool? isLoading,
     bool? isSubmitting,
@@ -112,6 +117,7 @@ class ManagerState {
       players: players ?? this.players,
       admins: admins ?? this.admins,
       allBookings: allBookings ?? this.allBookings,
+      events: events ?? this.events,
       form: form ?? this.form,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -127,6 +133,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     this._courtRepository,
     this._bookingRepository,
     this._clubRepository,
+    this._clubEventRepository,
     List<UserModel> allUsers,
     this._currentUserId,
     this._adminClubIds,
@@ -150,17 +157,24 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
         clubs: clubs.where((c) => _adminClubIds.contains(c.id)).toList(),
       );
     });
+    _eventsSubscription = _clubEventRepository.watchAll().listen((events) {
+      state = state.copyWith(
+        events: events.where((e) => _adminClubIds.contains(e.clubId)).toList(),
+      );
+    });
   }
 
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
   final ClubRepository _clubRepository;
+  final ClubEventRepository _clubEventRepository;
   final String? _currentUserId;
   // An admin only administers the club(s) they're a member of.
   final List<String> _adminClubIds;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<List<BookingModel>> _bookingsSubscription;
   late final StreamSubscription<List<ClubModel>> _clubsSubscription;
+  late final StreamSubscription<List<ClubEventModel>> _eventsSubscription;
 
   List<CourtModel> _rawCourts = const [];
   List<BookingModel> _rawBookings = const [];
@@ -306,6 +320,20 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
+  /// Creates a club event on behalf of the current admin.
+  Future<bool> createEvent(ClubEventModel event) async {
+    try {
+      await _clubEventRepository.create(event);
+      if (mounted) state = state.copyWith(message: '${event.title} créé.');
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la création : $e');
+      }
+      return false;
+    }
+  }
+
   void clearMessage() {
     state = state.copyWith(message: null);
   }
@@ -315,6 +343,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     _courtsSubscription.cancel();
     _bookingsSubscription.cancel();
     _clubsSubscription.cancel();
+    _eventsSubscription.cancel();
     super.dispose();
   }
 }
@@ -325,6 +354,7 @@ final managerViewModelProvider =
     ref.watch(courtRepositoryProvider),
     ref.watch(bookingRepositoryProvider),
     ref.watch(clubRepositoryProvider),
+    ref.watch(clubEventRepositoryProvider),
     ref.watch(allUsersProvider).valueOrNull ?? const [],
     ref.watch(currentUserProvider).valueOrNull?.id,
     ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],

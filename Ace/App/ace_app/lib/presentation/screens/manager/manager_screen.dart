@@ -8,6 +8,7 @@ import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../courts/courts_view_model.dart';
 import 'court_form_screen.dart';
+import 'event_form_screen.dart';
 import 'manager_view_model.dart';
 
 class ManagerScreen extends ConsumerWidget {
@@ -52,6 +53,8 @@ class ManagerScreen extends ConsumerWidget {
                   _MatchOrganizerSection(state: state, vm: vm),
                   const SizedBox(height: AppSpacing.xxl),
                   _CourtsManagementSection(state: state),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _EventsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _ActiveBookingsSection(state: state, vm: vm),
                   const SizedBox(height: AppSpacing.xxl),
@@ -396,6 +399,9 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
           b.date.day == _date!.day;
     }).firstOrNull;
 
+    final closurePeriod =
+        court.unavailablePeriods.where((p) => p.covers(_date!)).firstOrNull;
+
     final playerName = booking == null
         ? null
         : widget.players.where((u) => u.id == booking.userId).firstOrNull?.name ??
@@ -404,9 +410,15 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Réservation existante'),
+        title: Text(booking == null && closurePeriod != null ? 'Terrain fermé' : 'Réservation existante'),
         content: booking == null
-            ? const Text("Détail introuvable pour ce créneau.")
+            ? Text(
+                closurePeriod == null
+                    ? "Détail introuvable pour ce créneau."
+                    : closurePeriod.reason == null || closurePeriod.reason!.isEmpty
+                        ? 'Ce terrain est fermé à cette date.'
+                        : closurePeriod.reason!,
+              )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,6 +465,13 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
             .watch(bookedSlotsForCourtProvider((courtId: court.id, date: _date!)))
             .valueOrNull
         : null;
+    final isClosed = court != null && _date != null && court.isClosedOn(_date!);
+    final closureReason = isClosed
+        ? court.unavailablePeriods
+            .where((p) => p.covers(_date!))
+            .firstOrNull
+            ?.reason
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -492,6 +511,30 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
               child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
             )
           else ...[
+            if (isClosed)
+              Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.block_rounded, size: 16, color: AppColors.error),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        closureReason == null || closureReason.isEmpty
+                            ? 'Terrain fermé à cette date.'
+                            : 'Terrain fermé à cette date — $closureReason',
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Text(
               'Vert = disponible (clique pour sélectionner) · Rouge = déjà réservé (clique pour voir la résa).',
               style: AppTypography.bodySmall,
@@ -501,7 +544,7 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: court.baseSlotsFor(_date!).map((s) {
-                final isBooked = bookedTimes.contains(s.time);
+                final isBooked = isClosed || bookedTimes.contains(s.time);
                 return SlotAvailabilityChip(
                   time: s.time,
                   isBooked: isBooked,
@@ -687,6 +730,68 @@ class _CourtsManagementSection extends StatelessWidget {
               onPressed: () => _openForm(context),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Ajouter un terrain'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EventsManagementSection extends StatelessWidget {
+  final ManagerState state;
+
+  const _EventsManagementSection({required this.state});
+
+  void _openForm(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => EventFormScreen(clubs: state.clubs, courts: state.courts),
+      ),
+    );
+  }
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...state.events]..sort((a, b) => a.date.compareTo(b.date));
+    return _SectionCard(
+      icon: Icons.event_rounded,
+      title: 'Événements',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (sorted.isEmpty)
+            Text('Aucun événement pour le moment.', style: AppTypography.bodySmall)
+          else
+            ...sorted.map((e) => Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(e.title, style: AppTypography.headlineSmall),
+                      Text(
+                        '${_fmt(e.date)} · ${e.clubName} · ${e.participantIds.length} participant(s)',
+                        style: AppTypography.bodySmall,
+                      ),
+                    ],
+                  ),
+                )),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Créer un événement'),
             ),
           ),
         ],

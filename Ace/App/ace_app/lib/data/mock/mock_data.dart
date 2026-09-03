@@ -92,6 +92,7 @@ class MockData {
   static final List<CourtModel> courts = [
     CourtModel(
       id: 'court_1',
+      clubId: '',
       name: 'Court Philippe Chatrier',
       type: CourtType.outdoor,
       surface: CourtSurface.clay,
@@ -116,6 +117,7 @@ class MockData {
     ),
     CourtModel(
       id: 'court_2',
+      clubId: '',
       name: 'Court Central Indoor',
       type: CourtType.indoor,
       surface: CourtSurface.hard,
@@ -145,6 +147,7 @@ class MockData {
     ),
     CourtModel(
       id: 'court_3',
+      clubId: '',
       name: 'Court Arthur Ashe',
       type: CourtType.outdoor,
       surface: CourtSurface.hard,
@@ -168,6 +171,7 @@ class MockData {
     ),
     CourtModel(
       id: 'court_4',
+      clubId: '',
       name: 'Court Wimbledon',
       type: CourtType.outdoor,
       surface: CourtSurface.grass,
@@ -195,6 +199,7 @@ class MockData {
     ),
     CourtModel(
       id: 'court_5',
+      clubId: '',
       name: 'Tennis Club Montmartre',
       type: CourtType.indoor,
       surface: CourtSurface.clay,

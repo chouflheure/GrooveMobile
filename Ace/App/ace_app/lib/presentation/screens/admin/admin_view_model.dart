@@ -90,9 +90,13 @@ class AdminViewModel extends StateNotifier<AdminState> {
   Future<void> _load(List<UserModel> allUsers) async {
     state = state.copyWith(isLoading: true);
     final courts = await _courtRepository.fetchAll();
+    // `allUsersProvider` can re-emit (and rebuild this notifier) while this
+    // fetch is still in flight — writing to `state` after `dispose()` ran
+    // throws, so bail out instead.
+    if (!mounted) return;
     state = state.copyWith(
       courts: courts,
-      users: allUsers.where((u) => !u.isAdmin).toList(),
+      users: allUsers,
       allBookings: MockData.bookings,
       isLoading: false,
     );
@@ -136,6 +140,7 @@ class AdminViewModel extends StateNotifier<AdminState> {
     if (!state.form.isValid) return;
     state = state.copyWith(isLoading: true);
     await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
 
     final court = state.courts.firstWhere((c) => c.id == state.form.courtId);
     final endTime = _addHours(state.form.startTime!, state.form.durationHours);

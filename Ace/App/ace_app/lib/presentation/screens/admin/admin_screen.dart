@@ -7,6 +7,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../courts/courts_view_model.dart';
 import 'admin_view_model.dart';
 
 class AdminScreen extends ConsumerWidget {
@@ -91,15 +92,21 @@ class _StatsRow extends StatelessWidget {
   }
 }
 
-class _CreateBookingSection extends StatelessWidget {
+class _CreateBookingSection extends ConsumerWidget {
   final AdminState state;
   final AdminViewModel vm;
 
   const _CreateBookingSection({required this.state, required this.vm});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final form = state.form;
+    final selectedCourt = state.courts.where((c) => c.id == form.courtId).firstOrNull;
+    final bookedTimes = selectedCourt != null && form.date != null
+        ? ref
+            .watch(bookedSlotsForCourtProvider((courtId: selectedCourt.id, date: form.date!)))
+            .valueOrNull
+        : null;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -166,6 +173,28 @@ class _CreateBookingSection extends StatelessWidget {
               ),
             ],
           ),
+          if (selectedCourt != null && form.date != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text('Créneaux disponibles sur ce terrain', style: AppTypography.labelLarge),
+            const SizedBox(height: AppSpacing.sm),
+            bookedTimes == null
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                  )
+                : Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: selectedCourt.availableSlots
+                        .map((s) => SlotAvailabilityChip(
+                              time: s.time,
+                              isBooked: bookedTimes.contains(s.time),
+                              isSelected: form.startTime == s.time,
+                              onTap: () => vm.setFormTime(s.time),
+                            ))
+                        .toList(),
+                  ),
+          ],
           const SizedBox(height: AppSpacing.lg),
           Text('Durée', style: AppTypography.labelLarge),
           const SizedBox(height: AppSpacing.sm),

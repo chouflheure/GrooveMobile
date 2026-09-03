@@ -9,6 +9,15 @@ class SlotAlreadyBookedException implements Exception {
   String toString() => 'Ce créneau vient d\'être réservé par quelqu\'un d\'autre.';
 }
 
+/// Thrown when the booker isn't a member of the club the court belongs to.
+class ClubMismatchException implements Exception {
+  const ClubMismatchException();
+
+  @override
+  String toString() =>
+      "Vous devez être membre du club de ce terrain pour le réserver.";
+}
+
 class BookingRepository {
   BookingRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -31,8 +40,21 @@ class BookingRepository {
   /// has to live in the id itself.
   Future<void> create(BookingModel booking) async {
     final docRef = _collection.doc(booking.slotKey);
+    final courtRef = _firestore.collection('courts').doc(booking.courtId);
+    final bookerRef = _usersCollection.doc(booking.userId);
 
     await _firestore.runTransaction((tx) async {
+      // Firestore transactions require every read before any write, so the
+      // club-membership check runs first.
+      final courtSnap = await tx.get(courtRef);
+      final bookerSnap = await tx.get(bookerRef);
+      final clubId = courtSnap.data()?['clubId'] as String?;
+      final clubIds =
+          (bookerSnap.data()?['clubIds'] as List?)?.cast<String>() ?? const [];
+      if (clubId != null && clubId.isNotEmpty && !clubIds.contains(clubId)) {
+        throw const ClubMismatchException();
+      }
+
       final existing = await tx.get(docRef);
       if (existing.exists) {
         final status = existing.data()?['status'] as String?;
@@ -71,6 +93,15 @@ class BookingRepository {
 
   Stream<List<BookingModel>> watchByUser(String userId) {
     return _collection.where('userId', isEqualTo: userId).snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromJson(doc.data()))
+              .toList(),
+        );
+  }
+
+  /// All bookings across every player — admin/manager use only.
+  Stream<List<BookingModel>> watchAll() {
+    return _collection.snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => BookingModel.fromJson(doc.data()))
               .toList(),

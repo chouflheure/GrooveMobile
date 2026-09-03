@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../court_detail/court_detail_screen.dart';
@@ -24,6 +25,14 @@ class CourtsScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: _SearchBar(onChanged: vm.setSearch)),
+          if (state.clubs.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _ClubFilterBar(
+                clubs: state.clubs,
+                selectedClubId: state.selectedClubId,
+                onSelect: vm.setClub,
+              ),
+            ),
           SliverToBoxAdapter(
             child: _FilterBar(
               selected: state.selectedFilter,
@@ -52,8 +61,13 @@ class CourtsScreen extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.lg),
                 itemBuilder: (_, i) {
                   final court = state.filteredCourts[i];
+                  final clubName = state.clubs
+                      .where((c) => c.id == court.clubId)
+                      .firstOrNull
+                      ?.name;
                   return CourtCard(
                     court: court,
+                    clubName: clubName,
                     onTap: () => context.push(
                       '/court/${court.id}',
                       extra: CourtDetailArgs(court: court),
@@ -187,6 +201,54 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
+
+class _ClubFilterBar extends StatelessWidget {
+  final List<ClubModel> clubs;
+  final String? selectedClubId;
+  final ValueChanged<String?> onSelect;
+
+  const _ClubFilterBar({
+    required this.clubs,
+    required this.selectedClubId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        itemCount: clubs.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (_, i) {
+          final label = i == 0 ? 'Tous les clubs' : clubs[i - 1].name;
+          final clubId = i == 0 ? null : clubs[i - 1].id;
+          final isSelected = selectedClubId == clubId;
+          return FilterChip(
+            label: Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            selected: isSelected,
+            onSelected: (_) => onSelect(clubId),
+            selectedColor: AppColors.primary,
+            showCheckmark: false,
+            side: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.border,
+            ),
+            backgroundColor: AppColors.surface,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          );
+        },
+      ),
+    );
+  }
+}
 
 class _EmptyState extends StatelessWidget {
   @override

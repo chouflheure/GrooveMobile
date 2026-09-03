@@ -163,7 +163,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final favorites = ref.read(favoritesProvider);
     final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
     final candidates = (ref.read(allUsersProvider).valueOrNull ?? const [])
-        .where((u) => u.id != currentUserId && !u.isAdmin)
+        .where((u) => u.id != currentUserId)
         .toList();
 
     showModalBottomSheet(

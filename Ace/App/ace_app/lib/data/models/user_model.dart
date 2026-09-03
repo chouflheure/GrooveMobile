@@ -89,6 +89,8 @@ class UserModel extends Equatable {
   // booker or invited partner) — the `bookings` collection (queried by
   // `userId`) stays the source of truth, this is just a link on the profile.
   final List<String> bookingIds;
+  // Clubs this player is a member of — a user may belong to more than one.
+  final List<String> clubIds;
 
   const UserModel({
     required this.id,
@@ -106,6 +108,7 @@ class UserModel extends Equatable {
     this.role = UserRole.player,
     this.notifications = const {},
     this.bookingIds = const [],
+    this.clubIds = const [],
   });
 
   /// Whether a given notification kind is on — defaults to off if the user
@@ -138,6 +141,7 @@ class UserModel extends Equatable {
     UserRole? role,
     Map<String, bool>? notifications,
     List<String>? bookingIds,
+    List<String>? clubIds,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -156,6 +160,7 @@ class UserModel extends Equatable {
       role: role ?? this.role,
       notifications: notifications ?? this.notifications,
       bookingIds: bookingIds ?? this.bookingIds,
+      clubIds: clubIds ?? this.clubIds,
     );
   }
 
@@ -185,6 +190,9 @@ class UserModel extends Equatable {
         bookingIds: json['bookingIds'] != null
             ? List<String>.from(json['bookingIds'] as List)
             : const [],
+        clubIds: json['clubIds'] != null
+            ? List<String>.from(json['clubIds'] as List)
+            : const [],
       );
 
   Map<String, dynamic> toJson() => {
@@ -203,6 +211,7 @@ class UserModel extends Equatable {
         'role': role.jsonValue,
         'notifications': notifications,
         'bookingIds': bookingIds,
+        'clubIds': clubIds,
       };
 
   @override

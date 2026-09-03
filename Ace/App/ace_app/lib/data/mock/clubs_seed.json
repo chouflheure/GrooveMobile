@@ -1,0 +1,5 @@
+[
+  { "id": "club_1", "name": "Roland Garros Country Club", "location": "Paris 16e", "imageUrl": null },
+  { "id": "club_2", "name": "Paris Tennis Club", "location": "Paris 12e", "imageUrl": null },
+  { "id": "club_3", "name": "Tennis Club Montmartre", "location": "Paris 18e", "imageUrl": null }
+]

@@ -9,7 +9,9 @@ import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
 import '../booking_detail/booking_detail_screen.dart';
+import '../courts/courts_view_model.dart';
 import '../edit_profile/edit_profile_screen.dart';
+import '../manager/manager_screen.dart';
 import '../notification_settings/notification_settings_screen.dart';
 import 'all_bookings_screen.dart';
 import 'profile_view_model.dart';
@@ -49,6 +51,7 @@ class ProfileScreen extends ConsumerWidget {
         slivers: [
           _ProfileHeader(user: user),
           SliverToBoxAdapter(child: _StatsGrid(user: user)),
+          if (user.isAdmin) SliverToBoxAdapter(child: _ManagerBanner()),
           SliverToBoxAdapter(
             child: state.isLoading
                 ? const Padding(
@@ -66,6 +69,55 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ManagerBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+      child: GestureDetector(
+        onTap: () => Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (_) => const ManagerScreen()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppColors.primaryContainer,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: AppColors.primary),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Manager', style: AppTypography.headlineSmall.copyWith(color: AppColors.primary)),
+                    Text(
+                      'Organiser des matchs et gérer les réservations',
+                      style: AppTypography.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -106,12 +158,19 @@ class _GuestProfilePrompt extends StatelessWidget {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerWidget {
   final UserModel user;
   const _ProfileHeader({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clubNames = ref
+            .watch(clubsProvider)
+            .valueOrNull
+            ?.where((c) => user.clubIds.contains(c.id))
+            .map((c) => c.name)
+            .toList() ??
+        const [];
     return SliverAppBar(
       expandedHeight: 230,
       pinned: true,
@@ -172,6 +231,8 @@ class _ProfileHeader extends StatelessWidget {
                     children: [
                       _InfoPill(Icons.location_on_rounded, user.location),
                       _InfoPill(Icons.calendar_today_rounded, '${user.matchesPerMonth} matchs/mois'),
+                      if (clubNames.isNotEmpty)
+                        _InfoPill(Icons.emoji_events_outlined, clubNames.join(', ')),
                     ],
                   ),
                 ],
@@ -204,7 +265,15 @@ class _InfoPill extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: Colors.white70),
         const SizedBox(width: 4),
-        Text(label, style: AppTypography.bodySmall.copyWith(color: Colors.white70)),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
@@ -335,6 +404,8 @@ class _SectionHeader extends StatelessWidget {
 class _SettingsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAdmin = ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
       child: Column(
@@ -358,6 +429,17 @@ class _SettingsSection extends ConsumerWidget {
               MaterialPageRoute(builder: (_) => const EditProfileScreen()),
             ),
           ),
+          if (isAdmin) ...[
+            const SizedBox(height: AppSpacing.md),
+            _SettingsCard(
+              icon: Icons.shield_rounded,
+              label: 'Manager',
+              subtitle: 'Organiser des matchs et gérer les réservations',
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const ManagerScreen()),
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           _SettingsCard(
             icon: Icons.logout_rounded,

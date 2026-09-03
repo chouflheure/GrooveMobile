@@ -9,17 +9,48 @@
     "rating": 4.8,
     "imageUrl": "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800",
     "description": "Le court le plus emblématique de Paris, avec une surface en terre battue parfaitement entretenue. Vue imprenable sur le stade.",
-    "amenities": ["Vestiaires", "Douches", "Parking", "Éclairage", "Café"],
+    "amenities": [
+      "Vestiaires",
+      "Douches",
+      "Parking",
+      "Éclairage",
+      "Café"
+    ],
     "availableSlots": [
-      { "time": "08:00", "isAvailable": true },
-      { "time": "09:30", "isAvailable": true },
-      { "time": "11:00", "isAvailable": true },
-      { "time": "12:30", "isAvailable": false },
-      { "time": "14:00", "isAvailable": true },
-      { "time": "15:30", "isAvailable": false },
-      { "time": "16:00", "isAvailable": true },
-      { "time": "18:30", "isAvailable": true }
-    ]
+      {
+        "time": "08:00",
+        "isAvailable": true
+      },
+      {
+        "time": "09:30",
+        "isAvailable": true
+      },
+      {
+        "time": "11:00",
+        "isAvailable": true
+      },
+      {
+        "time": "12:30",
+        "isAvailable": false
+      },
+      {
+        "time": "14:00",
+        "isAvailable": true
+      },
+      {
+        "time": "15:30",
+        "isAvailable": false
+      },
+      {
+        "time": "16:00",
+        "isAvailable": true
+      },
+      {
+        "time": "18:30",
+        "isAvailable": true
+      }
+    ],
+    "clubId": "club_1"
   },
   {
     "id": "court_2",
@@ -31,16 +62,44 @@
     "rating": 4.9,
     "imageUrl": "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800",
     "description": "Court intérieur climatisé avec surface dure (résine) de haute qualité. Idéal toute l'année, même par mauvais temps.",
-    "amenities": ["Climatisation", "Vestiaires", "Douches", "Pro shop", "Restaurant"],
+    "amenities": [
+      "Climatisation",
+      "Vestiaires",
+      "Douches",
+      "Pro shop",
+      "Restaurant"
+    ],
     "availableSlots": [
-      { "time": "07:00", "isAvailable": true },
-      { "time": "08:30", "isAvailable": false },
-      { "time": "10:00", "isAvailable": true },
-      { "time": "12:30", "isAvailable": true },
-      { "time": "15:00", "isAvailable": true },
-      { "time": "17:30", "isAvailable": true },
-      { "time": "20:00", "isAvailable": true }
-    ]
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
+        "time": "08:30",
+        "isAvailable": false
+      },
+      {
+        "time": "10:00",
+        "isAvailable": true
+      },
+      {
+        "time": "12:30",
+        "isAvailable": true
+      },
+      {
+        "time": "15:00",
+        "isAvailable": true
+      },
+      {
+        "time": "17:30",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      }
+    ],
+    "clubId": "club_2"
   },
   {
     "id": "court_3",
@@ -52,16 +111,42 @@
     "rating": 4.6,
     "imageUrl": "https://images.unsplash.com/photo-1551773188-0801da12ddae?w=800",
     "description": "Court extérieur en surface dure, idéal pour les amateurs de jeu rapide. Situé en plein cœur du bois de Vincennes.",
-    "amenities": ["Parking", "Éclairage", "Vestiaires"],
+    "amenities": [
+      "Parking",
+      "Éclairage",
+      "Vestiaires"
+    ],
     "availableSlots": [
-      { "time": "08:00", "isAvailable": false },
-      { "time": "09:30", "isAvailable": true },
-      { "time": "11:00", "isAvailable": true },
-      { "time": "14:00", "isAvailable": true },
-      { "time": "15:30", "isAvailable": true },
-      { "time": "17:00", "isAvailable": false },
-      { "time": "18:30", "isAvailable": true }
-    ]
+      {
+        "time": "08:00",
+        "isAvailable": false
+      },
+      {
+        "time": "09:30",
+        "isAvailable": true
+      },
+      {
+        "time": "11:00",
+        "isAvailable": true
+      },
+      {
+        "time": "14:00",
+        "isAvailable": true
+      },
+      {
+        "time": "15:30",
+        "isAvailable": true
+      },
+      {
+        "time": "17:00",
+        "isAvailable": false
+      },
+      {
+        "time": "18:30",
+        "isAvailable": true
+      }
+    ],
+    "clubId": "club_2"
   },
   {
     "id": "court_4",
@@ -73,15 +158,39 @@
     "rating": 4.7,
     "imageUrl": "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=800",
     "description": "L'unique court en gazon naturel de Paris. Une expérience Wimbledon à portée de main, entretenu avec soin toute la saison.",
-    "amenities": ["Gazon naturel", "Vestiaires premium", "Bar anglais", "Parking privé"],
+    "amenities": [
+      "Gazon naturel",
+      "Vestiaires premium",
+      "Bar anglais",
+      "Parking privé"
+    ],
     "availableSlots": [
-      { "time": "10:00", "isAvailable": true },
-      { "time": "11:30", "isAvailable": true },
-      { "time": "13:00", "isAvailable": false },
-      { "time": "14:30", "isAvailable": true },
-      { "time": "16:00", "isAvailable": false },
-      { "time": "17:30", "isAvailable": true }
-    ]
+      {
+        "time": "10:00",
+        "isAvailable": true
+      },
+      {
+        "time": "11:30",
+        "isAvailable": true
+      },
+      {
+        "time": "13:00",
+        "isAvailable": false
+      },
+      {
+        "time": "14:30",
+        "isAvailable": true
+      },
+      {
+        "time": "16:00",
+        "isAvailable": false
+      },
+      {
+        "time": "17:30",
+        "isAvailable": true
+      }
+    ],
+    "clubId": "club_1"
   },
   {
     "id": "court_5",
@@ -93,15 +202,41 @@
     "rating": 4.5,
     "imageUrl": "https://images.unsplash.com/photo-1531315396756-905d68d21b56?w=800",
     "description": "Court en terre battue indoor, rare à Paris. Parfait pour travailler sa technique sur terre battue même en hiver.",
-    "amenities": ["Chauffage", "Vestiaires", "Cours avec moniteur disponibles"],
+    "amenities": [
+      "Chauffage",
+      "Vestiaires",
+      "Cours avec moniteur disponibles"
+    ],
     "availableSlots": [
-      { "time": "07:30", "isAvailable": true },
-      { "time": "09:00", "isAvailable": true },
-      { "time": "10:30", "isAvailable": false },
-      { "time": "13:00", "isAvailable": true },
-      { "time": "16:00", "isAvailable": true },
-      { "time": "19:00", "isAvailable": true },
-      { "time": "20:30", "isAvailable": false }
-    ]
+      {
+        "time": "07:30",
+        "isAvailable": true
+      },
+      {
+        "time": "09:00",
+        "isAvailable": true
+      },
+      {
+        "time": "10:30",
+        "isAvailable": false
+      },
+      {
+        "time": "13:00",
+        "isAvailable": true
+      },
+      {
+        "time": "16:00",
+        "isAvailable": true
+      },
+      {
+        "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:30",
+        "isAvailable": false
+      }
+    ],
+    "clubId": "club_3"
   }
 ]

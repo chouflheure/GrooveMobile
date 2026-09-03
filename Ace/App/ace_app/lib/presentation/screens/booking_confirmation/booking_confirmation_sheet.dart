@@ -75,7 +75,7 @@ class _BookingConfirmationSheetState
     final query = _searchQuery.toLowerCase().trim();
     final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
     return (ref.watch(allUsersProvider).valueOrNull ?? const [])
-        .where((u) => u.id != currentUserId && !u.isAdmin)
+        .where((u) => u.id != currentUserId)
         .where((u) =>
             query.isEmpty ||
             u.name.toLowerCase().contains(query) ||
@@ -227,7 +227,7 @@ class _BookingConfirmationSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e is SlotAlreadyBookedException
+            e is SlotAlreadyBookedException || e is ClubMismatchException
                 ? e.toString()
                 : 'Une erreur est survenue, réessaie.',
           ),

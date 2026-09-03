@@ -7,12 +7,14 @@ import 'time_slot_chip.dart';
 
 class CourtCard extends StatelessWidget {
   final CourtModel court;
+  final String? clubName;
   final VoidCallback? onTap;
   final Function(String courtId, String slot)? onSlotTap;
 
   const CourtCard({
     super.key,
     required this.court,
+    this.clubName,
     this.onTap,
     this.onSlotTap,
   });
@@ -33,7 +35,7 @@ class CourtCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CourtImage(court: court),
+            _CourtImage(court: court, clubName: clubName),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
@@ -59,8 +61,9 @@ class CourtCard extends StatelessWidget {
 
 class _CourtImage extends StatelessWidget {
   final CourtModel court;
+  final String? clubName;
 
-  const _CourtImage({required this.court});
+  const _CourtImage({required this.court, this.clubName});
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +103,7 @@ class _CourtImage extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          child: _CourtInfo(court: court),
+          child: _CourtInfo(court: court, clubName: clubName),
         ),
       ],
     );
@@ -215,8 +218,9 @@ class _PriceBadge extends StatelessWidget {
 
 class _CourtInfo extends StatelessWidget {
   final CourtModel court;
+  final String? clubName;
 
-  const _CourtInfo({required this.court});
+  const _CourtInfo({required this.court, this.clubName});
 
   @override
   Widget build(BuildContext context) {
@@ -232,6 +236,16 @@ class _CourtInfo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (clubName != null && clubName!.isNotEmpty) ...[
+            Text(
+              clubName!,
+              style: AppTypography.labelSmall.copyWith(
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+          ],
           Text(
             court.name,
             style: AppTypography.headlineMedium.copyWith(color: Colors.white),

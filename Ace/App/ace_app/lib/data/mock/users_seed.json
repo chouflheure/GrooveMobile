@@ -10,15 +10,28 @@
     "rating": 4.6,
     "memberSince": "2024-01-15T00:00:00.000",
     "matchesPerMonth": 8,
-    "stats": { "matchesPlayed": 32, "wins": 18, "hoursPlayed": 60 },
-    "surfaces": { "clay": 0.60, "hard": 0.30, "grass": 0.10 },
+    "stats": {
+      "matchesPlayed": 32,
+      "wins": 18,
+      "hoursPlayed": 60
+    },
+    "surfaces": {
+      "clay": 0.6,
+      "hard": 0.3,
+      "grass": 0.1
+    },
     "role": "player",
     "notifications": {
       "Messages": true,
       "Demandes de jeu": true,
       "Rappel de créneau": true,
       "Nouveaux créneaux": false
-    }
+    },
+    "clubIds": [
+      "club_1",
+      "club_2",
+      "club_3"
+    ]
   },
   {
     "id": "LdPVR6tC1qUAlQDHgoQHSK0dFp03",
@@ -31,15 +44,27 @@
     "rating": 4.9,
     "memberSince": "2023-06-01T00:00:00.000",
     "matchesPerMonth": 15,
-    "stats": { "matchesPlayed": 89, "wins": 61, "hoursPlayed": 178 },
-    "surfaces": { "clay": 0.30, "hard": 0.50, "grass": 0.20 },
+    "stats": {
+      "matchesPlayed": 89,
+      "wins": 61,
+      "hoursPlayed": 178
+    },
+    "surfaces": {
+      "clay": 0.3,
+      "hard": 0.5,
+      "grass": 0.2
+    },
     "role": "player",
     "notifications": {
       "Messages": true,
       "Demandes de jeu": false,
       "Rappel de créneau": true,
       "Nouveaux créneaux": true
-    }
+    },
+    "clubIds": [
+      "club_1",
+      "club_2"
+    ]
   },
   {
     "id": "dqwVaTutTobsfo5Si9BpchitG9j2",
@@ -52,15 +77,27 @@
     "rating": 4.7,
     "memberSince": "2024-05-01T00:00:00.000",
     "matchesPerMonth": 6,
-    "stats": { "matchesPlayed": 21, "wins": 14, "hoursPlayed": 38 },
-    "surfaces": { "clay": 0.40, "hard": 0.40, "grass": 0.20 },
+    "stats": {
+      "matchesPlayed": 21,
+      "wins": 14,
+      "hoursPlayed": 38
+    },
+    "surfaces": {
+      "clay": 0.4,
+      "hard": 0.4,
+      "grass": 0.2
+    },
     "role": "player",
     "notifications": {
       "Messages": false,
       "Demandes de jeu": true,
       "Rappel de créneau": true,
       "Nouveaux créneaux": false
-    }
+    },
+    "clubIds": [
+      "club_2",
+      "club_3"
+    ]
   },
   {
     "id": "6mbZiSlZIfdPVh0NPfBxuwMUstC2",
@@ -73,15 +110,27 @@
     "rating": 4.5,
     "memberSince": "2023-09-10T00:00:00.000",
     "matchesPerMonth": 10,
-    "stats": { "matchesPlayed": 56, "wins": 30, "hoursPlayed": 120 },
-    "surfaces": { "clay": 0.35, "hard": 0.45, "grass": 0.20 },
+    "stats": {
+      "matchesPlayed": 56,
+      "wins": 30,
+      "hoursPlayed": 120
+    },
+    "surfaces": {
+      "clay": 0.35,
+      "hard": 0.45,
+      "grass": 0.2
+    },
     "role": "player",
     "notifications": {
       "Messages": true,
       "Demandes de jeu": true,
       "Rappel de créneau": false,
       "Nouveaux créneaux": true
-    }
+    },
+    "clubIds": [
+      "club_1",
+      "club_3"
+    ]
   },
   {
     "id": "Ctt1f4SOfXbMP7sBY2IkEj6QXYa2",
@@ -94,14 +143,27 @@
     "rating": 5.0,
     "memberSince": "2023-01-01T00:00:00.000",
     "matchesPerMonth": 0,
-    "stats": { "matchesPlayed": 0, "wins": 0, "hoursPlayed": 0 },
-    "surfaces": { "clay": 0, "hard": 0, "grass": 0 },
+    "stats": {
+      "matchesPlayed": 0,
+      "wins": 0,
+      "hoursPlayed": 0
+    },
+    "surfaces": {
+      "clay": 0,
+      "hard": 0,
+      "grass": 0
+    },
     "role": "admin",
     "notifications": {
       "Messages": true,
       "Demandes de jeu": true,
       "Rappel de créneau": true,
       "Nouveaux créneaux": true
-    }
+    },
+    "clubIds": [
+      "club_1",
+      "club_2",
+      "club_3"
+    ]
   }
 ]

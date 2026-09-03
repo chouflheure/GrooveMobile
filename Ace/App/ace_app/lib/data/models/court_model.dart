@@ -64,6 +64,7 @@ class CourtModel extends Equatable {
   final String description;
   final List<String> amenities;
   final List<TimeSlot> availableSlots;
+  final String clubId;
 
   const CourtModel({
     required this.id,
@@ -77,6 +78,7 @@ class CourtModel extends Equatable {
     required this.description,
     required this.amenities,
     required this.availableSlots,
+    required this.clubId,
   });
 
   List<TimeSlot> get freeSlots =>
@@ -96,6 +98,7 @@ class CourtModel extends Equatable {
         availableSlots: (json['availableSlots'] as List)
             .map((s) => TimeSlot.fromJson(s as Map<String, dynamic>))
             .toList(),
+        clubId: json['clubId'] as String? ?? '',
       );
 
   Map<String, dynamic> toJson() => {
@@ -110,8 +113,9 @@ class CourtModel extends Equatable {
         'description': description,
         'amenities': amenities,
         'availableSlots': availableSlots.map((s) => s.toJson()).toList(),
+        'clubId': clubId,
       };
 
   @override
-  List<Object?> get props => [id, name, type, surface];
+  List<Object?> get props => [id, name, type, surface, clubId];
 }

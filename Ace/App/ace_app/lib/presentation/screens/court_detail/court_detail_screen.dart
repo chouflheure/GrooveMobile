@@ -64,6 +64,12 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
         const <String>{};
     final court = _withBookedSlots(template, booked);
     final isAuthenticated = ref.watch(currentUserProvider).valueOrNull != null;
+    final clubName = ref
+        .watch(clubsProvider)
+        .valueOrNull
+        ?.where((c) => c.id == court.clubId)
+        .firstOrNull
+        ?.name;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -88,7 +94,22 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
                   const SizedBox(height: AppSpacing.xxl),
                   _Section(
                     title: 'Adresse',
-                    child: _AddressTile(address: court.location),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (clubName != null && clubName.isNotEmpty) ...[
+                          Text(
+                            clubName,
+                            style: AppTypography.labelMedium.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                        ],
+                        _AddressTile(address: court.location),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   _Section(
@@ -154,6 +175,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
               ? TimeSlot(time: s.time, isAvailable: false)
               : s)
           .toList(),
+      clubId: template.clubId,
     );
   }
 

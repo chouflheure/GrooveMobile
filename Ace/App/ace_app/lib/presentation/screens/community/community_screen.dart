@@ -144,8 +144,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     UserModel currentUser,
     List<UserModel> allUsers,
   ) {
-    final candidates =
-        allUsers.where((u) => u.id != currentUser.id && !u.isAdmin).toList();
+    final candidates = allUsers.where((u) => u.id != currentUser.id).toList();
 
     showModalBottomSheet(
       context: context,

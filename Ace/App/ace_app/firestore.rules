@@ -7,13 +7,29 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /clubs/{clubId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Presence of a doc here (not its contents) grants admin — managed by
+    // hand in the console, not through the app.
+    match /admin/{userId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /bookings/{bookingId} {
       allow read: if true;
-      // Must be logged in, and a booking always takes two players — no
-      // solo bookings, matching the "2 players" rule enforced client-side.
+      // Must be logged in, a booking always takes two players (no solo
+      // bookings), and the booker must belong to the court's club.
       allow create: if request.auth != null
         && request.resource.data.partnerId is string
-        && request.resource.data.partnerId.size() > 0;
+        && request.resource.data.partnerId.size() > 0
+        // Courts without a club (legacy/unset) skip the membership check.
+        && (get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId == ''
+          || get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds);
       allow update: if true;
       allow delete: if false;
     }

@@ -7,6 +7,7 @@ import '../../../data/models/models.dart';
 import '../../../data/providers/favorites_provider.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
+import '../courts/courts_view_model.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   final UserModel user;
@@ -17,13 +18,25 @@ class UserProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritesProvider);
     final isFavorite = favorites.contains(user.id);
+    final clubNames = ref
+        .watch(clubsProvider)
+        .valueOrNull
+        ?.where((c) => user.clubIds.contains(c.id))
+        .map((c) => c.name)
+        .toList() ??
+        const [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: _UserHeader(user: user, isFavorite: isFavorite, ref: ref),
+            child: _UserHeader(
+              user: user,
+              isFavorite: isFavorite,
+              ref: ref,
+              clubNames: clubNames,
+            ),
           ),
           SliverToBoxAdapter(child: _StatsGrid(user: user)),
           SliverToBoxAdapter(child: _SurfacesSection(user: user)),
@@ -38,11 +51,13 @@ class _UserHeader extends StatelessWidget {
   final UserModel user;
   final bool isFavorite;
   final WidgetRef ref;
+  final List<String> clubNames;
 
   const _UserHeader({
     required this.user,
     required this.isFavorite,
     required this.ref,
+    this.clubNames = const [],
   });
 
   @override
@@ -147,6 +162,8 @@ class _UserHeader extends StatelessWidget {
                   _InfoPill(Icons.star_rounded, '${user.rating}/5'),
                   _InfoPill(Icons.calendar_today_rounded,
                       '${user.matchesPerMonth} matchs/mois'),
+                  if (clubNames.isNotEmpty)
+                    _InfoPill(Icons.emoji_events_outlined, clubNames.join(', ')),
                 ],
               ),
             ],
@@ -177,8 +194,15 @@ class _InfoPill extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: Colors.white70),
         const SizedBox(width: 4),
-        Text(label,
-            style: AppTypography.bodySmall.copyWith(color: Colors.white70)),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

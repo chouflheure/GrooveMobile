@@ -4,7 +4,19 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /courts/{courtId} {
       allow read: if true;
-      allow write: if false;
+      // Only admins (doc present at admin/{uid}) can create/edit courts,
+      // and only for a club they're themselves a member of.
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && request.resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+      allow update: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds
+        && request.resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+      allow delete: if false;
     }
 
     match /clubs/{clubId} {
@@ -24,7 +36,8 @@ service cloud.firestore {
       // A regular player booking always takes two players and must stay
       // within the booker's club; an admin (doc present at admin/{uid})
       // can create a booking solo or for no one at all, e.g. to just block
-      // a slot, and isn't club-restricted.
+      // a slot — but only for a court in a club they're themselves a
+      // member of, same as court management.
       allow create: if request.auth != null
         && (
           (request.resource.data.partnerId is string
@@ -35,7 +48,10 @@ service cloud.firestore {
                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds
                   && get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
                     get(/databases/$(database)/documents/users/$(request.resource.data.partnerId)).data.clubIds)))
-          || exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+          || (exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+              && (get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId == ''
+                || get(/databases/$(database)/documents/courts/$(request.resource.data.courtId)).data.clubId in
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds))
         );
       allow update: if true;
       allow delete: if false;

@@ -152,10 +152,11 @@ class _CourtOption extends ConsumerWidget {
                 : Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: court.availableSlots
+                    children: court.baseSlotsFor(AppConstants.today())
                         .map((s) => SlotAvailabilityChip(
                               time: s.time,
-                              isBooked: bookedToday.contains(s.time),
+                              isBooked: court.isClosedOn(AppConstants.today()) ||
+                                  bookedToday.contains(s.time),
                             ))
                         .toList(),
                   ),

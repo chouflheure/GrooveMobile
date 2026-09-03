@@ -39,7 +39,6 @@ class UserProfileScreen extends ConsumerWidget {
             ),
           ),
           SliverToBoxAdapter(child: _StatsGrid(user: user)),
-          SliverToBoxAdapter(child: _SurfacesSection(user: user)),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
         ],
       ),
@@ -240,51 +239,3 @@ class _StatsGrid extends StatelessWidget {
   }
 }
 
-class _SurfacesSection extends StatelessWidget {
-  final UserModel user;
-  const _SurfacesSection({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🎯', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: AppSpacing.sm),
-              Text('Surfaces préférées', style: AppTypography.headlineSmall),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppSurfaceProgress(
-            label: 'Terre battue',
-            value: user.surfaces.clay,
-            color: AppColors.clay,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppSurfaceProgress(
-            label: 'Dur',
-            value: user.surfaces.hard,
-            color: AppColors.hard,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppSurfaceProgress(
-            label: 'Gazon',
-            value: user.surfaces.grass,
-            color: AppColors.grass,
-          ),
-        ],
-      ),
-    );
-  }
-}

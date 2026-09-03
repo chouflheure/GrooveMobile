@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
+import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
 import '../auth/auth_view_model.dart';
 import '../courts/courts_view_model.dart';
@@ -26,12 +27,14 @@ class MatchForm {
   final String? courtId;
   final String? playerAId;
   final String? playerBId;
+  final String? title;
   final List<MatchSlot> slots;
 
   const MatchForm({
     this.courtId,
     this.playerAId,
     this.playerBId,
+    this.title,
     this.slots = const [],
   });
 
@@ -46,12 +49,14 @@ class MatchForm {
     String? courtId,
     Object? playerAId = _sentinel,
     Object? playerBId = _sentinel,
+    Object? title = _sentinel,
     List<MatchSlot>? slots,
   }) {
     return MatchForm(
       courtId: courtId ?? this.courtId,
       playerAId: playerAId == _sentinel ? this.playerAId : playerAId as String?,
       playerBId: playerBId == _sentinel ? this.playerBId : playerBId as String?,
+      title: title == _sentinel ? this.title : title as String?,
       slots: slots ?? this.slots,
     );
   }
@@ -59,6 +64,7 @@ class MatchForm {
 
 class ManagerState {
   final List<CourtModel> courts;
+  final List<ClubModel> clubs;
   final List<UserModel> players;
   final List<UserModel> admins;
   final List<BookingModel> allBookings;
@@ -69,6 +75,7 @@ class ManagerState {
 
   const ManagerState({
     this.courts = const [],
+    this.clubs = const [],
     this.players = const [],
     this.admins = const [],
     this.allBookings = const [],
@@ -90,6 +97,7 @@ class ManagerState {
 
   ManagerState copyWith({
     List<CourtModel>? courts,
+    List<ClubModel>? clubs,
     List<UserModel>? players,
     List<UserModel>? admins,
     List<BookingModel>? allBookings,
@@ -100,6 +108,7 @@ class ManagerState {
   }) {
     return ManagerState(
       courts: courts ?? this.courts,
+      clubs: clubs ?? this.clubs,
       players: players ?? this.players,
       admins: admins ?? this.admins,
       allBookings: allBookings ?? this.allBookings,
@@ -117,8 +126,10 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   ManagerViewModel(
     this._courtRepository,
     this._bookingRepository,
+    this._clubRepository,
     List<UserModel> allUsers,
     this._currentUserId,
+    this._adminClubIds,
   ) : super(
           ManagerState(
             players: allUsers,
@@ -127,18 +138,45 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
           ),
         ) {
     _courtsSubscription = _courtRepository.watchAll().listen((courts) {
-      state = state.copyWith(courts: courts, isLoading: false);
+      _rawCourts = courts;
+      _recomputeScope();
     });
     _bookingsSubscription = _bookingRepository.watchAll().listen((bookings) {
-      state = state.copyWith(allBookings: bookings);
+      _rawBookings = bookings;
+      _recomputeScope();
+    });
+    _clubsSubscription = _clubRepository.watchAll().listen((clubs) {
+      state = state.copyWith(
+        clubs: clubs.where((c) => _adminClubIds.contains(c.id)).toList(),
+      );
     });
   }
 
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
+  final ClubRepository _clubRepository;
   final String? _currentUserId;
+  // An admin only administers the club(s) they're a member of.
+  final List<String> _adminClubIds;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<List<BookingModel>> _bookingsSubscription;
+  late final StreamSubscription<List<ClubModel>> _clubsSubscription;
+
+  List<CourtModel> _rawCourts = const [];
+  List<BookingModel> _rawBookings = const [];
+
+  void _recomputeScope() {
+    final scopedCourts =
+        _rawCourts.where((c) => _adminClubIds.contains(c.clubId)).toList();
+    final scopedCourtIds = scopedCourts.map((c) => c.id).toSet();
+    final scopedBookings =
+        _rawBookings.where((b) => scopedCourtIds.contains(b.courtId)).toList();
+    state = state.copyWith(
+      courts: scopedCourts,
+      allBookings: scopedBookings,
+      isLoading: false,
+    );
+  }
 
   void setCourt(String courtId) {
     state = state.copyWith(form: state.form.copyWith(courtId: courtId));
@@ -150,6 +188,12 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
 
   void setPlayerB(String? userId) {
     state = state.copyWith(form: state.form.copyWith(playerBId: userId));
+  }
+
+  void setTitle(String? title) {
+    state = state.copyWith(
+      form: state.form.copyWith(title: title == null || title.isEmpty ? null : title),
+    );
   }
 
   void addSlot(MatchSlot slot) {
@@ -209,6 +253,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
         createdAt: DateTime.now(),
         isAdminBooking: true,
         courtAddress: court.location,
+        title: form.title,
       );
       try {
         await _bookingRepository.create(booking);
@@ -242,6 +287,25 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     return _bookingRepository.cancel(bookingId);
   }
 
+  /// Creates a court when `court.id` is empty, otherwise updates it.
+  Future<bool> saveCourt(CourtModel court) async {
+    try {
+      if (court.id.isEmpty) {
+        await _courtRepository.create(court);
+        if (mounted) state = state.copyWith(message: '${court.name} ajouté.');
+      } else {
+        await _courtRepository.update(court);
+        if (mounted) state = state.copyWith(message: '${court.name} mis à jour.');
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de l\'enregistrement : $e');
+      }
+      return false;
+    }
+  }
+
   void clearMessage() {
     state = state.copyWith(message: null);
   }
@@ -250,6 +314,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   void dispose() {
     _courtsSubscription.cancel();
     _bookingsSubscription.cancel();
+    _clubsSubscription.cancel();
     super.dispose();
   }
 }
@@ -259,7 +324,9 @@ final managerViewModelProvider =
   (ref) => ManagerViewModel(
     ref.watch(courtRepositoryProvider),
     ref.watch(bookingRepositoryProvider),
+    ref.watch(clubRepositoryProvider),
     ref.watch(allUsersProvider).valueOrNull ?? const [],
     ref.watch(currentUserProvider).valueOrNull?.id,
+    ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],
   ),
 );

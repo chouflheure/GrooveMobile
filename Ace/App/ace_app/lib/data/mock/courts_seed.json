@@ -18,6 +18,34 @@
     ],
     "availableSlots": [
       {
+        "time": "01:00",
+        "isAvailable": true
+      },
+      {
+        "time": "02:00",
+        "isAvailable": true
+      },
+      {
+        "time": "03:00",
+        "isAvailable": true
+      },
+      {
+        "time": "04:00",
+        "isAvailable": true
+      },
+      {
+        "time": "05:00",
+        "isAvailable": true
+      },
+      {
+        "time": "06:00",
+        "isAvailable": true
+      },
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
         "time": "08:00",
         "isAvailable": true
       },
@@ -63,6 +91,22 @@
       },
       {
         "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      },
+      {
+        "time": "21:00",
+        "isAvailable": true
+      },
+      {
+        "time": "22:00",
+        "isAvailable": true
+      },
+      {
+        "time": "23:00",
         "isAvailable": true
       }
     ],
@@ -87,6 +131,34 @@
     ],
     "availableSlots": [
       {
+        "time": "01:00",
+        "isAvailable": true
+      },
+      {
+        "time": "02:00",
+        "isAvailable": true
+      },
+      {
+        "time": "03:00",
+        "isAvailable": true
+      },
+      {
+        "time": "04:00",
+        "isAvailable": true
+      },
+      {
+        "time": "05:00",
+        "isAvailable": true
+      },
+      {
+        "time": "06:00",
+        "isAvailable": true
+      },
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
         "time": "08:00",
         "isAvailable": true
       },
@@ -132,6 +204,22 @@
       },
       {
         "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      },
+      {
+        "time": "21:00",
+        "isAvailable": true
+      },
+      {
+        "time": "22:00",
+        "isAvailable": true
+      },
+      {
+        "time": "23:00",
         "isAvailable": true
       }
     ],
@@ -154,6 +242,34 @@
     ],
     "availableSlots": [
       {
+        "time": "01:00",
+        "isAvailable": true
+      },
+      {
+        "time": "02:00",
+        "isAvailable": true
+      },
+      {
+        "time": "03:00",
+        "isAvailable": true
+      },
+      {
+        "time": "04:00",
+        "isAvailable": true
+      },
+      {
+        "time": "05:00",
+        "isAvailable": true
+      },
+      {
+        "time": "06:00",
+        "isAvailable": true
+      },
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
         "time": "08:00",
         "isAvailable": true
       },
@@ -199,6 +315,22 @@
       },
       {
         "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      },
+      {
+        "time": "21:00",
+        "isAvailable": true
+      },
+      {
+        "time": "22:00",
+        "isAvailable": true
+      },
+      {
+        "time": "23:00",
         "isAvailable": true
       }
     ],
@@ -222,6 +354,34 @@
     ],
     "availableSlots": [
       {
+        "time": "01:00",
+        "isAvailable": true
+      },
+      {
+        "time": "02:00",
+        "isAvailable": true
+      },
+      {
+        "time": "03:00",
+        "isAvailable": true
+      },
+      {
+        "time": "04:00",
+        "isAvailable": true
+      },
+      {
+        "time": "05:00",
+        "isAvailable": true
+      },
+      {
+        "time": "06:00",
+        "isAvailable": true
+      },
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
         "time": "08:00",
         "isAvailable": true
       },
@@ -267,6 +427,22 @@
       },
       {
         "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      },
+      {
+        "time": "21:00",
+        "isAvailable": true
+      },
+      {
+        "time": "22:00",
+        "isAvailable": true
+      },
+      {
+        "time": "23:00",
         "isAvailable": true
       }
     ],
@@ -289,6 +465,34 @@
     ],
     "availableSlots": [
       {
+        "time": "01:00",
+        "isAvailable": true
+      },
+      {
+        "time": "02:00",
+        "isAvailable": true
+      },
+      {
+        "time": "03:00",
+        "isAvailable": true
+      },
+      {
+        "time": "04:00",
+        "isAvailable": true
+      },
+      {
+        "time": "05:00",
+        "isAvailable": true
+      },
+      {
+        "time": "06:00",
+        "isAvailable": true
+      },
+      {
+        "time": "07:00",
+        "isAvailable": true
+      },
+      {
         "time": "08:00",
         "isAvailable": true
       },
@@ -334,6 +538,22 @@
       },
       {
         "time": "19:00",
+        "isAvailable": true
+      },
+      {
+        "time": "20:00",
+        "isAvailable": true
+      },
+      {
+        "time": "21:00",
+        "isAvailable": true
+      },
+      {
+        "time": "22:00",
+        "isAvailable": true
+      },
+      {
+        "time": "23:00",
         "isAvailable": true
       }
     ],

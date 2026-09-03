@@ -147,13 +147,16 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
         imageUrl: court.imageUrl,
         description: court.description,
         amenities: court.amenities,
-        availableSlots: court.availableSlots
-            .map((s) => booked.contains(s.time) ||
+        availableSlots: court.baseSlotsFor(today)
+            .map((s) => court.isClosedOn(today) ||
+                    booked.contains(s.time) ||
                     AppConstants.isSlotPast(today, s.time)
                 ? TimeSlot(time: s.time, isAvailable: false)
                 : s)
             .toList(),
         clubId: court.clubId,
+        unavailablePeriods: court.unavailablePeriods,
+        availabilityOverrides: court.availabilityOverrides,
       );
     }).toList();
     state = state.copyWith(courts: courts, isLoading: false);

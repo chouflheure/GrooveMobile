@@ -130,12 +130,18 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
                           }),
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        _SlotsSection(
-                          court: court,
-                          selectedSlot: _selectedSlot,
-                          onSelect: (slot) =>
-                              setState(() => _selectedSlot = slot),
-                        ),
+                        if (template.isClosedOn(_selectedDate))
+                          _ClosedBanner(
+                            period: template.unavailablePeriods
+                                .firstWhere((p) => p.covers(_selectedDate)),
+                          )
+                        else
+                          _SlotsSection(
+                            court: court,
+                            selectedSlot: _selectedSlot,
+                            onSelect: (slot) =>
+                                setState(() => _selectedSlot = slot),
+                          ),
                       ],
                     ),
                   ),
@@ -158,6 +164,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
   }
 
   CourtModel _withBookedSlots(CourtModel template, Set<String> booked) {
+    final closed = template.isClosedOn(_selectedDate);
     return CourtModel(
       id: template.id,
       name: template.name,
@@ -169,13 +176,16 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       imageUrl: template.imageUrl,
       description: template.description,
       amenities: template.amenities,
-      availableSlots: template.availableSlots
-          .map((s) => booked.contains(s.time) ||
+      availableSlots: template.baseSlotsFor(_selectedDate)
+          .map((s) => closed ||
+                  booked.contains(s.time) ||
                   AppConstants.isSlotPast(_selectedDate, s.time)
               ? TimeSlot(time: s.time, isAvailable: false)
               : s)
           .toList(),
       clubId: template.clubId,
+      unavailablePeriods: template.unavailablePeriods,
+      availabilityOverrides: template.availabilityOverrides,
     );
   }
 
@@ -559,6 +569,42 @@ class _SlotsSection extends StatelessWidget {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _ClosedBanner extends StatelessWidget {
+  final UnavailablePeriod period;
+
+  const _ClosedBanner({required this.period});
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.block_rounded, color: AppColors.error, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              period.reason == null || period.reason!.isEmpty
+                  ? 'Terrain fermé du ${_fmt(period.startDate)} au ${_fmt(period.endDate)}.'
+                  : 'Terrain fermé du ${_fmt(period.startDate)} au ${_fmt(period.endDate)} — ${period.reason}',
+              style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

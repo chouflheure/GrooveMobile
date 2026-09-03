@@ -38,4 +38,16 @@ class CourtRepository {
               : null,
         );
   }
+
+  /// Admin-only — creates a new court, ignoring `court.id` in favour of a
+  /// fresh Firestore-generated id.
+  Future<void> create(CourtModel court) {
+    final docRef = _collection.doc();
+    return docRef.set({...court.toJson(), 'id': docRef.id});
+  }
+
+  /// Admin-only — full replace of an existing court's document.
+  Future<void> update(CourtModel court) {
+    return _collection.doc(court.id).set(court.toJson());
+  }
 }

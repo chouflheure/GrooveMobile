@@ -36,6 +36,9 @@ class BookingModel extends Equatable {
   final bool isAdminBooking;
   final String? gateCode;
   final String? courtAddress;
+  // Optional label an admin can attach when creating a booking through
+  // Manager (e.g. "Tournoi interne", "Cours particulier").
+  final String? title;
 
   const BookingModel({
     required this.id,
@@ -55,6 +58,7 @@ class BookingModel extends Equatable {
     this.isAdminBooking = false,
     this.gateCode,
     this.courtAddress,
+    this.title,
   });
 
   bool get isConfirmed => status == BookingStatus.confirmed;
@@ -111,6 +115,7 @@ class BookingModel extends Equatable {
         isAdminBooking: json['isAdminBooking'] as bool? ?? false,
         gateCode: json['gateCode'] as String?,
         courtAddress: json['courtAddress'] as String?,
+        title: json['title'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -131,6 +136,7 @@ class BookingModel extends Equatable {
         'isAdminBooking': isAdminBooking,
         'gateCode': gateCode,
         'courtAddress': courtAddress,
+        'title': title,
       };
 
   BookingModel copyWith({
@@ -151,6 +157,7 @@ class BookingModel extends Equatable {
     bool? isAdminBooking,
     Object? gateCode = _sentinel,
     Object? courtAddress = _sentinel,
+    Object? title = _sentinel,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -170,6 +177,7 @@ class BookingModel extends Equatable {
       isAdminBooking: isAdminBooking ?? this.isAdminBooking,
       gateCode: gateCode == _sentinel ? this.gateCode : gateCode as String?,
       courtAddress: courtAddress == _sentinel ? this.courtAddress : courtAddress as String?,
+      title: title == _sentinel ? this.title : title as String?,
     );
   }
 

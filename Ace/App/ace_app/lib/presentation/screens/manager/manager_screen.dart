@@ -7,6 +7,7 @@ import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../courts/courts_view_model.dart';
+import 'court_form_screen.dart';
 import 'manager_view_model.dart';
 
 class ManagerScreen extends ConsumerWidget {
@@ -49,6 +50,8 @@ class ManagerScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _MatchOrganizerSection(state: state, vm: vm),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _CourtsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _ActiveBookingsSection(state: state, vm: vm),
                   const SizedBox(height: AppSpacing.xxl),
@@ -94,15 +97,37 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _MatchOrganizerSection extends StatelessWidget {
+class _MatchOrganizerSection extends StatefulWidget {
   final ManagerState state;
   final ManagerViewModel vm;
 
   const _MatchOrganizerSection({required this.state, required this.vm});
 
   @override
+  State<_MatchOrganizerSection> createState() => _MatchOrganizerSectionState();
+}
+
+class _MatchOrganizerSectionState extends State<_MatchOrganizerSection> {
+  final _titleController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final vm = widget.vm;
     final form = state.form;
+
+    // The form resets to empty after a successful batch create — clear the
+    // (locally-controlled) title field to match instead of leaving stale text.
+    if (form.courtId == null && form.slots.isEmpty && _titleController.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _titleController.clear());
+    }
+
     return _SectionCard(
       icon: Icons.sports_tennis_rounded,
       title: 'Organiser un match',
@@ -115,6 +140,29 @@ class _MatchOrganizerSection extends StatelessWidget {
             courts: state.courts,
             selectedCourtId: form.courtId,
             onSelect: vm.setCourt,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Titre (optionnel)', style: AppTypography.labelLarge),
+          const SizedBox(height: AppSpacing.sm),
+          TextField(
+            controller: _titleController,
+            style: AppTypography.bodyMedium,
+            decoration: InputDecoration(
+              hintText: 'Ex : Tournoi interne, Cours particulier...',
+              hintStyle: AppTypography.bodySmall,
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            ),
+            onChanged: vm.setTitle,
           ),
           const SizedBox(height: AppSpacing.lg),
           Row(
@@ -364,6 +412,13 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(booking.courtName, style: AppTypography.headlineSmall),
+                  if (booking.title != null && booking.title!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      booking.title!,
+                      style: AppTypography.labelMedium.copyWith(color: AppColors.primary),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.xs),
                   Text('$time - ${booking.endTime}', style: AppTypography.bodyMedium),
                   const SizedBox(height: AppSpacing.xs),
@@ -445,7 +500,7 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: court.availableSlots.map((s) {
+              children: court.baseSlotsFor(_date!).map((s) {
                 final isBooked = bookedTimes.contains(s.time);
                 return SlotAvailabilityChip(
                   time: s.time,
@@ -545,6 +600,11 @@ class _BookingRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(booking.courtName, style: AppTypography.headlineSmall),
+                if (booking.title != null && booking.title!.isNotEmpty)
+                  Text(
+                    booking.title!,
+                    style: AppTypography.labelSmall.copyWith(color: AppColors.primary),
+                  ),
                 Text(
                   '${booking.date.day.toString().padLeft(2, '0')}/${booking.date.month.toString().padLeft(2, '0')} · ${booking.startTime}-${booking.endTime}'
                   '${booking.partnerName != null ? ' · avec ${booking.partnerName}' : ''}',
@@ -556,6 +616,78 @@ class _BookingRow extends StatelessWidget {
           TextButton(
             onPressed: onCancel,
             child: const Text('Annuler', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourtsManagementSection extends StatelessWidget {
+  final ManagerState state;
+
+  const _CourtsManagementSection({required this.state});
+
+  void _openForm(BuildContext context, {CourtModel? court}) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => CourtFormScreen(court: court, clubs: state.clubs),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.location_on_rounded,
+      title: 'Terrains',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (state.courts.isEmpty)
+            Text('Aucun terrain pour le moment.', style: AppTypography.bodySmall)
+          else
+            ...state.courts.map((c) {
+              final clubName = state.clubs.where((cl) => cl.id == c.clubId).firstOrNull?.name;
+              return GestureDetector(
+                onTap: () => _openForm(context, court: c),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.name, style: AppTypography.headlineSmall),
+                            Text(
+                              '${c.type.label} · ${c.surface.label}'
+                              '${clubName != null ? ' · $clubName' : ''}',
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Ajouter un terrain'),
+            ),
           ),
         ],
       ),

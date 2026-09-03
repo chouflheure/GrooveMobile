@@ -231,7 +231,10 @@ class _BookingConfirmationSheetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e is SlotAlreadyBookedException || e is ClubMismatchException
+            e is SlotAlreadyBookedException ||
+                    e is ClubMismatchException ||
+                    e is CourtClosedException ||
+                    e is SlotOutsideHoursException
                 ? e.toString()
                 : 'Une erreur est survenue, réessaie.',
           ),

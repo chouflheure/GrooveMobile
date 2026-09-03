@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_model.dart';
+import '../models/court_model.dart';
 
 /// Thrown when a booking is attempted on a slot another booking already holds.
 class SlotAlreadyBookedException implements Exception {
@@ -16,6 +17,23 @@ class ClubMismatchException implements Exception {
   @override
   String toString() =>
       "Vous devez être membre du club de ce terrain pour le réserver.";
+}
+
+/// Thrown when the court is closed for the whole day of the booking.
+class CourtClosedException implements Exception {
+  const CourtClosedException();
+
+  @override
+  String toString() => 'Ce terrain est fermé à cette date.';
+}
+
+/// Thrown when the slot's time falls outside a restricted-hours window
+/// that applies to the booking's date.
+class SlotOutsideHoursException implements Exception {
+  const SlotOutsideHoursException();
+
+  @override
+  String toString() => 'Ce terrain n\'est pas ouvert à cette heure ce jour-là.';
 }
 
 class BookingRepository {
@@ -53,6 +71,25 @@ class BookingRepository {
           (bookerSnap.data()?['clubIds'] as List?)?.cast<String>() ?? const [];
       if (clubId != null && clubId.isNotEmpty && !clubIds.contains(clubId)) {
         throw const ClubMismatchException();
+      }
+
+      final periodsJson = courtSnap.data()?['unavailablePeriods'] as List?;
+      final periods = periodsJson
+              ?.map((p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          const [];
+      if (periods.any((p) => p.covers(booking.date))) {
+        throw const CourtClosedException();
+      }
+
+      final overridesJson = courtSnap.data()?['availabilityOverrides'] as List?;
+      final overrides = overridesJson
+              ?.map((p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          const [];
+      final activeOverride = overrides.where((o) => o.covers(booking.date)).firstOrNull;
+      if (activeOverride != null && !activeOverride.allowsTime(booking.startTime)) {
+        throw const SlotOutsideHoursException();
       }
 
       final existing = await tx.get(docRef);

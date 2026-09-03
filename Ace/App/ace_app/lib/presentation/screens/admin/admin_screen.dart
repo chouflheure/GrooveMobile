@@ -206,7 +206,7 @@ class _CreateBookingSection extends ConsumerWidget {
           Text('Inviter des joueurs', style: AppTypography.labelLarge),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Minimum 1 joueur requis pour créer une réservation.',
+            'Minimum 2 joueurs requis pour créer une réservation.',
             style: AppTypography.bodySmall,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -323,7 +323,7 @@ class _DurationSelector extends StatelessWidget {
   }
 }
 
-class _UserSelector extends StatelessWidget {
+class _UserSelector extends StatefulWidget {
   final List<UserModel> users;
   final List<String> selectedIds;
   final ValueChanged<String> onToggle;
@@ -331,47 +331,95 @@ class _UserSelector extends StatelessWidget {
   const _UserSelector({required this.users, required this.selectedIds, required this.onToggle});
 
   @override
+  State<_UserSelector> createState() => _UserSelectorState();
+}
+
+class _UserSelectorState extends State<_UserSelector> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? widget.users
+        : widget.users
+            .where((u) =>
+                u.name.toLowerCase().contains(query) ||
+                u.location.toLowerCase().contains(query) ||
+                u.email.toLowerCase().contains(query))
+            .toList();
+
     return Column(
-      children: users.map((u) {
-        final isSelected = selectedIds.contains(u.id);
-        return GestureDetector(
-          onTap: () => onToggle(u.id),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryContainer : AppColors.background,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.border,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                AppAvatar(
-                  initials: u.initials,
-                  size: 36,
-                  backgroundColor: isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.surfaceVariant,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSearchField(
+          controller: _searchController,
+          hint: 'Rechercher un joueur...',
+          onChanged: (v) => setState(() => _query = v),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: filtered.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Text('Aucun joueur trouvé.', style: AppTypography.bodySmall),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) {
+                    final u = filtered[i];
+                    final isSelected = widget.selectedIds.contains(u.id);
+                    return GestureDetector(
+                      onTap: () => widget.onToggle(u.id),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primaryContainer : AppColors.background,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primary : AppColors.border,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            AppAvatar(
+                              initials: u.initials,
+                              size: 36,
+                              backgroundColor: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.2)
+                                  : AppColors.surfaceVariant,
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(u.name, style: AppTypography.headlineSmall),
+                                  Text('${u.ranking} · ${u.location}', style: AppTypography.bodySmall),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(u.name, style: AppTypography.headlineSmall),
-                      Text('${u.ranking} · ${u.location}', style: AppTypography.bodySmall),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 }

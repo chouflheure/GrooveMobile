@@ -165,5 +165,330 @@
       "club_2",
       "club_3"
     ]
+  },
+  {
+    "id": "xkpvzJiCF1VZJCuoKE2GlNUu6DF3",
+    "name": "Antoine Girard",
+    "email": "user_6@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "15/4",
+    "location": "Paris 11e",
+    "rating": 4.3,
+    "memberSince": "2024-03-10T00:00:00.000",
+    "matchesPerMonth": 6,
+    "stats": {
+      "matchesPlayed": 24,
+      "wins": 12,
+      "hoursPlayed": 45
+    },
+    "surfaces": {
+      "clay": 0.4,
+      "hard": 0.4,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_1"
+    ]
+  },
+  {
+    "id": "uXE2gumUByWGF6G3mBzsonezK272",
+    "name": "Camille Fontaine",
+    "email": "user_7@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "5/6",
+    "location": "Paris 14e",
+    "rating": 4.7,
+    "memberSince": "2022-09-05T00:00:00.000",
+    "matchesPerMonth": 12,
+    "stats": {
+      "matchesPlayed": 71,
+      "wins": 45,
+      "hoursPlayed": 140
+    },
+    "surfaces": {
+      "clay": 0.5,
+      "hard": 0.3,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_2"
+    ]
+  },
+  {
+    "id": "HGcePJ7bApSKnKw8hXrWhRuKeDt1",
+    "name": "Lucas Bernard",
+    "email": "user_8@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "30/2",
+    "location": "Paris 17e",
+    "rating": 4.1,
+    "memberSince": "2025-01-20T00:00:00.000",
+    "matchesPerMonth": 4,
+    "stats": {
+      "matchesPlayed": 9,
+      "wins": 3,
+      "hoursPlayed": 16
+    },
+    "surfaces": {
+      "clay": 0.2,
+      "hard": 0.6,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_3"
+    ]
+  },
+  {
+    "id": "IKxoXPAJIia90Vy4hgF916HQqVD3",
+    "name": "Emma Petit",
+    "email": "user_9@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "15/1",
+    "location": "Paris 5e",
+    "rating": 4.8,
+    "memberSince": "2023-04-18T00:00:00.000",
+    "matchesPerMonth": 10,
+    "stats": {
+      "matchesPlayed": 58,
+      "wins": 39,
+      "hoursPlayed": 110
+    },
+    "surfaces": {
+      "clay": 0.6,
+      "hard": 0.3,
+      "grass": 0.1
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_1",
+      "club_2"
+    ]
+  },
+  {
+    "id": "DH9eANpOHLQ2SH77aABYwOfK17g2",
+    "name": "Hugo Moreau",
+    "email": "user_10@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "30/3",
+    "location": "Paris 20e",
+    "rating": 3.9,
+    "memberSince": "2025-05-02T00:00:00.000",
+    "matchesPerMonth": 3,
+    "stats": {
+      "matchesPlayed": 6,
+      "wins": 2,
+      "hoursPlayed": 11
+    },
+    "surfaces": {
+      "clay": 0.3,
+      "hard": 0.5,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_2"
+    ]
+  },
+  {
+    "id": "KYmcVYJ8ymP2lMfqbE1GLTy4e7f2",
+    "name": "Chloé Simon",
+    "email": "user_11@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "5/1",
+    "location": "Paris 7e",
+    "rating": 4.9,
+    "memberSince": "2021-11-12T00:00:00.000",
+    "matchesPerMonth": 18,
+    "stats": {
+      "matchesPlayed": 132,
+      "wins": 98,
+      "hoursPlayed": 260
+    },
+    "surfaces": {
+      "clay": 0.4,
+      "hard": 0.4,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_1",
+      "club_3"
+    ]
+  },
+  {
+    "id": "mdtl9oi2igNf3J0qC52F1UNytLU2",
+    "name": "Nathan Michel",
+    "email": "user_12@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "15/5",
+    "location": "Paris 13e",
+    "rating": 4.0,
+    "memberSince": "2024-07-22T00:00:00.000",
+    "matchesPerMonth": 5,
+    "stats": {
+      "matchesPlayed": 20,
+      "wins": 8,
+      "hoursPlayed": 38
+    },
+    "surfaces": {
+      "clay": 0.3,
+      "hard": 0.4,
+      "grass": 0.3
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_3"
+    ]
+  },
+  {
+    "id": "243CZ2KYkZgZRAhOWxV9raXp3cx1",
+    "name": "Léa Roux",
+    "email": "user_13@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "30/1",
+    "location": "Paris 9e",
+    "rating": 4.2,
+    "memberSince": "2024-10-08T00:00:00.000",
+    "matchesPerMonth": 7,
+    "stats": {
+      "matchesPlayed": 28,
+      "wins": 14,
+      "hoursPlayed": 52
+    },
+    "surfaces": {
+      "clay": 0.5,
+      "hard": 0.3,
+      "grass": 0.2
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_1"
+    ]
+  },
+  {
+    "id": "TEkumqlU4whXfkerx5snZyyUi6f2",
+    "name": "Maxime Vincent",
+    "email": "user_14@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "5/4",
+    "location": "Paris 6e",
+    "rating": 4.6,
+    "memberSince": "2022-02-14T00:00:00.000",
+    "matchesPerMonth": 14,
+    "stats": {
+      "matchesPlayed": 95,
+      "wins": 60,
+      "hoursPlayed": 190
+    },
+    "surfaces": {
+      "clay": 0.4,
+      "hard": 0.5,
+      "grass": 0.1
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_2",
+      "club_3"
+    ]
+  },
+  {
+    "id": "UCiUSM0JhmbAJT1txDgXJlLeeY02",
+    "name": "Sarah Lefebvre",
+    "email": "user_15@gmail.com",
+    "phone": null,
+    "profileImageUrl": null,
+    "ranking": "15/3",
+    "location": "Paris 19e",
+    "rating": 4.4,
+    "memberSince": "2023-12-01T00:00:00.000",
+    "matchesPerMonth": 9,
+    "stats": {
+      "matchesPlayed": 40,
+      "wins": 22,
+      "hoursPlayed": 78
+    },
+    "surfaces": {
+      "clay": 0.3,
+      "hard": 0.4,
+      "grass": 0.3
+    },
+    "role": "player",
+    "notifications": {
+      "Messages": true,
+      "Demandes de jeu": true,
+      "Rappel de créneau": true,
+      "Nouveaux créneaux": false
+    },
+    "clubIds": [
+      "club_1",
+      "club_2",
+      "club_3"
+    ]
   }
 ]

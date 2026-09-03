@@ -24,7 +24,7 @@ class AdminBookingForm {
       courtId != null &&
       date != null &&
       startTime != null &&
-      invitedUserIds.isNotEmpty;
+      invitedUserIds.length >= 2;
 
   AdminBookingForm copyWith({
     String? courtId,

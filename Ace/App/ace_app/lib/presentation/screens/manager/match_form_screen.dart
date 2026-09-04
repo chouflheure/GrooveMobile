@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
@@ -55,6 +56,14 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       );
     }
 
+    // Default to the first court once the list has loaded, so the admin
+    // doesn't have to pick one just to see availability.
+    if (form.courtId == null && state.courts.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => vm.setCourt(state.courts.first.id),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -74,6 +83,87 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
           AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Joueur A (optionnel)',
+                      style: AppTypography.labelLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _PlayerField(
+                      player: state.players
+                          .where((u) => u.id == form.playerAId)
+                          .firstOrNull,
+                      onTap: () async {
+                        final result = await PlayerPickerSheet.show(
+                          context,
+                          players: state.players,
+                          selectedPlayerId: form.playerAId,
+                          title: 'Joueur A',
+                        );
+                        if (result == PlayerPickerSheet.clearSelection) {
+                          vm.setPlayerA(null);
+                        } else if (result is UserModel) {
+                          vm.setPlayerA(result.id);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Joueur B (optionnel)',
+                      style: AppTypography.labelLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _PlayerField(
+                      player: state.players
+                          .where((u) => u.id == form.playerBId)
+                          .firstOrNull,
+                      onTap: () async {
+                        final result = await PlayerPickerSheet.show(
+                          context,
+                          players: state.players,
+                          selectedPlayerId: form.playerBId,
+                          title: 'Joueur B',
+                        );
+                        if (result == PlayerPickerSheet.clearSelection) {
+                          vm.setPlayerB(null);
+                        } else if (result is UserModel) {
+                          vm.setPlayerB(result.id);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (form.playerAId != null &&
+              form.playerBId != null &&
+              form.playerAId == form.playerBId) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Les deux joueurs doivent être différents.',
+              style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+            ),
+          ] else if (form.playerAId == null && form.playerBId == null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Laisse les deux vides pour juste bloquer le terrain, sans joueur.',
+              style: AppTypography.bodySmall,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
           Text('Terrain', style: AppTypography.labelLarge),
           const SizedBox(height: AppSpacing.sm),
           CourtPicker(
@@ -115,61 +205,6 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             onChanged: vm.setTitle,
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Joueur A (optionnel)',
-                      style: AppTypography.labelLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _PlayerDropdown(
-                      players: state.players,
-                      value: form.playerAId,
-                      onChanged: vm.setPlayerA,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Joueur B (optionnel)',
-                      style: AppTypography.labelLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _PlayerDropdown(
-                      players: state.players,
-                      value: form.playerBId,
-                      onChanged: vm.setPlayerB,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (form.playerAId != null &&
-              form.playerBId != null &&
-              form.playerAId == form.playerBId) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Les deux joueurs doivent être différents.',
-              style: AppTypography.bodySmall.copyWith(color: AppColors.error),
-            ),
-          ] else if (form.playerAId == null && form.playerBId == null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Laisse les deux vides pour juste bloquer le terrain, sans joueur.',
-              style: AppTypography.bodySmall,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
           Text('Créneaux', style: AppTypography.labelLarge),
           const SizedBox(height: AppSpacing.sm),
           if (form.slots.isEmpty)
@@ -206,65 +241,45 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
   }
 }
 
-class _PlayerDropdown extends StatelessWidget {
-  final List<UserModel> players;
-  final String? value;
-  final ValueChanged<String?> onChanged;
+class _PlayerField extends StatelessWidget {
+  final UserModel? player;
+  final VoidCallback onTap;
 
-  const _PlayerDropdown({
-    required this.players,
-    required this.value,
-    required this.onChanged,
-  });
+  const _PlayerField({required this.player, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String?>(
-      initialValue: value,
-      hint: Text('Aucun', style: AppTypography.bodySmall),
-      isExpanded: true,
-      decoration: InputDecoration(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        filled: true,
-        fillColor: AppColors.background,
-        contentPadding: const EdgeInsets.symmetric(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          vertical: AppSpacing.sm + 2,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                player?.name ?? 'Aucun',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: player == null ? AppColors.textTertiary : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(
+              Icons.search_rounded,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+          ],
         ),
       ),
-      items: [
-        DropdownMenuItem<String?>(
-          value: null,
-          child: Text(
-            'Aucun',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ),
-        ...players.map(
-          (u) => DropdownMenuItem<String?>(
-            value: u.id,
-            child: Text(
-              u.name,
-              style: AppTypography.bodyMedium,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      ],
-      onChanged: onChanged,
     );
   }
 }
@@ -332,13 +347,13 @@ class _AddSlotButton extends ConsumerStatefulWidget {
 }
 
 class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
-  DateTime? _date;
+  DateTime? _date = AppConstants.today();
   final Set<String> _selectedTimes = {};
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date ?? DateTime.now().add(const Duration(days: 1)),
+      initialDate: _date ?? AppConstants.today(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
     );

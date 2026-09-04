@@ -410,6 +410,30 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     final failures = <String>[];
     for (final court in courts) {
       for (final slot in hourlySlots) {
+        // The event is taking over this court/time — cancel whichever
+        // booking already held it (this also fires the "créneau annulé"
+        // push notification to whoever had it) so the event's block can
+        // claim the same slot instead of failing with "already booked".
+        final existing = state.allBookings
+            .where(
+              (b) =>
+                  b.courtId == court.id &&
+                  b.startTime == slot &&
+                  b.status != BookingStatus.cancelled &&
+                  b.date.year == date.year &&
+                  b.date.month == date.month &&
+                  b.date.day == date.day,
+            )
+            .firstOrNull;
+        if (existing != null) {
+          try {
+            await _bookingRepository.cancel(existing.id);
+          } catch (_) {
+            // Fall through — the create below reports the failure if the
+            // slot is somehow still taken.
+          }
+        }
+
         final booking = BookingModel(
           id: '',
           courtId: court.id,

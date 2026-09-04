@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
 import '../../data/models/models.dart';
-import '../screens/courts/courts_view_model.dart';
-import 'slot_availability_chip.dart';
 
-/// Type/surface filter chips + a list of matching courts, each showing a
-/// live preview of today's availability — used wherever an admin needs to
-/// pick a court (Manager, Admin) instead of a plain name dropdown.
+/// Type/surface filter chips + a plain list of matching courts to pick one
+/// from — used wherever an admin needs to pick a court (Manager, Admin)
+/// instead of a dropdown. Availability for the picked court is shown
+/// separately, scoped to whatever date is relevant there, rather than as a
+/// fixed "today" preview on every court here.
 class CourtPicker extends StatefulWidget {
   final List<CourtModel> courts;
   final String? selectedCourtId;
@@ -100,7 +99,7 @@ class _CourtPickerState extends State<CourtPicker> {
   }
 }
 
-class _CourtOption extends ConsumerWidget {
+class _CourtOption extends StatelessWidget {
   final CourtModel court;
   final bool isSelected;
   final VoidCallback onTap;
@@ -112,15 +111,8 @@ class _CourtOption extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bookedToday = ref
-        .watch(
-          bookedSlotsForCourtProvider((
-            courtId: court.id,
-            date: AppConstants.today(),
-          )),
-        )
-        .valueOrNull;
+  Widget build(BuildContext context) {
+    final closedToday = court.isClosedOn(AppConstants.today());
 
     return GestureDetector(
       onTap: onTap,
@@ -135,58 +127,35 @@ class _CourtOption extends ConsumerWidget {
             width: isSelected ? 1.5 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(court.name, style: AppTypography.headlineSmall),
-                ),
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.primary,
-                    size: 20,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(court.name, style: AppTypography.headlineSmall),
+                  Text(
+                    '${court.type.label} · ${court.surface.label}',
+                    style: AppTypography.bodySmall,
                   ),
-              ],
-            ),
-            Text(
-              '${court.type.label} · ${court.surface.label}',
-              style: AppTypography.bodySmall,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text("Aujourd'hui :", style: AppTypography.labelSmall),
-            const SizedBox(height: 4),
-            bookedToday == null
-                ? const SizedBox(
-                    height: 24,
-                    child: Center(
-                      child: SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
+                  if (closedToday) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      "Fermé aujourd'hui",
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.error,
                       ),
                     ),
-                  )
-                : Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: court
-                        .baseSlotsFor(AppConstants.today())
-                        .map(
-                          (s) => SlotAvailabilityChip(
-                            time: s.time,
-                            isBooked:
-                                court.isClosedOn(AppConstants.today()) ||
-                                bookedToday.contains(s.time),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                  ],
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
           ],
         ),
       ),

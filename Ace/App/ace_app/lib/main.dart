@@ -48,9 +48,17 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
     // device's FCM token in sync on whichever user is signed in whenever it
     // rotates (Firebase can reissue it at any time, not just on first run).
     ref.read(pushNotificationRepositoryProvider).requestPermission();
-    ref
-        .read(localNotificationRepositoryProvider)
-        .initialize(onTap: (data) => handleNotificationTap(ref, data));
+    // Android-only: this plugin claims `UNUserNotificationCenter`'s
+    // delegate on iOS the moment it's initialized, which hijacks Firebase
+    // Messaging's own delegate and silently breaks its notification-tap
+    // detection (`onMessageOpenedApp` / `getInitialMessage` never fire
+    // again). iOS doesn't need it anyway — it already shows a foreground
+    // banner natively via `setForegroundNotificationPresentationOptions`.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      ref
+          .read(localNotificationRepositoryProvider)
+          .initialize(onTap: (data) => handleNotificationTap(ref, data));
+    }
 
     // A push tapped while the app was backgrounded (not terminated) resumes
     // it and fires here.
@@ -61,10 +69,17 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
     // A push tapped while the app was fully terminated launches it fresh —
     // that tap is instead handed back the first time this is read, so it's
     // checked once at startup rather than via a stream.
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      debugPrint('Notification: getInitialMessage data=${message?.data}');
-      if (message != null) handleNotificationTap(ref, message.data);
-    });
+    debugPrint('Notification: requesting getInitialMessage...');
+    FirebaseMessaging.instance
+        .getInitialMessage()
+        .then((message) {
+          debugPrint('Notification: getInitialMessage data=${message?.data}');
+          if (message != null) handleNotificationTap(ref, message.data);
+        })
+        .catchError((Object e, StackTrace st) {
+          debugPrint('Notification: getInitialMessage FAILED: $e');
+          debugPrint('$st');
+        });
 
     ref.read(pushNotificationRepositoryProvider).onTokenRefresh.listen((
       token,

@@ -86,8 +86,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
+        // The list is built `reverse: true` (newest message at the bottom,
+        // which is offset 0 in a reversed list), so scrolling "to the
+        // latest message" means scrolling to 0, not maxScrollExtent.
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -259,10 +262,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               data: (messages) => ListView.builder(
                 controller: _scrollController,
+                reverse: true,
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: messages.length,
                 itemBuilder: (_, i) {
-                  final message = messages[i];
+                  // `messages` comes oldest-first; reversed indexing here
+                  // (last message at index 0) is what pairs with
+                  // `reverse: true` to anchor the list on the newest
+                  // message instead of opening scrolled to the oldest one.
+                  final message = messages[messages.length - 1 - i];
                   final isMe = message.senderId == currentUserId;
                   return _MessageBubble(
                     message: message,

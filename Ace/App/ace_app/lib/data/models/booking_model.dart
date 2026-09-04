@@ -43,6 +43,11 @@ class BookingModel extends Equatable {
   // reserve its courts — these exist purely to mark the court unavailable,
   // not as anyone's personal reservation, so profile screens exclude them.
   final bool isEventBlock;
+  // Snapshotted from the court's `peakHours` at booking time — whether this
+  // slot was a "heure pleine" one, so the per-player hour-limit check
+  // (BookingRepository) doesn't need to re-fetch the court for every
+  // existing booking it counts.
+  final bool isPeakHour;
 
   const BookingModel({
     required this.id,
@@ -64,6 +69,7 @@ class BookingModel extends Equatable {
     this.courtAddress,
     this.title,
     this.isEventBlock = false,
+    this.isPeakHour = false,
   });
 
   bool get isConfirmed => status == BookingStatus.confirmed;
@@ -124,6 +130,7 @@ class BookingModel extends Equatable {
     courtAddress: json['courtAddress'] as String?,
     title: json['title'] as String?,
     isEventBlock: json['isEventBlock'] as bool? ?? false,
+    isPeakHour: json['isPeakHour'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -146,6 +153,7 @@ class BookingModel extends Equatable {
     'courtAddress': courtAddress,
     'title': title,
     'isEventBlock': isEventBlock,
+    'isPeakHour': isPeakHour,
   };
 
   BookingModel copyWith({
@@ -167,6 +175,7 @@ class BookingModel extends Equatable {
     Object? gateCode = _sentinel,
     Object? courtAddress = _sentinel,
     Object? title = _sentinel,
+    bool? isPeakHour,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -191,6 +200,7 @@ class BookingModel extends Equatable {
           ? this.courtAddress
           : courtAddress as String?,
       title: title == _sentinel ? this.title : title as String?,
+      isPeakHour: isPeakHour ?? this.isPeakHour,
     );
   }
 

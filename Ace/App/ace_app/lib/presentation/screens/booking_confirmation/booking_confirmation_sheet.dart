@@ -282,7 +282,9 @@ class _BookingConfirmationSheetState
             e is SlotAlreadyBookedException ||
                     e is ClubMismatchException ||
                     e is CourtClosedException ||
-                    e is SlotOutsideHoursException
+                    e is SlotOutsideHoursException ||
+                    e is PeakHourLimitExceededException ||
+                    e is OffPeakHourLimitExceededException
                 ? e.toString()
                 : 'Une erreur est survenue, réessaie.',
           ),

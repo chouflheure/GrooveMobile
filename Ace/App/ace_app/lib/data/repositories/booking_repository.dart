@@ -37,6 +37,28 @@ class SlotOutsideHoursException implements Exception {
   String toString() => 'Ce terrain n\'est pas ouvert à cette heure ce jour-là.';
 }
 
+/// Thrown when the booker already holds an outstanding "heure pleine" slot
+/// — only one can be held at once, across every court.
+class PeakHourLimitExceededException implements Exception {
+  const PeakHourLimitExceededException();
+
+  @override
+  String toString() =>
+      'Tu as déjà une réservation en heure pleine en cours. Attends '
+      'qu\'elle soit passée pour en reprendre une.';
+}
+
+/// Thrown when the booker already holds 2h of outstanding "heure creuse"
+/// slots — no more than that can be held at once, across every court.
+class OffPeakHourLimitExceededException implements Exception {
+  const OffPeakHourLimitExceededException();
+
+  @override
+  String toString() =>
+      'Tu as déjà 2h de réservations en heure creuse en cours. Attends '
+      'qu\'une d\'elles soit passée pour en reprendre une autre.';
+}
+
 class BookingRepository {
   BookingRepository({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
@@ -61,6 +83,33 @@ class BookingRepository {
     final docRef = _collection.doc(booking.slotKey);
     final courtRef = _firestore.collection('courts').doc(booking.courtId);
     final bookerRef = _usersCollection.doc(booking.userId);
+
+    // A real player booking (never the internal slot-blocking kind an
+    // event creates) is capped at 1 outstanding "heure pleine" slot and 2h
+    // of outstanding "heure creuse" slots at a time, across every court.
+    // Firestore transactions can only read specific documents, not run a
+    // query, so this has to happen as a plain read before the transaction
+    // rather than inside it — a small, accepted race window for what's a
+    // soft fairness rule, not a hard uniqueness constraint like the slot
+    // itself (which the transaction below still enforces atomically).
+    var isPeak = false;
+    if (!booking.isEventBlock) {
+      final courtSnap = await courtRef.get();
+      final peakHours =
+          (courtSnap.data()?['peakHours'] as List?)?.cast<String>() ??
+          const [];
+      isPeak = peakHours.contains(booking.startTime);
+      // Admins are exempt — the cap is a fairness rule for regular players,
+      // not a hard capacity limit.
+      final isAdmin = (await _firestore
+              .collection('admin')
+              .doc(booking.userId)
+              .get())
+          .exists;
+      if (!isAdmin) {
+        await _checkHourLimit(userId: booking.userId, isPeak: isPeak);
+      }
+    }
 
     await _firestore.runTransaction((tx) async {
       // Firestore transactions require every read before any write, so the
@@ -109,7 +158,12 @@ class BookingRepository {
           throw const SlotAlreadyBookedException();
         }
       }
-      tx.set(docRef, _withDateKey(booking.copyWith(id: docRef.id)));
+      tx.set(
+        docRef,
+        _withDateKey(
+          booking.copyWith(id: docRef.id, isPeakHour: isPeak),
+        ),
+      );
 
       // Link the booking on both players' profiles — the `bookings`
       // collection (queried by userId) is still the source of truth, this
@@ -123,6 +177,42 @@ class BookingRepository {
         });
       }
     });
+  }
+
+  /// Counts this user's outstanding (not cancelled, not yet ended) bookings
+  /// of the given peak/off-peak kind — as booker or invited partner, same
+  /// as [watchByUser] — and throws if adding one more would break the
+  /// 1h-peak / 2h-off-peak cap.
+  Future<void> _checkHourLimit({
+    required String userId,
+    required bool isPeak,
+  }) async {
+    final snapshot = await _collection
+        .where(
+          Filter.or(
+            Filter('userId', isEqualTo: userId),
+            Filter('partnerId', isEqualTo: userId),
+          ),
+        )
+        .get();
+
+    final now = DateTime.now();
+    var outstanding = 0;
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['status'] == BookingStatus.cancelled.jsonValue) continue;
+      if (data['isEventBlock'] == true) continue;
+      if ((data['isPeakHour'] as bool? ?? false) != isPeak) continue;
+      if (BookingModel.fromJson(data).endDateTime.isBefore(now)) continue;
+      outstanding++;
+    }
+
+    final limit = isPeak ? 1 : 2;
+    if (outstanding + 1 > limit) {
+      throw isPeak
+          ? const PeakHourLimitExceededException()
+          : const OffPeakHourLimitExceededException();
+    }
   }
 
   /// One-shot fetch, e.g. resolving a notification tap's `bookingId` to the

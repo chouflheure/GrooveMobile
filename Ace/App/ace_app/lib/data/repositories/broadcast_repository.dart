@@ -10,6 +10,14 @@ class BroadcastRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('broadcasts');
 
+  /// One-shot fetch, e.g. resolving a notification tap's `broadcastId` to
+  /// the model `AnnouncementDetailScreen` needs.
+  Future<AnnouncementModel?> getById(String id) async {
+    final doc = await _collection.doc(id).get();
+    if (!doc.exists) return null;
+    return AnnouncementModel.fromJson({...doc.data()!, 'id': doc.id});
+  }
+
   Stream<List<AnnouncementModel>> watchAll() {
     return _collection
         .orderBy('createdAt', descending: true)

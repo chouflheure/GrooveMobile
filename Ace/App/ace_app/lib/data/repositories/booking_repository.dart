@@ -125,6 +125,14 @@ class BookingRepository {
     });
   }
 
+  /// One-shot fetch, e.g. resolving a notification tap's `bookingId` to the
+  /// model `BookingDetailScreen` needs.
+  Future<BookingModel?> getById(String bookingId) async {
+    final doc = await _collection.doc(bookingId).get();
+    if (!doc.exists) return null;
+    return BookingModel.fromJson(doc.data()!);
+  }
+
   Future<void> update(BookingModel booking) {
     return _collection.doc(booking.id).set(_withDateKey(booking));
   }

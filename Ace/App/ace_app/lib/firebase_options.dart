@@ -56,11 +56,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAio6zoK7pBf831q1WWIEH3eO1TwyJYB7c',
-    appId: '1:93012964636:ios:42994091cba8fc357936d9',
+    appId: '1:93012964636:ios:ff3825bfea2fb8df7936d9',
     messagingSenderId: '93012964636',
     projectId: 'ace-tennis-41dc7',
     storageBucket: 'ace-tennis-41dc7.firebasestorage.app',
-    iosBundleId: 'com.courtconnect.aceApp',
+    iosBundleId: 'com.calvignaccharles.aceConnect',
   );
 
   static const FirebaseOptions web = FirebaseOptions(

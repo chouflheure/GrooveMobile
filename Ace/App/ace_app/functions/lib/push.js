@@ -52,6 +52,16 @@ async function sendPushToUserIds(userIds, notification, data = {}, options = {})
     tokens,
     notification,
     data: stringData,
+    // Without these, iOS/Android deliver the notification silently — no
+    // sound, no vibration — since "play the default alert" isn't implied,
+    // it has to be requested explicitly per platform.
+    android: {
+      priority: "high",
+      notification: { sound: "default", defaultVibrateTimings: true },
+    },
+    apns: {
+      payload: { aps: { sound: "default" } },
+    },
   });
 
   const staleTokensByOwner = new Map();

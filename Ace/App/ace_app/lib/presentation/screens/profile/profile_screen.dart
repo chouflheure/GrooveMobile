@@ -576,6 +576,29 @@ class _SettingsSection extends ConsumerWidget {
             subtitle: 'Se déconnecter du compte',
             color: AppColors.error,
             onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Se déconnecter ?'),
+                  content: const Text(
+                    'Tu devras te reconnecter pour accéder à ton profil et tes réservations.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('Annuler'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      child: Text(
+                        'Se déconnecter',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
               await ref.read(authViewModelProvider.notifier).signOut();
               if (context.mounted) context.go('/login');
             },

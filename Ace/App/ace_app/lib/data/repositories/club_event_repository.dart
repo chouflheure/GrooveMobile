@@ -10,6 +10,15 @@ class ClubEventRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('events');
 
+  /// One-shot fetch, e.g. resolving a notification tap's `eventId` to the
+  /// model `EventDetailScreen` needs (routes pass it via `extra:`, not just
+  /// an id, so there's nowhere else to already have it in that flow).
+  Future<ClubEventModel?> getById(String eventId) async {
+    final doc = await _collection.doc(eventId).get();
+    if (!doc.exists) return null;
+    return ClubEventModel.fromJson({...doc.data()!, 'id': doc.id});
+  }
+
   Stream<List<ClubEventModel>> watchAll() {
     return _collection.snapshots().map(
       (snapshot) => snapshot.docs

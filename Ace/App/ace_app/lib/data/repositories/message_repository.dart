@@ -67,6 +67,21 @@ class MessageRepository {
     return docRef.set(message.toJson());
   }
 
+  /// Every participant id on a conversation, read off any one of its
+  /// messages (they're denormalized onto each one) — used to resolve a
+  /// notification tap's `conversationId` into what `ChatScreen` needs,
+  /// since there's no separate `conversations` collection to look it up in.
+  Future<List<String>?> participantIdsForConversation(
+    String conversationId,
+  ) async {
+    final snapshot = await _collection
+        .where('conversationId', isEqualTo: conversationId)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return null;
+    return List<String>.from(snapshot.docs.first.data()['participantIds'] as List);
+  }
+
   Stream<List<MessageModel>> watchMessagesForConversation(
     String conversationId,
   ) {

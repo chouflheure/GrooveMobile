@@ -55,10 +55,19 @@ class ClubEventCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  '${dateStr[0].toUpperCase()}${dateStr.substring(1)}'
-                  '${event.startTime.isNotEmpty ? ' · ${event.startTime}${event.endTime.isNotEmpty ? '-${event.endTime}' : ''}' : ''}',
-                  style: AppTypography.bodySmall,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${dateStr[0].toUpperCase()}${dateStr.substring(1)}',
+                      style: AppTypography.bodySmall,
+                    ),
+                    if (event.startTime.isNotEmpty)
+                      Text(
+                        '${event.startTime}${event.endTime.isNotEmpty ? '-${event.endTime}' : ''}',
+                        style: AppTypography.bodySmall,
+                      ),
+                  ],
                 ),
               ],
             ),

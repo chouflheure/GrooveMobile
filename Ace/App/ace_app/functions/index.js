@@ -102,6 +102,32 @@ exports.onClubEventCreated = onDocumentCreated("events/{eventId}", async (event)
 });
 
 /**
+ * A booking was created — notify whoever was put on it without being the
+ * one who booked it: the invited partner always, and (for a booking an
+ * admin made on someone's behalf, `isAdminBooking`) the player themselves
+ * too, since neither of them initiated it. A player booking their own
+ * slot solo doesn't need telling. Internal event-blocking bookings
+ * (`isEventBlock`) aren't a real reservation and are skipped.
+ */
+exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (event) => {
+  const booking = event.data && event.data.data();
+  if (!booking || booking.isEventBlock) return;
+
+  const recipientIds = booking.isAdminBooking
+    ? [booking.userId, booking.partnerId].filter(Boolean)
+    : [booking.partnerId].filter(Boolean);
+  if (recipientIds.length === 0) return;
+
+  await sendPushToUserIds(recipientIds, {
+    title: "Nouveau match",
+    body: `Tu as été ajouté à un match le ${booking.startTime} sur ${booking.courtName}.`,
+  }, {
+    type: "booking_created",
+    bookingId: event.params.bookingId,
+  });
+});
+
+/**
  * A booking flipped to "cancelled" — notify whoever had the slot (the
  * booker and their partner, if any). Internal event-blocking bookings
  * (`isEventBlock`) don't belong to a real reservation and are skipped.

@@ -14,8 +14,10 @@ const List<String> kNotificationKeys = [
 extension UserRoleJson on UserRole {
   String get jsonValue => name;
 
-  static UserRole fromJson(String value) =>
-      UserRole.values.firstWhere((r) => r.name == value, orElse: () => UserRole.player);
+  static UserRole fromJson(String value) => UserRole.values.firstWhere(
+    (r) => r.name == value,
+    orElse: () => UserRole.player,
+  );
 }
 
 class UserStats extends Equatable {
@@ -32,16 +34,16 @@ class UserStats extends Equatable {
   double get winRate => matchesPlayed == 0 ? 0 : wins / matchesPlayed;
 
   factory UserStats.fromJson(Map<String, dynamic> json) => UserStats(
-        matchesPlayed: json['matchesPlayed'] as int? ?? 0,
-        wins: json['wins'] as int? ?? 0,
-        hoursPlayed: json['hoursPlayed'] as int? ?? 0,
-      );
+    matchesPlayed: json['matchesPlayed'] as int? ?? 0,
+    wins: json['wins'] as int? ?? 0,
+    hoursPlayed: json['hoursPlayed'] as int? ?? 0,
+  );
 
   Map<String, dynamic> toJson() => {
-        'matchesPlayed': matchesPlayed,
-        'wins': wins,
-        'hoursPlayed': hoursPlayed,
-      };
+    'matchesPlayed': matchesPlayed,
+    'wins': wins,
+    'hoursPlayed': hoursPlayed,
+  };
 
   @override
   List<Object?> get props => [matchesPlayed, wins, hoursPlayed];
@@ -58,7 +60,8 @@ class SurfacePreferences extends Equatable {
     required this.grass,
   });
 
-  factory SurfacePreferences.fromJson(Map<String, dynamic> json) => SurfacePreferences(
+  factory SurfacePreferences.fromJson(Map<String, dynamic> json) =>
+      SurfacePreferences(
         clay: (json['clay'] as num?)?.toDouble() ?? 0,
         hard: (json['hard'] as num?)?.toDouble() ?? 0,
         grass: (json['grass'] as num?)?.toDouble() ?? 0,
@@ -148,8 +151,9 @@ class UserModel extends Equatable {
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone == _sentinel ? this.phone : phone as String?,
-      profileImageUrl:
-          profileImageUrl == _sentinel ? this.profileImageUrl : profileImageUrl as String?,
+      profileImageUrl: profileImageUrl == _sentinel
+          ? this.profileImageUrl
+          : profileImageUrl as String?,
       ranking: ranking ?? this.ranking,
       location: location ?? this.location,
       rating: rating ?? this.rating,
@@ -165,54 +169,60 @@ class UserModel extends Equatable {
   }
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        email: json['email'] as String,
-        phone: json['phone'] as String?,
-        profileImageUrl: json['profileImageUrl'] as String?,
-        ranking: json['ranking'] as String? ?? 'N.C.',
-        location: json['location'] as String? ?? '',
-        rating: (json['rating'] as num?)?.toDouble() ?? 0,
-        memberSince: json['memberSince'] != null
-            ? DateTime.parse(json['memberSince'] as String)
-            : DateTime.now(),
-        matchesPerMonth: json['matchesPerMonth'] as int? ?? 0,
-        stats: json['stats'] != null
-            ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
-            : const UserStats(matchesPlayed: 0, wins: 0, hoursPlayed: 0),
-        surfaces: json['surfaces'] != null
-            ? SurfacePreferences.fromJson(json['surfaces'] as Map<String, dynamic>)
-            : const SurfacePreferences(clay: 0, hard: 0, grass: 0),
-        role: UserRoleJson.fromJson(json['role'] as String? ?? 'player'),
-        notifications: json['notifications'] != null
-            ? Map<String, bool>.from(json['notifications'] as Map)
-            : const {},
-        bookingIds: json['bookingIds'] != null
-            ? List<String>.from(json['bookingIds'] as List)
-            : const [],
-        clubIds: json['clubIds'] != null
-            ? List<String>.from(json['clubIds'] as List)
-            : const [],
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    email: json['email'] as String,
+    phone: json['phone'] as String?,
+    profileImageUrl: json['profileImageUrl'] as String?,
+    ranking: json['ranking'] as String? ?? 'N.C.',
+    location: json['location'] as String? ?? '',
+    rating: (json['rating'] as num?)?.toDouble() ?? 0,
+    memberSince: json['memberSince'] != null
+        ? DateTime.parse(json['memberSince'] as String)
+        : DateTime.now(),
+    matchesPerMonth: json['matchesPerMonth'] as int? ?? 0,
+    stats: json['stats'] != null
+        ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
+        : const UserStats(matchesPlayed: 0, wins: 0, hoursPlayed: 0),
+    surfaces: json['surfaces'] != null
+        ? SurfacePreferences.fromJson(json['surfaces'] as Map<String, dynamic>)
+        : const SurfacePreferences(clay: 0, hard: 0, grass: 0),
+    // `isAdmin` is the source of truth when present (plain boolean field
+    // on the user doc); `role` is kept only for older docs that
+    // predate it.
+    role: json['isAdmin'] == true
+        ? UserRole.admin
+        : UserRoleJson.fromJson(json['role'] as String? ?? 'player'),
+    notifications: json['notifications'] != null
+        ? Map<String, bool>.from(json['notifications'] as Map)
+        : const {},
+    bookingIds: json['bookingIds'] != null
+        ? List<String>.from(json['bookingIds'] as List)
+        : const [],
+    clubIds: json['clubIds'] != null
+        ? List<String>.from(json['clubIds'] as List)
+        : const [],
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'profileImageUrl': profileImageUrl,
-        'ranking': ranking,
-        'location': location,
-        'rating': rating,
-        'memberSince': memberSince.toIso8601String(),
-        'matchesPerMonth': matchesPerMonth,
-        'stats': stats.toJson(),
-        'surfaces': surfaces.toJson(),
-        'role': role.jsonValue,
-        'notifications': notifications,
-        'bookingIds': bookingIds,
-        'clubIds': clubIds,
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'profileImageUrl': profileImageUrl,
+    'ranking': ranking,
+    'location': location,
+    'rating': rating,
+    'memberSince': memberSince.toIso8601String(),
+    'matchesPerMonth': matchesPerMonth,
+    'stats': stats.toJson(),
+    'surfaces': surfaces.toJson(),
+    'role': role.jsonValue,
+    'isAdmin': isAdmin,
+    'notifications': notifications,
+    'bookingIds': bookingIds,
+    'clubIds': clubIds,
+  };
 
   @override
   List<Object?> get props => [id, name, email, ranking, role];

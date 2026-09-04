@@ -32,22 +32,22 @@ class _GoRouterRefreshStream extends ChangeNotifier {
 
 final appRouter = GoRouter(
   initialLocation: '/courts',
-  refreshListenable: _GoRouterRefreshStream(FirebaseAuth.instance.authStateChanges()),
+  refreshListenable: _GoRouterRefreshStream(
+    FirebaseAuth.instance.authStateChanges(),
+  ),
   redirect: (context, state) {
     // Browsing is allowed as a guest; only bounce a signed-in user away
     // from the login/register screens if a persisted session already
     // covers them (the actual "keeps asking me to log in" bug).
     final loggedIn = FirebaseAuth.instance.currentUser != null;
     final onAuthPage =
-        state.matchedLocation == '/login' || state.matchedLocation == '/register';
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/register';
     if (loggedIn && onAuthPage) return '/courts';
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
@@ -57,27 +57,23 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/courts',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: CourtsScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: CourtsScreen()),
         ),
         GoRoute(
           path: '/community',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: CommunityScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: CommunityScreen()),
         ),
         GoRoute(
           path: '/profile',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: ProfileScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ProfileScreen()),
         ),
         GoRoute(
           path: '/manager',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: ManagerScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ManagerScreen()),
         ),
       ],
     ),

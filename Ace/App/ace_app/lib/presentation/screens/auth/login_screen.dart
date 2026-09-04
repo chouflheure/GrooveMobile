@@ -28,7 +28,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() async {
-    final success = await ref.read(authViewModelProvider.notifier).signIn(
+    final success = await ref
+        .read(authViewModelProvider.notifier)
+        .signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -75,8 +77,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Heureux de te revoir.',
-                      style: AppTypography.bodyMedium
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     _Label('Email'),
@@ -96,8 +99,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       icon: Icons.lock_outline_rounded,
                       obscure: _obscurePassword,
                       suffix: GestureDetector(
-                        onTap: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onTap: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                         child: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
@@ -111,9 +115,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
-                        onTap: () => Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                        ),
+                        onTap: () =>
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            ),
                         child: Text(
                           'Mot de passe oublié ?',
                           style: AppTypography.labelMedium.copyWith(
@@ -132,9 +139,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: AppSpacing.lg),
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const PhoneSignInScreen()),
-                        ),
+                        onTap: () =>
+                            Navigator.of(context, rootNavigator: true).push(
+                              MaterialPageRoute(
+                                builder: (_) => const PhoneSignInScreen(),
+                              ),
+                            ),
                         child: Text(
                           'Se connecter avec un numéro de téléphone',
                           style: AppTypography.labelMedium.copyWith(
@@ -163,8 +173,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 Text(
                   "Pas encore de compte ? ",
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => context.go('/courts'),
@@ -225,8 +236,9 @@ class _HeroSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Réserve, joue, partage. Le tennis simplifié.',
-            style: AppTypography.bodyMedium
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -269,8 +281,9 @@ class _AuthField extends StatelessWidget {
       style: AppTypography.bodyMedium,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary),
+        hintStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textTertiary,
+        ),
         prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
         suffixIcon: suffix != null
             ? Padding(
@@ -333,7 +346,9 @@ class _PrimaryButton extends StatelessWidget {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
               )
             : Text(
                 label,
@@ -343,4 +358,3 @@ class _PrimaryButton extends StatelessWidget {
     );
   }
 }
-

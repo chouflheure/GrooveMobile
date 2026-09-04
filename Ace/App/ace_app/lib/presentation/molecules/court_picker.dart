@@ -75,7 +75,9 @@ class _CourtPickerState extends State<CourtPicker> {
                 onSelected: (_) => setState(() => _filter = f),
                 selectedColor: AppColors.primary,
                 showCheckmark: false,
-                side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+                side: BorderSide(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                ),
                 backgroundColor: AppColors.surface,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               );
@@ -86,11 +88,13 @@ class _CourtPickerState extends State<CourtPicker> {
         if (filtered.isEmpty)
           Text('Aucun terrain pour ce filtre.', style: AppTypography.bodySmall)
         else
-          ...filtered.map((c) => _CourtOption(
-                court: c,
-                isSelected: widget.selectedCourtId == c.id,
-                onTap: () => widget.onSelect(c.id),
-              )),
+          ...filtered.map(
+            (c) => _CourtOption(
+              court: c,
+              isSelected: widget.selectedCourtId == c.id,
+              onTap: () => widget.onSelect(c.id),
+            ),
+          ),
       ],
     );
   }
@@ -101,12 +105,21 @@ class _CourtOption extends ConsumerWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _CourtOption({required this.court, required this.isSelected, required this.onTap});
+  const _CourtOption({
+    required this.court,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookedToday = ref
-        .watch(bookedSlotsForCourtProvider((courtId: court.id, date: AppConstants.today())))
+        .watch(
+          bookedSlotsForCourtProvider((
+            courtId: court.id,
+            date: AppConstants.today(),
+          )),
+        )
         .valueOrNull;
 
     return GestureDetector(
@@ -131,10 +144,17 @@ class _CourtOption extends ConsumerWidget {
                   child: Text(court.name, style: AppTypography.headlineSmall),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
               ],
             ),
-            Text('${court.type.label} · ${court.surface.label}', style: AppTypography.bodySmall),
+            Text(
+              '${court.type.label} · ${court.surface.label}',
+              style: AppTypography.bodySmall,
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text("Aujourd'hui :", style: AppTypography.labelSmall),
             const SizedBox(height: 4),
@@ -145,19 +165,26 @@ class _CourtOption extends ConsumerWidget {
                       child: SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   )
                 : Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: court.baseSlotsFor(AppConstants.today())
-                        .map((s) => SlotAvailabilityChip(
-                              time: s.time,
-                              isBooked: court.isClosedOn(AppConstants.today()) ||
-                                  bookedToday.contains(s.time),
-                            ))
+                    children: court
+                        .baseSlotsFor(AppConstants.today())
+                        .map(
+                          (s) => SlotAvailabilityChip(
+                            time: s.time,
+                            isBooked:
+                                court.isClosedOn(AppConstants.today()) ||
+                                bookedToday.contains(s.time),
+                          ),
+                        )
                         .toList(),
                   ),
           ],

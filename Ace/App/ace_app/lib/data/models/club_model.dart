@@ -14,18 +14,18 @@ class ClubModel extends Equatable {
   });
 
   factory ClubModel.fromJson(Map<String, dynamic> json) => ClubModel(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        location: json['location'] as String? ?? '',
-        imageUrl: json['imageUrl'] as String?,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    location: json['location'] as String? ?? '',
+    imageUrl: json['imageUrl'] as String?,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'location': location,
-        'imageUrl': imageUrl,
-      };
+    'id': id,
+    'name': name,
+    'location': location,
+    'imageUrl': imageUrl,
+  };
 
   @override
   List<Object?> get props => [id, name, location];

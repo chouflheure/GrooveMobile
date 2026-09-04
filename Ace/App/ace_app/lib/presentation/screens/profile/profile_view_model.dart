@@ -16,7 +16,10 @@ class ProfileState {
       bookings.where((b) => b.isPast).toList();
 
   List<BookingModel> get upcomingBookings =>
-      bookings.where((b) => b.isUpcoming).toList();
+      bookings.where((b) => b.isUpcoming).toList()..sort((a, b) {
+        final cmp = a.date.compareTo(b.date);
+        return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
+      });
 
   ProfileState copyWith({List<BookingModel>? bookings, bool? isLoading}) {
     return ProfileState(
@@ -28,7 +31,7 @@ class ProfileState {
 
 class ProfileViewModel extends StateNotifier<ProfileState> {
   ProfileViewModel(this._bookingRepository, String? userId)
-      : super(ProfileState(isLoading: userId != null)) {
+    : super(ProfileState(isLoading: userId != null)) {
     if (userId != null) {
       _subscription = _bookingRepository.watchByUser(userId).listen((bookings) {
         state = state.copyWith(bookings: bookings, isLoading: false);
@@ -64,7 +67,8 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
 
 final profileViewModelProvider =
     StateNotifierProvider<ProfileViewModel, ProfileState>((ref) {
-  final userId =
-      ref.watch(currentUserProvider.select((async) => async.valueOrNull?.id));
-  return ProfileViewModel(ref.watch(bookingRepositoryProvider), userId);
-});
+      final userId = ref.watch(
+        currentUserProvider.select((async) => async.valueOrNull?.id),
+      );
+      return ProfileViewModel(ref.watch(bookingRepositoryProvider), userId);
+    });

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/models.dart';
+import '../../../data/providers/tab_activity_provider.dart';
 import '../../../data/repositories/broadcast_repository.dart';
 import '../../../data/repositories/message_repository.dart';
 import '../auth/auth_view_model.dart';
@@ -38,6 +39,18 @@ class CommunityState {
       isLoading: isLoading ?? this.isLoading,
     );
   }
+
+  DateTime? get latestAnnouncementAt => announcements.isEmpty
+      ? null
+      : announcements
+            .map((a) => a.createdAt)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
+
+  DateTime? get latestMessageAt => conversations.isEmpty
+      ? null
+      : conversations
+            .map((c) => c.lastMessageAt)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
 }
 
 class CommunityViewModel extends StateNotifier<CommunityState> {
@@ -46,28 +59,45 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     this._messageRepository,
     List<UserModel> allUsers,
     this._currentUserId,
+    this._currentUserClubIds,
   ) : super(CommunityState(allUsers: allUsers)) {
     state = state.copyWith(isLoading: true);
     _announcementsSubscription = _broadcastRepository.watchAll().listen((list) {
-      state = state.copyWith(announcements: _filterExpired(list), isLoading: false);
+      state = state.copyWith(
+        announcements: _filterByClub(_filterExpired(list)),
+        isLoading: false,
+      );
     });
     if (_currentUserId != null) {
       _conversationsSubscription = _messageRepository
           .watchConversationsForUser(_currentUserId, resolveName: _resolveName)
           .listen((conversations) {
-        state = state.copyWith(conversations: conversations);
-      });
+            state = state.copyWith(conversations: conversations);
+          });
     }
   }
 
   final BroadcastRepository _broadcastRepository;
   final MessageRepository _messageRepository;
   final String? _currentUserId;
-  late final StreamSubscription<List<AnnouncementModel>> _announcementsSubscription;
+  final List<String> _currentUserClubIds;
+  late final StreamSubscription<List<AnnouncementModel>>
+  _announcementsSubscription;
   StreamSubscription<List<ConversationModel>>? _conversationsSubscription;
 
   String _resolveName(String userId) =>
-      state.allUsers.where((u) => u.id == userId).firstOrNull?.name ?? 'Utilisateur';
+      state.allUsers.where((u) => u.id == userId).firstOrNull?.name ??
+      'Utilisateur';
+
+  // Only announcements posted by a member of a club the current user is
+  // also in are visible — guests (no club) see everything.
+  List<AnnouncementModel> _filterByClub(List<AnnouncementModel> list) {
+    if (_currentUserId == null || _currentUserClubIds.isEmpty) return list;
+    return list.where((a) {
+      final author = state.allUsers.where((u) => u.id == a.userId).firstOrNull;
+      return author != null && author.clubIds.any(_currentUserClubIds.contains);
+    }).toList();
+  }
 
   // Retire les annonces dont le créneau est passé depuis plus de 2h.
   List<AnnouncementModel> _filterExpired(List<AnnouncementModel> list) {
@@ -90,11 +120,16 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
   }
 
   Future<void> toggleInterested(String announcementId, String userId) {
-    final announcement =
-        state.announcements.where((a) => a.id == announcementId).firstOrNull;
+    final announcement = state.announcements
+        .where((a) => a.id == announcementId)
+        .firstOrNull;
     if (announcement == null) return Future.value();
     final isInterested = announcement.interestedUserIds.contains(userId);
-    return _broadcastRepository.setInterested(announcementId, userId, !isInterested);
+    return _broadcastRepository.setInterested(
+      announcementId,
+      userId,
+      !isInterested,
+    );
   }
 
   Future<void> addAnnouncement(AnnouncementModel announcement) {
@@ -158,20 +193,50 @@ final messageRepositoryProvider = Provider<MessageRepository>(
 
 final conversationMessagesProvider =
     StreamProvider.family<List<MessageModel>, String>(
-  (ref, conversationId) => ref
-      .watch(messageRepositoryProvider)
-      .watchMessagesForConversation(conversationId),
-);
+      (ref, conversationId) => ref
+          .watch(messageRepositoryProvider)
+          .watchMessagesForConversation(conversationId),
+    );
 
 final communityViewModelProvider =
     StateNotifierProvider<CommunityViewModel, CommunityState>((ref) {
-  final userId =
-      ref.watch(currentUserProvider.select((async) => async.valueOrNull?.id));
-  final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
-  return CommunityViewModel(
-    ref.watch(broadcastRepositoryProvider),
-    ref.watch(messageRepositoryProvider),
-    allUsers,
-    userId,
+      final userId = ref.watch(
+        currentUserProvider.select((async) => async.valueOrNull?.id),
+      );
+      final clubIds = ref.watch(
+        currentUserProvider.select(
+          (async) => async.valueOrNull?.clubIds ?? const [],
+        ),
+      );
+      final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
+      return CommunityViewModel(
+        ref.watch(broadcastRepositoryProvider),
+        ref.watch(messageRepositoryProvider),
+        allUsers,
+        userId,
+        clubIds,
+      );
+    });
+
+/// Whether the Annonces tab has activity the user hasn't opened yet — shared
+/// by the in-screen tab bar and the bottom nav badge so both agree.
+final hasNewAnnouncementProvider = Provider<bool>((ref) {
+  final latest = ref.watch(
+    communityViewModelProvider.select((s) => s.latestAnnouncementAt),
   );
+  final lastSeen = ref.watch(
+    tabActivityProvider.select((a) => a.lastSeenAnnouncements),
+  );
+  return latest != null && (lastSeen == null || latest.isAfter(lastSeen));
+});
+
+/// Same idea for the Messages tab.
+final hasNewMessageProvider = Provider<bool>((ref) {
+  final latest = ref.watch(
+    communityViewModelProvider.select((s) => s.latestMessageAt),
+  );
+  final lastSeen = ref.watch(
+    tabActivityProvider.select((a) => a.lastSeenMessages),
+  );
+  return latest != null && (lastSeen == null || latest.isAfter(lastSeen));
 });

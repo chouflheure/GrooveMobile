@@ -44,7 +44,7 @@ class BookingConfirmationSheet extends ConsumerStatefulWidget {
         return Padding(
           padding: EdgeInsets.only(bottom: keyboardHeight),
           child: FractionallySizedBox(
-            heightFactor: keyboardHeight > 0 ? 0.95 : 0.7,
+            heightFactor: keyboardHeight > 0 ? 0.85 : 0.7,
             child: BookingConfirmationSheet(
               court: court,
               selectedSlot: selectedSlot,
@@ -89,11 +89,13 @@ class _BookingConfirmationSheetState
         // A partner must belong to the same club as the court being
         // booked — courts without a club (legacy/unset) skip this check.
         .where((u) => courtClubId.isEmpty || u.clubIds.contains(courtClubId))
-        .where((u) =>
-            query.isEmpty ||
-            u.name.toLowerCase().contains(query) ||
-            u.location.toLowerCase().contains(query) ||
-            u.ranking.toLowerCase().contains(query))
+        .where(
+          (u) =>
+              query.isEmpty ||
+              u.name.toLowerCase().contains(query) ||
+              u.location.toLowerCase().contains(query) ||
+              u.ranking.toLowerCase().contains(query),
+        )
         .toList();
   }
 
@@ -113,7 +115,9 @@ class _BookingConfirmationSheetState
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xxxl),
+        ),
       ),
       clipBehavior: Clip.hardEdge,
       child: Column(
@@ -142,7 +146,10 @@ class _BookingConfirmationSheetState
                 Text('Réservation', style: AppTypography.headlineLarge),
                 GestureDetector(
                   onTap: () => Navigator.of(context, rootNavigator: true).pop(),
-                  child: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -170,7 +177,10 @@ class _BookingConfirmationSheetState
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-                Text('Inviter un partenaire', style: AppTypography.headlineMedium),
+                Text(
+                  'Inviter un partenaire',
+                  style: AppTypography.headlineMedium,
+                ),
                 if (!keyboardOpen) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -195,18 +205,24 @@ class _BookingConfirmationSheetState
                 AppSpacing.xxl,
               ),
               children: _filteredPartners
-                  .map((user) => _PartnerTile(
-                        user: user,
-                        isSelected: _selectedPartner?.id == user.id,
-                        isFavorite: favorites.contains(user.id),
-                        onSelect: () => setState(() {
-                          _selectedPartner =
-                              _selectedPartner?.id == user.id ? null : user;
-                        }),
-                        onViewProfile: () => Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
-                        ),
-                      ))
+                  .map(
+                    (user) => _PartnerTile(
+                      user: user,
+                      isSelected: _selectedPartner?.id == user.id,
+                      isFavorite: favorites.contains(user.id),
+                      onSelect: () => setState(() {
+                        _selectedPartner = _selectedPartner?.id == user.id
+                            ? null
+                            : user;
+                      }),
+                      onViewProfile: () =>
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => UserProfileScreen(user: user),
+                            ),
+                          ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -305,10 +321,7 @@ class _CourtSummaryCard extends StatelessWidget {
         children: [
           _Row(icon: Icons.sports_tennis_rounded, label: court.name),
           const SizedBox(height: AppSpacing.sm),
-          _Row(
-            icon: Icons.location_on_rounded,
-            label: court.location,
-          ),
+          _Row(icon: Icons.location_on_rounded, label: court.location),
           const SizedBox(height: AppSpacing.sm),
           _Row(
             icon: Icons.grid_on_rounded,
@@ -317,7 +330,8 @@ class _CourtSummaryCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           _Row(
             icon: Icons.calendar_today_rounded,
-            label: '${date.day.toString().padLeft(2, '0')}/'
+            label:
+                '${date.day.toString().padLeft(2, '0')}/'
                 '${date.month.toString().padLeft(2, '0')}/'
                 '${date.year} · $slot – $endTime (1h)',
           ),
@@ -329,8 +343,9 @@ class _CourtSummaryCard extends StatelessWidget {
                 Text('Total', style: AppTypography.headlineSmall),
                 Text(
                   '${price.toInt()}€',
-                  style: AppTypography.headlineLarge
-                      .copyWith(color: AppColors.primary),
+                  style: AppTypography.headlineLarge.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -371,10 +386,13 @@ class _SearchBar extends StatelessWidget {
       onChanged: onChanged,
       decoration: InputDecoration(
         hintText: 'Rechercher un joueur…',
-        hintStyle: AppTypography.bodyMedium
-            .copyWith(color: AppColors.textTertiary),
-        prefixIcon:
-            const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+        hintStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textTertiary,
+        ),
+        prefixIcon: const Icon(
+          Icons.search_rounded,
+          color: AppColors.textSecondary,
+        ),
         filled: true,
         fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
@@ -439,8 +457,9 @@ class _PartnerTile extends StatelessWidget {
                 AppAvatar(
                   initials: user.initials,
                   size: 48,
-                  backgroundColor:
-                      isSelected ? AppColors.primary : AppColors.surfaceVariant,
+                  backgroundColor: isSelected
+                      ? AppColors.primary
+                      : AppColors.surfaceVariant,
                   textColor: isSelected ? Colors.white : AppColors.textPrimary,
                 ),
                 if (isFavorite)
@@ -453,8 +472,11 @@ class _PartnerTile extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.favorite_rounded,
-                          size: 10, color: AppColors.primary),
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        size: 10,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
               ],
@@ -470,17 +492,21 @@ class _PartnerTile extends StatelessWidget {
                       const SizedBox(width: AppSpacing.sm),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.secondary.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusFull,
+                          ),
                         ),
                         child: Text(
                           user.ranking,
                           style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.secondary,
-                              fontWeight: FontWeight.w700),
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -507,8 +533,11 @@ class _PartnerTile extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
           ],
         ),
       ),

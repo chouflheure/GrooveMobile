@@ -16,5 +16,5 @@ class FavoritesNotifier extends StateNotifier<List<String>> {
 
 final favoritesProvider =
     StateNotifierProvider<FavoritesNotifier, List<String>>(
-  (ref) => FavoritesNotifier(),
-);
+      (ref) => FavoritesNotifier(),
+    );

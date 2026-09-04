@@ -7,27 +7,49 @@ import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import 'manager_view_model.dart';
 
-/// Create form for a club event — reached from the Manager screen's
-/// "Événements" section.
+/// Create/edit form for a club event — reached from the Manager screen's
+/// "Événements" section. Pass `event: null` to create a new one.
 class EventFormScreen extends ConsumerStatefulWidget {
+  final ClubEventModel? event;
   final List<ClubModel> clubs;
   final List<CourtModel> courts;
 
-  const EventFormScreen({super.key, required this.clubs, required this.courts});
+  const EventFormScreen({
+    super.key,
+    this.event,
+    required this.clubs,
+    required this.courts,
+  });
 
   @override
   ConsumerState<EventFormScreen> createState() => _EventFormScreenState();
 }
 
 class _EventFormScreenState extends ConsumerState<EventFormScreen> {
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _addressController = TextEditingController();
+  late final _titleController = TextEditingController(
+    text: widget.event?.title ?? '',
+  );
+  late final _descriptionController = TextEditingController(
+    text: widget.event?.description ?? '',
+  );
+  late final _addressController = TextEditingController(
+    text: widget.event?.address ?? '',
+  );
 
-  late String? _clubId = widget.clubs.length == 1 ? widget.clubs.first.id : null;
-  DateTime? _date;
-  final Set<String> _selectedCourtIds = {};
+  late String? _clubId =
+      widget.event?.clubId ??
+      (widget.clubs.length == 1 ? widget.clubs.first.id : null);
+  late DateTime? _date = widget.event?.date;
+  late final Set<String> _selectedCourtIds = widget.event != null
+      ? widget.courts
+            .where((c) => widget.event!.courtNames.contains(c.name))
+            .map((c) => c.id)
+            .toSet()
+      : {};
   bool _isSaving = false;
+  bool _isDeleting = false;
+
+  bool get _isEditing => widget.event != null;
 
   @override
   void dispose() {
@@ -64,7 +86,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
         .toList();
 
     final event = ClubEventModel(
-      id: '',
+      id: widget.event?.id ?? '',
       clubId: club.id,
       clubName: club.name,
       title: _titleController.text.trim(),
@@ -72,12 +94,49 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
       date: _date!,
       address: _addressController.text.trim(),
       courtNames: courtNames,
-      createdAt: DateTime.now(),
+      participantIds: widget.event?.participantIds ?? const [],
+      createdAt: widget.event?.createdAt ?? DateTime.now(),
     );
 
-    final ok = await ref.read(managerViewModelProvider.notifier).createEvent(event);
+    final notifier = ref.read(managerViewModelProvider.notifier);
+    final ok = _isEditing
+        ? await notifier.updateEvent(event)
+        : await notifier.createEvent(event);
     if (!mounted) return;
     setState(() => _isSaving = false);
+    if (ok) Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  Future<void> _delete() async {
+    final event = widget.event;
+    if (event == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supprimer cet événement ?'),
+        content: Text('"${event.title}" sera définitivement supprimé.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _isDeleting = true);
+    final ok = await ref
+        .read(managerViewModelProvider.notifier)
+        .deleteEvent(event.id, event.title);
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
     if (ok) Navigator.of(context, rootNavigator: true).pop();
   }
 
@@ -110,51 +169,96 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
       );
     }
 
-    final courtsForClub = widget.courts.where((c) => c.clubId == _clubId).toList();
+    final courtsForClub = widget.courts
+        .where((c) => c.clubId == _clubId)
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         scrolledUnderElevation: 0,
-        title: const Text('Créer un événement'),
+        title: Text(_isEditing ? "Modifier l'événement" : 'Créer un événement'),
         leading: GestureDetector(
           onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),
         ),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              onPressed: _isDeleting ? null : _delete,
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+              ),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           _Label('Titre'),
           const SizedBox(height: AppSpacing.sm),
-          _TextField(controller: _titleController, hint: 'Tournoi de printemps'),
+          _TextField(
+            controller: _titleController,
+            hint: 'Tournoi de printemps',
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Club'),
           const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String?>(
-            initialValue: _clubId,
-            hint: Text('Choisir un club', style: AppTypography.bodySmall),
-            isExpanded: true,
-            decoration: _decoration(),
-            items: widget.clubs
-                .map((c) => DropdownMenuItem<String?>(value: c.id, child: Text(c.name, style: AppTypography.bodyMedium)))
-                .toList(),
-            onChanged: (id) => setState(() {
-              _clubId = id;
-              _selectedCourtIds.clear();
-            }),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: widget.clubs.map((c) {
+              final isSelected = _clubId == c.id;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  _clubId = c.id;
+                  _selectedCourtIds.clear();
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    c.name,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Description'),
           const SizedBox(height: AppSpacing.sm),
-          _TextField(controller: _descriptionController, maxLines: 4, hint: "Description de l'événement"),
+          _TextField(
+            controller: _descriptionController,
+            maxLines: 4,
+            hint: "Description de l'événement",
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Date'),
           const SizedBox(height: AppSpacing.sm),
           GestureDetector(
             onTap: _pickDate,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 14),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 14,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -162,9 +266,16 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
-                  Text(_date != null ? _fmt(_date!) : 'Choisir une date', style: AppTypography.bodySmall),
+                  Text(
+                    _date != null ? _fmt(_date!) : 'Choisir une date',
+                    style: AppTypography.bodySmall,
+                  ),
                 ],
               ),
             ),
@@ -182,7 +293,10 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (courtsForClub.isEmpty)
-            Text('Choisis un club pour voir ses terrains.', style: AppTypography.bodySmall)
+            Text(
+              'Choisis un club pour voir ses terrains.',
+              style: AppTypography.bodySmall,
+            )
           else
             Wrap(
               spacing: AppSpacing.sm,
@@ -198,16 +312,29 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                     }
                   }),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.background,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                      border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.background,
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusFull,
+                      ),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
                     ),
                     child: Text(
                       c.name,
                       style: AppTypography.labelMedium.copyWith(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -216,29 +343,17 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
             ),
           const SizedBox(height: AppSpacing.xl),
           AppButton(
-            label: 'Créer l\'événement',
+            label: _isEditing ? 'Enregistrer' : "Créer l'événement",
             onTap: _isValid ? _save : null,
             isLoading: _isSaving,
           ),
-          SizedBox(height: AppSpacing.xxl + MediaQuery.paddingOf(context).bottom),
+          SizedBox(
+            height: AppSpacing.xxl + MediaQuery.paddingOf(context).bottom,
+          ),
         ],
       ),
     );
   }
-
-  InputDecoration _decoration() => InputDecoration(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        filled: true,
-        fillColor: AppColors.background,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      );
 }
 
 class _Label extends StatelessWidget {
@@ -246,7 +361,8 @@ class _Label extends StatelessWidget {
   const _Label(this.text);
 
   @override
-  Widget build(BuildContext context) => Text(text, style: AppTypography.labelLarge);
+  Widget build(BuildContext context) =>
+      Text(text, style: AppTypography.labelLarge);
 }
 
 class _TextField extends StatelessWidget {
@@ -254,7 +370,11 @@ class _TextField extends StatelessWidget {
   final String hint;
   final int maxLines;
 
-  const _TextField({required this.controller, required this.hint, this.maxLines = 1});
+  const _TextField({
+    required this.controller,
+    required this.hint,
+    this.maxLines = 1,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +395,14 @@ class _TextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.border),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
       ),
     );
   }

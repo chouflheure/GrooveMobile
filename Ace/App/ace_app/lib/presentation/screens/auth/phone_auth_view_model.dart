@@ -32,7 +32,9 @@ class PhoneAuthState {
       isLoading: isLoading ?? this.isLoading,
       verificationId: verificationId ?? this.verificationId,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      errorMessage: errorMessage == _sentinel ? this.errorMessage : errorMessage as String?,
+      errorMessage: errorMessage == _sentinel
+          ? this.errorMessage
+          : errorMessage as String?,
     );
   }
 }
@@ -55,7 +57,11 @@ class PhoneAuthViewModel extends StateNotifier<PhoneAuthState> {
   Future<void> sendCode(String rawPhoneNumber) async {
     final phoneNumber = rawPhoneNumber.trim();
     if (phoneNumber.isEmpty) return;
-    state = state.copyWith(isLoading: true, errorMessage: null, phoneNumber: phoneNumber);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      phoneNumber: phoneNumber,
+    );
     try {
       await _authRepository.verifyPhoneNumber(
         phoneNumber: phoneNumber,
@@ -67,22 +73,35 @@ class PhoneAuthViewModel extends StateNotifier<PhoneAuthState> {
           );
         },
         onVerificationFailed: (e) {
-          state = state.copyWith(isLoading: false, errorMessage: _messageFor(e));
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: _messageFor(e),
+          );
         },
         onAutoVerified: (credential) {
           // Silent auto-resolution — stash the credential and let the user
           // hit "Confirmer" with an empty code field to use it directly.
           _autoCredential = credential;
-          state = state.copyWith(isLoading: false, step: PhoneAuthStep.enterCode);
+          state = state.copyWith(
+            isLoading: false,
+            step: PhoneAuthStep.enterCode,
+          );
         },
       );
     } catch (_) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Une erreur est survenue, réessaie.');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Une erreur est survenue, réessaie.',
+      );
     }
   }
 
-  Future<UserCredential?> confirmCode(String smsCode, {required bool link}) async {
-    final credential = _autoCredential ??
+  Future<UserCredential?> confirmCode(
+    String smsCode, {
+    required bool link,
+  }) async {
+    final credential =
+        _autoCredential ??
         (state.verificationId == null || smsCode.trim().isEmpty
             ? null
             : _authRepository.phoneCredential(
@@ -101,7 +120,10 @@ class PhoneAuthViewModel extends StateNotifier<PhoneAuthState> {
       state = state.copyWith(isLoading: false, errorMessage: _messageFor(e));
       return null;
     } catch (_) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Une erreur est survenue, réessaie.');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Une erreur est survenue, réessaie.',
+      );
       return null;
     }
   }
@@ -130,5 +152,5 @@ class PhoneAuthViewModel extends StateNotifier<PhoneAuthState> {
 
 final phoneAuthViewModelProvider =
     StateNotifierProvider.autoDispose<PhoneAuthViewModel, PhoneAuthState>(
-  (ref) => PhoneAuthViewModel(ref.watch(authRepositoryProvider)),
-);
+      (ref) => PhoneAuthViewModel(ref.watch(authRepositoryProvider)),
+    );

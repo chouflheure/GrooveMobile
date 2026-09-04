@@ -73,10 +73,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
           ),
           minimumSize: const Size(double.infinity, 52),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
       chipTheme: ChipThemeData(

@@ -4,7 +4,7 @@ import '../models/user_model.dart';
 
 class UserRepository {
   UserRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -19,9 +19,9 @@ class UserRepository {
   CollectionReference<Map<String, dynamic>> get _adminCollection =>
       _firestore.collection('admin');
 
-  Stream<Set<String>> _watchAdminIds() => _adminCollection
-      .snapshots()
-      .map((snapshot) => snapshot.docs.map((doc) => doc.id).toSet());
+  Stream<Set<String>> _watchAdminIds() => _adminCollection.snapshots().map(
+    (snapshot) => snapshot.docs.map((doc) => doc.id).toSet(),
+  );
 
   Future<Set<String>> _fetchAdminIds() async {
     final snapshot = await _adminCollection.get();
@@ -69,10 +69,12 @@ class UserRepository {
       _watchAdminIds(),
       (QuerySnapshot<Map<String, dynamic>> snapshot, Set<String> adminIds) =>
           snapshot.docs
-              .map((doc) => _applyAdminOverride(
-                    UserModel.fromJson({...doc.data(), 'id': doc.id}),
-                    adminIds,
-                  ))
+              .map(
+                (doc) => _applyAdminOverride(
+                  UserModel.fromJson({...doc.data(), 'id': doc.id}),
+                  adminIds,
+                ),
+              )
               .toList(),
     );
   }

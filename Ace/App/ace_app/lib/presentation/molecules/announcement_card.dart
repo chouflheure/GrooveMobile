@@ -45,7 +45,10 @@ class AnnouncementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isInterested = announcement.interestedUserIds.contains(currentUserId);
-    final dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(announcement.date);
+    final dateStr = DateFormat(
+      'EEEE d MMMM',
+      'fr_FR',
+    ).format(announcement.date);
 
     return GestureDetector(
       onTap: () => _showDetail(context),
@@ -115,7 +118,9 @@ class AnnouncementHeader extends StatelessWidget {
       builder: (_) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.xxxl),
+          ),
         ),
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
@@ -134,7 +139,10 @@ class AnnouncementHeader extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
+              leading: const Icon(
+                Icons.edit_outlined,
+                color: AppColors.textPrimary,
+              ),
               title: Text('Modifier', style: AppTypography.bodyMedium),
               onTap: () {
                 Navigator.of(context, rootNavigator: true).pop();
@@ -142,8 +150,14 @@ class AnnouncementHeader extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              title: Text('Supprimer', style: AppTypography.bodyMedium.copyWith(color: Colors.red)),
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red,
+              ),
+              title: Text(
+                'Supprimer',
+                style: AppTypography.bodyMedium.copyWith(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.of(context, rootNavigator: true).pop();
                 onDelete?.call();
@@ -162,7 +176,13 @@ class AnnouncementHeader extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Row(
         children: [
-          AppAvatar(initials: announcement.userName.split(' ').map((p) => p[0]).take(2).join()),
+          AppAvatar(
+            initials: announcement.userName
+                .split(' ')
+                .map((p) => p[0])
+                .take(2)
+                .join(),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -170,7 +190,10 @@ class AnnouncementHeader extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(announcement.userName, style: AppTypography.headlineSmall),
+                    Text(
+                      announcement.userName,
+                      style: AppTypography.headlineSmall,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     AppBadge.ranking(announcement.userRanking),
                   ],
@@ -184,11 +207,19 @@ class AnnouncementHeader extends StatelessWidget {
               onTap: () => _showOptions(context),
               child: const Padding(
                 padding: EdgeInsets.all(AppSpacing.xs),
-                child: Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
+                child: Icon(
+                  Icons.more_vert_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
               ),
             )
           else if (onUserTap != null)
-            const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textTertiary),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: AppColors.textTertiary,
+            ),
         ],
       ),
     );
@@ -199,7 +230,11 @@ class AnnouncementTags extends StatelessWidget {
   final AnnouncementModel announcement;
   final String dateStr;
 
-  const AnnouncementTags({super.key, required this.announcement, required this.dateStr});
+  const AnnouncementTags({
+    super.key,
+    required this.announcement,
+    required this.dateStr,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +254,8 @@ class AnnouncementTags extends StatelessWidget {
     );
   }
 
-  String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
 class _TagChip extends StatelessWidget {
@@ -285,7 +321,9 @@ class AnnouncementFooter extends StatelessWidget {
               vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: isInterested ? AppColors.primaryContainer : AppColors.primary,
+              color: isInterested
+                  ? AppColors.primaryContainer
+                  : AppColors.primary,
               borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
             ),
             child: Text(

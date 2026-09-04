@@ -62,8 +62,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 AppAvatar(
                   initials: user.initials,
                   size: 80,
-                  backgroundColor:
-                      AppColors.primary.withValues(alpha: 0.15),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                 ),
                 Positioned(
                   right: 0,
@@ -74,8 +73,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        color: Colors.white, size: 14),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                   ),
                 ),
               ],
@@ -121,14 +123,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _save(UserModel user) async {
     setState(() => _isSaving = true);
     try {
-      await ref.read(userRepositoryProvider).update(user.copyWith(
-            name: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-            phone: _phoneController.text.trim().isEmpty
-                ? null
-                : _phoneController.text.trim(),
-            location: _locationController.text.trim(),
-          ));
+      await ref
+          .read(userRepositoryProvider)
+          .update(
+            user.copyWith(
+              name: _nameController.text.trim(),
+              email: _emailController.text.trim(),
+              phone: _phoneController.text.trim().isEmpty
+                  ? null
+                  : _phoneController.text.trim(),
+              location: _locationController.text.trim(),
+            ),
+          );
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -194,8 +200,10 @@ class _Field extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
           ),
         ),

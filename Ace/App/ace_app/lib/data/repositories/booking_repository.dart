@@ -7,7 +7,8 @@ class SlotAlreadyBookedException implements Exception {
   const SlotAlreadyBookedException();
 
   @override
-  String toString() => 'Ce créneau vient d\'être réservé par quelqu\'un d\'autre.';
+  String toString() =>
+      'Ce créneau vient d\'être réservé par quelqu\'un d\'autre.';
 }
 
 /// Thrown when the booker isn't a member of the club the court belongs to.
@@ -38,7 +39,7 @@ class SlotOutsideHoursException implements Exception {
 
 class BookingRepository {
   BookingRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -74,8 +75,11 @@ class BookingRepository {
       }
 
       final periodsJson = courtSnap.data()?['unavailablePeriods'] as List?;
-      final periods = periodsJson
-              ?.map((p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>))
+      final periods =
+          periodsJson
+              ?.map(
+                (p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>),
+              )
               .toList() ??
           const [];
       if (periods.any((p) => p.covers(booking.date))) {
@@ -83,12 +87,18 @@ class BookingRepository {
       }
 
       final overridesJson = courtSnap.data()?['availabilityOverrides'] as List?;
-      final overrides = overridesJson
-              ?.map((p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>))
+      final overrides =
+          overridesJson
+              ?.map(
+                (p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>),
+              )
               .toList() ??
           const [];
-      final activeOverride = overrides.where((o) => o.covers(booking.date)).firstOrNull;
-      if (activeOverride != null && !activeOverride.allowsTime(booking.startTime)) {
+      final activeOverride = overrides
+          .where((o) => o.covers(booking.date))
+          .firstOrNull;
+      if (activeOverride != null &&
+          !activeOverride.allowsTime(booking.startTime)) {
         throw const SlotOutsideHoursException();
       }
 
@@ -119,13 +129,15 @@ class BookingRepository {
     return _collection.doc(booking.id).set(_withDateKey(booking));
   }
 
-  Map<String, dynamic> _withDateKey(BookingModel booking) =>
-      {...booking.toJson(), 'dateKey': _dateKey(booking.date)};
+  Map<String, dynamic> _withDateKey(BookingModel booking) => {
+    ...booking.toJson(),
+    'dateKey': _dateKey(booking.date),
+  };
 
   Future<void> cancel(String bookingId) {
-    return _collection
-        .doc(bookingId)
-        .update({'status': BookingStatus.cancelled.jsonValue});
+    return _collection.doc(bookingId).update({
+      'status': BookingStatus.cancelled.jsonValue,
+    });
   }
 
   /// Every booking this user is part of — as the booker or as the invited
@@ -149,10 +161,10 @@ class BookingRepository {
   /// All bookings across every player — admin/manager use only.
   Stream<List<BookingModel>> watchAll() {
     return _collection.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => BookingModel.fromJson(doc.data()))
-              .toList(),
-        );
+      (snapshot) => snapshot.docs
+          .map((doc) => BookingModel.fromJson(doc.data()))
+          .toList(),
+    );
   }
 
   /// Streams, for a given day, which `courtId + startTime` slots are held by
@@ -162,15 +174,15 @@ class BookingRepository {
         .where('dateKey', isEqualTo: _dateKey(date))
         .snapshots()
         .map((snapshot) {
-      final result = <String, Set<String>>{};
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        if (data['status'] == BookingStatus.cancelled.jsonValue) continue;
-        final courtId = data['courtId'] as String;
-        final startTime = data['startTime'] as String;
-        result.putIfAbsent(courtId, () => {}).add(startTime);
-      }
-      return result;
-    });
+          final result = <String, Set<String>>{};
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            if (data['status'] == BookingStatus.cancelled.jsonValue) continue;
+            final courtId = data['courtId'] as String;
+            final startTime = data['startTime'] as String;
+            result.putIfAbsent(courtId, () => {}).add(startTime);
+          }
+          return result;
+        });
   }
 }

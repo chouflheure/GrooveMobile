@@ -34,12 +34,7 @@ const _kMeta = <String, _NotificationMeta>{
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
 
-  Future<void> _toggle(
-    WidgetRef ref,
-    UserModel user,
-    String key,
-    bool value,
-  ) {
+  Future<void> _toggle(WidgetRef ref, UserModel user, String key, bool value) {
     final notifications = {...user.notifications, key: value};
     return ref
         .read(userRepositoryProvider)

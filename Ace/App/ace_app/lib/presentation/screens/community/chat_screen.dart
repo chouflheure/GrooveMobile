@@ -32,7 +32,9 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _controller = TextEditingController();
+  final _inputFocusNode = FocusNode();
   final _scrollController = ScrollController();
+  MessageModel? _editingMessage;
 
   bool get _isGroup => widget.otherParticipantIds.length > 1;
 
@@ -50,6 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _inputFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -57,10 +60,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _send() async {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
+
+    final editing = _editingMessage;
+    if (editing != null) {
+      _controller.clear();
+      setState(() => _editingMessage = null);
+      if (content != editing.content) {
+        await ref
+            .read(communityViewModelProvider.notifier)
+            .editMessage(editing.id, content);
+      }
+      return;
+    }
+
     final senderName = ref.read(currentUserProvider).valueOrNull?.name;
     if (senderName == null) return;
     _controller.clear();
-    await ref.read(communityViewModelProvider.notifier).sendMessage(
+    await ref
+        .read(communityViewModelProvider.notifier)
+        .sendMessage(
           widget.conversationId,
           widget.otherParticipantIds,
           senderName,
@@ -77,6 +95,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  void _startEdit(MessageModel message) {
+    _controller.text = message.content;
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    setState(() => _editingMessage = message);
+    _inputFocusNode.requestFocus();
+  }
+
+  void _cancelEdit() {
+    _controller.clear();
+    setState(() => _editingMessage = null);
+  }
+
   void _showMessageActions(MessageModel message) {
     showModalBottomSheet(
       context: context,
@@ -85,7 +117,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       builder: (_) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.xxxl),
+          ),
         ),
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
@@ -104,16 +138,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
+              leading: const Icon(
+                Icons.edit_outlined,
+                color: AppColors.textPrimary,
+              ),
               title: Text('Modifier', style: AppTypography.bodyMedium),
               onTap: () {
                 Navigator.of(context, rootNavigator: true).pop();
-                _editMessage(message);
+                _startEdit(message);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              title: Text('Supprimer', style: AppTypography.bodyMedium.copyWith(color: Colors.red)),
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red,
+              ),
+              title: Text(
+                'Supprimer',
+                style: AppTypography.bodyMedium.copyWith(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.of(context, rootNavigator: true).pop();
                 _deleteMessage(message);
@@ -123,34 +166,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _editMessage(MessageModel message) async {
-    final controller = TextEditingController(text: message.content);
-    final newContent = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Modifier le message'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 5,
-          minLines: 1,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-    if (newContent == null || newContent.isEmpty || newContent == message.content) return;
-    await ref.read(communityViewModelProvider.notifier).editMessage(message.id, newContent);
   }
 
   Future<void> _deleteMessage(MessageModel message) async {
@@ -166,18 +181,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Supprimer', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
-    await ref.read(communityViewModelProvider.notifier).deleteMessage(message.id);
+    if (_editingMessage?.id == message.id) _cancelEdit();
+    await ref
+        .read(communityViewModelProvider.notifier)
+        .deleteMessage(message.id);
   }
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(conversationMessagesProvider(widget.conversationId));
+    final messagesAsync = ref.watch(
+      conversationMessagesProvider(widget.conversationId),
+    );
     final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
 
     return Scaffold(
@@ -202,7 +225,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             color: AppColors.primaryContainer,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.groups_rounded, size: 18, color: AppColors.primary),
+                          child: const Icon(
+                            Icons.groups_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                         )
                       : AppAvatar(initials: widget.avatarInitials!, size: 36),
                   const SizedBox(width: AppSpacing.sm),
@@ -241,14 +268,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     message: message,
                     isMe: isMe,
                     showSenderName: _isGroup && !isMe,
-                    onLongPress: isMe ? () => _showMessageActions(message) : null,
+                    onLongPress: isMe
+                        ? () => _showMessageActions(message)
+                        : null,
                   );
                 },
               ),
             ),
           ),
-          _BookCourtBanner(onTap: () => context.go('/courts')),
-          _InputBar(controller: _controller, onSend: _send),
+          _BookCourtBanner(
+            onTap: () {
+              // ChatScreen is pushed with a rootNavigator MaterialPageRoute,
+              // outside go_router's tracked stack — pop back to the shell
+              // first so context.go actually navigates visibly.
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).popUntil((route) => route.isFirst);
+              context.go('/courts');
+            },
+          ),
+          _InputBar(
+            controller: _controller,
+            focusNode: _inputFocusNode,
+            onSend: _send,
+            editingMessage: _editingMessage,
+            onCancelEdit: _cancelEdit,
+          ),
         ],
       ),
     );
@@ -266,7 +312,10 @@ class _BookCourtBanner extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border(top: BorderSide(color: AppColors.border)),
@@ -274,7 +323,11 @@ class _BookCourtBanner extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.sports_tennis_rounded, size: 16, color: AppColors.primary),
+            const Icon(
+              Icons.sports_tennis_rounded,
+              size: 16,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: AppSpacing.xs),
             Text(
               'Réserver un terrain',
@@ -315,14 +368,21 @@ class _MessageBubble extends StatelessWidget {
             maxWidth: MediaQuery.of(context).size.width * 0.72,
           ),
           child: Column(
-            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: isMe
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               if (showSenderName)
                 Padding(
-                  padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: 2),
+                  padding: const EdgeInsets.only(
+                    left: AppSpacing.xs,
+                    bottom: 2,
+                  ),
                   child: Text(
                     message.senderName,
-                    style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               Container(
@@ -336,7 +396,9 @@ class _MessageBubble extends StatelessWidget {
                     topLeft: const Radius.circular(AppSpacing.radiusMd),
                     topRight: const Radius.circular(AppSpacing.radiusMd),
                     bottomLeft: Radius.circular(isMe ? AppSpacing.radiusMd : 4),
-                    bottomRight: Radius.circular(isMe ? 4 : AppSpacing.radiusMd),
+                    bottomRight: Radius.circular(
+                      isMe ? 4 : AppSpacing.radiusMd,
+                    ),
                   ),
                   border: isMe ? null : Border.all(color: AppColors.border),
                 ),
@@ -356,7 +418,9 @@ class _MessageBubble extends StatelessWidget {
                         child: Text(
                           'modifié',
                           style: AppTypography.labelSmall.copyWith(
-                            color: isMe ? Colors.white70 : AppColors.textTertiary,
+                            color: isMe
+                                ? Colors.white70
+                                : AppColors.textTertiary,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -374,9 +438,18 @@ class _MessageBubble extends StatelessWidget {
 
 class _InputBar extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final VoidCallback onSend;
+  final MessageModel? editingMessage;
+  final VoidCallback onCancelEdit;
 
-  const _InputBar({required this.controller, required this.onSend});
+  const _InputBar({
+    required this.controller,
+    required this.focusNode,
+    required this.onSend,
+    this.editingMessage,
+    required this.onCancelEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -391,62 +464,99 @@ class _InputBar extends StatelessWidget {
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: AppTypography.bodyMedium,
-              minLines: 1,
-              maxLines: 10,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
-                hintText: 'Votre message...',
-                hintStyle: AppTypography.bodySmall,
-                filled: true,
-                fillColor: AppColors.background,
-                // The app-wide input theme sets its own enabledBorder /
-                // focusedBorder (a big pill radius, right for one-line
-                // fields) which would otherwise override `border` below
-                // once this field is focused or just enabled — so all
-                // three need to agree on the same rounded-rect radius.
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.sm,
-                ),
+          if (editingMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.edit_outlined,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Modification du message',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onCancelEdit,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          GestureDetector(
-            onTap: onSend,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: AppTypography.bodyMedium,
+                  minLines: 1,
+                  maxLines: 10,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: 'Votre message...',
+                    hintStyle: AppTypography.bodySmall,
+                    filled: true,
+                    fillColor: AppColors.background,
+                    // The app-wide input theme sets its own enabledBorder /
+                    // focusedBorder (a big pill radius, right for one-line
+                    // fields) which would otherwise override `border` below
+                    // once this field is focused or just enabled — so all
+                    // three need to agree on the same rounded-rect radius.
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.sm,
+                    ),
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.send_rounded,
-                color: Colors.white,
-                size: 20,
+              const SizedBox(width: AppSpacing.sm),
+              GestureDetector(
+                onTap: onSend,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.send_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),

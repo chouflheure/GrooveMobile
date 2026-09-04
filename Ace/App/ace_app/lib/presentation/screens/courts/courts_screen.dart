@@ -26,7 +26,9 @@ class CourtsScreen extends ConsumerWidget {
     final allEvents = ref.watch(clubEventsProvider).valueOrNull ?? const [];
     final events = currentUser == null
         ? allEvents
-        : allEvents.where((e) => currentUser.clubIds.contains(e.clubId)).toList();
+        : allEvents
+              .where((e) => currentUser.clubIds.contains(e.clubId))
+              .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,7 +64,9 @@ class CourtsScreen extends ConsumerWidget {
                 AppSpacing.lg,
                 AppSpacing.lg,
                 AppSpacing.lg,
-                events.isEmpty ? AppSpacing.lg + MediaQuery.paddingOf(context).bottom : 0,
+                events.isEmpty
+                    ? AppSpacing.lg + MediaQuery.paddingOf(context).bottom
+                    : 0,
               ),
               sliver: SliverList.separated(
                 itemCount: state.filteredCourts.length,
@@ -89,7 +93,8 @@ class CourtsScreen extends ConsumerWidget {
                 },
               ),
             ),
-          if (events.isNotEmpty) const SliverToBoxAdapter(child: SizedBox(height: 15)),
+          if (events.isNotEmpty)
+            const SliverToBoxAdapter(child: SizedBox(height: 15)),
           if (events.isNotEmpty)
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
@@ -108,11 +113,9 @@ class CourtsScreen extends ConsumerWidget {
                       return;
                     }
                     final isIn = event.participantIds.contains(currentUser.id);
-                    ref.read(clubEventRepositoryProvider).setParticipating(
-                          event.id,
-                          currentUser.id,
-                          !isIn,
-                        );
+                    ref
+                        .read(clubEventRepositoryProvider)
+                        .setParticipating(event.id, currentUser.id, !isIn);
                   },
                 ),
               ),
@@ -147,7 +150,9 @@ class _EventsSection extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: ClubEventCard(
               event: e,
-              isParticipating: currentUserId != null && e.participantIds.contains(currentUserId),
+              isParticipating:
+                  currentUserId != null &&
+                  e.participantIds.contains(currentUserId),
               onParticipate: () => onParticipate(e),
               onTap: () => context.push('/event/${e.id}', extra: e),
             ),
@@ -272,7 +277,6 @@ class _FilterBar extends StatelessWidget {
     );
   }
 }
-
 
 class _ClubFilterBar extends StatelessWidget {
   final List<ClubModel> clubs;

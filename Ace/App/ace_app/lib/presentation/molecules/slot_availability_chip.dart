@@ -24,8 +24,8 @@ class SlotAvailabilityChip extends StatelessWidget {
     final color = isBooked
         ? AppColors.error
         : isSelected
-            ? Colors.white
-            : AppColors.success;
+        ? Colors.white
+        : AppColors.success;
 
     return GestureDetector(
       onTap: onTap,
@@ -39,15 +39,15 @@ class SlotAvailabilityChip extends StatelessWidget {
           color: isBooked
               ? AppColors.error.withValues(alpha: 0.1)
               : isSelected
-                  ? AppColors.success
-                  : AppColors.success.withValues(alpha: 0.1),
+              ? AppColors.success
+              : AppColors.success.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
           border: Border.all(
             color: isBooked
                 ? AppColors.error.withValues(alpha: 0.5)
                 : isSelected
-                    ? AppColors.success
-                    : AppColors.success.withValues(alpha: 0.4),
+                ? AppColors.success
+                : AppColors.success.withValues(alpha: 0.4),
           ),
         ),
         child: Text(

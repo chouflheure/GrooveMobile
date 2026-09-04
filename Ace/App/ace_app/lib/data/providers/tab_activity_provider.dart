@@ -32,14 +32,20 @@ class TabActivityNotifier extends StateNotifier<TabActivityState> {
 
   Future<void> markAnnouncementsSeen() async {
     final now = DateTime.now();
-    state = TabActivityState(lastSeenAnnouncements: now, lastSeenMessages: state.lastSeenMessages);
+    state = TabActivityState(
+      lastSeenAnnouncements: now,
+      lastSeenMessages: state.lastSeenMessages,
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_announcementsKey, now.toIso8601String());
   }
 
   Future<void> markMessagesSeen() async {
     final now = DateTime.now();
-    state = TabActivityState(lastSeenAnnouncements: state.lastSeenAnnouncements, lastSeenMessages: now);
+    state = TabActivityState(
+      lastSeenAnnouncements: state.lastSeenAnnouncements,
+      lastSeenMessages: now,
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_messagesKey, now.toIso8601String());
   }
@@ -47,5 +53,5 @@ class TabActivityNotifier extends StateNotifier<TabActivityState> {
 
 final tabActivityProvider =
     StateNotifierProvider<TabActivityNotifier, TabActivityState>(
-  (ref) => TabActivityNotifier(),
-);
+      (ref) => TabActivityNotifier(),
+    );

@@ -21,14 +21,18 @@ class CourtFormScreen extends ConsumerStatefulWidget {
 }
 
 class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
-  late final _nameController =
-      TextEditingController(text: widget.court?.name ?? '');
-  late final _locationController =
-      TextEditingController(text: widget.court?.location ?? '');
-  late final _imageUrlController =
-      TextEditingController(text: widget.court?.imageUrl ?? '');
-  late final _descriptionController =
-      TextEditingController(text: widget.court?.description ?? '');
+  late final _nameController = TextEditingController(
+    text: widget.court?.name ?? '',
+  );
+  late final _locationController = TextEditingController(
+    text: widget.court?.location ?? '',
+  );
+  late final _imageUrlController = TextEditingController(
+    text: widget.court?.imageUrl ?? '',
+  );
+  late final _descriptionController = TextEditingController(
+    text: widget.court?.description ?? '',
+  );
   late final _priceController = TextEditingController(
     text: widget.court != null ? widget.court!.pricePerHour.toString() : '',
   );
@@ -97,12 +101,14 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
     if (range == null) return;
     if (_overrideFrom.compareTo(_overrideTo) >= 0) return;
     setState(() {
-      _overrides.add(AvailabilityOverride(
-        startDate: range.start,
-        endDate: range.end,
-        openFrom: _overrideFrom,
-        openTo: _overrideTo,
-      ));
+      _overrides.add(
+        AvailabilityOverride(
+          startDate: range.start,
+          endDate: range.end,
+          openFrom: _overrideFrom,
+          openTo: _overrideTo,
+        ),
+      );
     });
   }
 
@@ -114,11 +120,15 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
     );
     if (range == null) return;
     setState(() {
-      _periods.add(UnavailablePeriod(
-        startDate: range.start,
-        endDate: range.end,
-        reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
-      ));
+      _periods.add(
+        UnavailablePeriod(
+          startDate: range.start,
+          endDate: range.end,
+          reason: _reasonController.text.trim().isEmpty
+              ? null
+              : _reasonController.text.trim(),
+        ),
+      );
       _reasonController.clear();
     });
   }
@@ -154,7 +164,9 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
       availabilityOverrides: _overrides,
     );
 
-    final ok = await ref.read(managerViewModelProvider.notifier).saveCourt(court);
+    final ok = await ref
+        .read(managerViewModelProvider.notifier)
+        .saveCourt(court);
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (ok) Navigator.of(context, rootNavigator: true).pop();
@@ -211,18 +223,38 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             style: AppTypography.bodySmall,
           ),
           const SizedBox(height: AppSpacing.sm),
-          DropdownButtonFormField<String?>(
-            initialValue: _clubId,
-            hint: Text('Choisir un club', style: AppTypography.bodySmall),
-            isExpanded: true,
-            decoration: _decoration(),
-            items: [
-              ...widget.clubs.map((c) => DropdownMenuItem<String?>(
-                    value: c.id,
-                    child: Text(c.name, style: AppTypography.bodyMedium),
-                  )),
-            ],
-            onChanged: (id) => setState(() => _clubId = id),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: widget.clubs.map((c) {
+              final isSelected = _clubId == c.id;
+              return GestureDetector(
+                onTap: () => setState(() => _clubId = c.id),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    c.name,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Adresse'),
@@ -232,7 +264,11 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
           _TextField(controller: _imageUrlController, hint: 'https://...'),
           const SizedBox(height: AppSpacing.lg),
           _Label('Description'),
-          _TextField(controller: _descriptionController, maxLines: 4, hint: 'Description du terrain'),
+          _TextField(
+            controller: _descriptionController,
+            maxLines: 4,
+            hint: 'Description du terrain',
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Prix/heure (€)'),
           _TextField(
@@ -250,18 +286,30 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
                 child: GestureDetector(
                   onTap: () => setState(() => _type = t),
                   child: Container(
-                    margin: EdgeInsets.only(right: t == CourtType.values.first ? AppSpacing.sm : 0),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    margin: EdgeInsets.only(
+                      right: t == CourtType.values.first ? AppSpacing.sm : 0,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.background,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.background,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
                     ),
                     child: Text(
                       t.label,
                       textAlign: TextAlign.center,
                       style: AppTypography.labelMedium.copyWith(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -280,16 +328,25 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _surface = s),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.background,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.background,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                    border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
                   ),
                   child: Text(
                     s.label,
                     style: AppTypography.labelMedium.copyWith(
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -303,24 +360,32 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: _amenities
-                .map((a) => Chip(
-                      label: Text(a, style: AppTypography.labelMedium),
-                      onDeleted: () => setState(() => _amenities.remove(a)),
-                      backgroundColor: AppColors.surfaceVariant,
-                      deleteIconColor: AppColors.textSecondary,
-                    ))
+                .map(
+                  (a) => Chip(
+                    label: Text(a, style: AppTypography.labelMedium),
+                    onDeleted: () => setState(() => _amenities.remove(a)),
+                    backgroundColor: AppColors.surfaceVariant,
+                    deleteIconColor: AppColors.textSecondary,
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: _TextField(controller: _amenityController, hint: 'Ajouter un équipement'),
+                child: _TextField(
+                  controller: _amenityController,
+                  hint: 'Ajouter un équipement',
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               IconButton(
                 onPressed: _addAmenity,
-                icon: const Icon(Icons.add_circle_rounded, color: AppColors.primary),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
@@ -346,16 +411,25 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
                   }
                 }),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.background,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.background,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                    border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                    ),
                   ),
                   child: Text(
                     t,
                     style: AppTypography.labelMedium.copyWith(
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -370,31 +444,44 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             style: AppTypography.bodySmall,
           ),
           const SizedBox(height: AppSpacing.sm),
-          ..._overrides.map((o) => Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.schedule_rounded, size: 16, color: AppColors.primary),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        '${_fmt(o.startDate)} → ${_fmt(o.endDate)} · ${o.openFrom}-${o.openTo}',
-                        style: AppTypography.bodyMedium,
-                      ),
+          ..._overrides.map(
+            (o) => Container(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.schedule_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${_fmt(o.startDate)} → ${_fmt(o.endDate)} · ${o.openFrom}-${o.openTo}',
+                      style: AppTypography.bodyMedium,
                     ),
-                    GestureDetector(
-                      onTap: () => setState(() => _overrides.remove(o)),
-                      child: const Icon(Icons.close_rounded, size: 18, color: AppColors.error),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _overrides.remove(o)),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.error,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
@@ -403,9 +490,16 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
                   initialValue: _overrideFrom,
                   decoration: _decoration(),
                   items: AppConstants.timeSlots
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t, style: AppTypography.bodySmall)))
+                      .map(
+                        (t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t, style: AppTypography.bodySmall),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (t) { if (t != null) setState(() => _overrideFrom = t); },
+                  onChanged: (t) {
+                    if (t != null) setState(() => _overrideFrom = t);
+                  },
                 ),
               ),
               const Padding(
@@ -417,9 +511,16 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
                   initialValue: _overrideTo,
                   decoration: _decoration(),
                   items: _closingTimes
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t, style: AppTypography.bodySmall)))
+                      .map(
+                        (t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t, style: AppTypography.bodySmall),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (t) { if (t != null) setState(() => _overrideTo = t); },
+                  onChanged: (t) {
+                    if (t != null) setState(() => _overrideTo = t);
+                  },
                 ),
               ),
             ],
@@ -441,37 +542,53 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             style: AppTypography.bodySmall,
           ),
           const SizedBox(height: AppSpacing.sm),
-          ..._periods.map((p) => Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.event_busy_rounded, size: 16, color: AppColors.error),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        '${_fmt(p.startDate)} → ${_fmt(p.endDate)}'
-                        '${p.reason != null ? ' · ${p.reason}' : ''}',
-                        style: AppTypography.bodyMedium,
-                      ),
+          ..._periods.map(
+            (p) => Container(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.event_busy_rounded,
+                    size: 16,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${_fmt(p.startDate)} → ${_fmt(p.endDate)}'
+                      '${p.reason != null ? ' · ${p.reason}' : ''}',
+                      style: AppTypography.bodyMedium,
                     ),
-                    GestureDetector(
-                      onTap: () => setState(() => _periods.remove(p)),
-                      child: const Icon(Icons.close_rounded, size: 18, color: AppColors.error),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _periods.remove(p)),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.error,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: _TextField(controller: _reasonController, hint: 'Raison (optionnel)'),
+                child: _TextField(
+                  controller: _reasonController,
+                  hint: 'Raison (optionnel)',
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               OutlinedButton.icon(
@@ -487,25 +604,34 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             onTap: _isValid ? _save : null,
             isLoading: _isSaving,
           ),
-          SizedBox(height: AppSpacing.xxl + MediaQuery.paddingOf(context).bottom),
+          SizedBox(
+            height: AppSpacing.xxl + MediaQuery.paddingOf(context).bottom,
+          ),
         ],
       ),
     );
   }
 
   InputDecoration _decoration() => InputDecoration(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        filled: true,
-        fillColor: AppColors.background,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      );
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      borderSide: const BorderSide(color: AppColors.border),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      borderSide: const BorderSide(color: AppColors.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+    ),
+    filled: true,
+    fillColor: AppColors.background,
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: AppSpacing.sm,
+    ),
+  );
 }
 
 class _Label extends StatelessWidget {
@@ -513,7 +639,8 @@ class _Label extends StatelessWidget {
   const _Label(this.text);
 
   @override
-  Widget build(BuildContext context) => Text(text, style: AppTypography.labelLarge);
+  Widget build(BuildContext context) =>
+      Text(text, style: AppTypography.labelLarge);
 }
 
 class _TextField extends StatelessWidget {
@@ -549,7 +676,14 @@ class _TextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.border),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
       ),
     );
   }

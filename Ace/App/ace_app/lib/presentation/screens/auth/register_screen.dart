@@ -41,7 +41,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       return;
     }
-    final success = await ref.read(authViewModelProvider.notifier).signUp(
+    final success = await ref
+        .read(authViewModelProvider.notifier)
+        .signUp(
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
@@ -90,16 +92,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       color: Colors.white.withValues(alpha: 0.7),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.arrow_back_rounded,
-                        size: 20, color: AppColors.textPrimary),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Créer un compte',
-                        style: AppTypography.displayMedium.copyWith(fontSize: 22)),
+                    Text(
+                      'Créer un compte',
+                      style: AppTypography.displayMedium.copyWith(fontSize: 22),
+                    ),
                     Text(
                       'Rejoins la communauté CourtConnect.',
                       style: AppTypography.bodySmall,
@@ -183,8 +190,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: Text(
                       "En t'inscrivant, tu acceptes nos Conditions d'utilisation.",
                       textAlign: TextAlign.center,
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                   ),
                 ],
@@ -204,8 +212,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 Text(
                   "Déjà un compte ? ",
-                  style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => context.pop(),
@@ -263,8 +272,9 @@ class _AuthField extends StatelessWidget {
       style: AppTypography.bodyMedium,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary),
+        hintStyle: AppTypography.bodyMedium.copyWith(
+          color: AppColors.textTertiary,
+        ),
         prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
         suffixIcon: suffix != null
             ? Padding(
@@ -327,7 +337,9 @@ class _PrimaryButton extends StatelessWidget {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
               )
             : Text(
                 label,

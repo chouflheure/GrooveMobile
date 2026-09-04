@@ -3,7 +3,7 @@ import '../models/message_model.dart';
 
 class MessageRepository {
   MessageRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -67,13 +67,18 @@ class MessageRepository {
     return docRef.set(message.toJson());
   }
 
-  Stream<List<MessageModel>> watchMessagesForConversation(String conversationId) {
+  Stream<List<MessageModel>> watchMessagesForConversation(
+    String conversationId,
+  ) {
     return _collection
         .where('conversationId', isEqualTo: conversationId)
         .orderBy('createdAt')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => MessageModel.fromJson(doc.data())).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => MessageModel.fromJson(doc.data()))
+              .toList(),
+        );
   }
 
   /// One listener on every message the user is part of, grouped
@@ -88,30 +93,32 @@ class MessageRepository {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      final byConversation = <String, List<MessageModel>>{};
-      for (final doc in snapshot.docs) {
-        final message = MessageModel.fromJson(doc.data());
-        byConversation.putIfAbsent(message.conversationId, () => []).add(message);
-      }
+          final byConversation = <String, List<MessageModel>>{};
+          for (final doc in snapshot.docs) {
+            final message = MessageModel.fromJson(doc.data());
+            byConversation
+                .putIfAbsent(message.conversationId, () => [])
+                .add(message);
+          }
 
-      return byConversation.entries.map((entry) {
-        final messages = entry.value; // already newest-first
-        final last = messages.first;
-        final unread = messages
-            .where((m) => m.senderId != userId && !m.isRead)
-            .length;
+          return byConversation.entries.map((entry) {
+              final messages = entry.value; // already newest-first
+              final last = messages.first;
+              final unread = messages
+                  .where((m) => m.senderId != userId && !m.isRead)
+                  .length;
 
-        return ConversationModel(
-          id: entry.key,
-          participantIds: last.participantIds,
-          participantNames: last.participantIds.map(resolveName).toList(),
-          lastMessage: last.content,
-          lastMessageAt: last.createdAt,
-          unreadCount: unread,
-        );
-      }).toList()
-        ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-    });
+              return ConversationModel(
+                id: entry.key,
+                participantIds: last.participantIds,
+                participantNames: last.participantIds.map(resolveName).toList(),
+                lastMessage: last.content,
+                lastMessageAt: last.createdAt,
+                unreadCount: unread,
+              );
+            }).toList()
+            ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+        });
   }
 
   Future<void> editMessage(String messageId, String newContent) {
@@ -125,9 +132,13 @@ class MessageRepository {
     return _collection.doc(messageId).delete();
   }
 
-  Future<void> markConversationRead(String conversationId, String currentUserId) async {
-    final snapshot =
-        await _collection.where('conversationId', isEqualTo: conversationId).get();
+  Future<void> markConversationRead(
+    String conversationId,
+    String currentUserId,
+  ) async {
+    final snapshot = await _collection
+        .where('conversationId', isEqualTo: conversationId)
+        .get();
     final unread = snapshot.docs.where((doc) {
       final data = doc.data();
       return data['senderId'] != currentUserId && data['isRead'] != true;

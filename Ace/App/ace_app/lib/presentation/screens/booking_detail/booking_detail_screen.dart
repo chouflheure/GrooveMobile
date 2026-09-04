@@ -19,7 +19,8 @@ class BookingDetailScreen extends ConsumerStatefulWidget {
   const BookingDetailScreen({super.key, required this.booking});
 
   @override
-  ConsumerState<BookingDetailScreen> createState() => _BookingDetailScreenState();
+  ConsumerState<BookingDetailScreen> createState() =>
+      _BookingDetailScreenState();
 }
 
 class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
@@ -33,17 +34,23 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_booking.date);
+    final dateStr = DateFormat(
+      'EEEE d MMMM yyyy',
+      'fr_FR',
+    ).format(_booking.date);
     final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
     final partner = _booking.partnerId != null
         ? allUsers.where((u) => u.id == _booking.partnerId).firstOrNull
         : null;
-    final liveCourt = ref.watch(courtByIdProvider(_booking.courtId)).valueOrNull;
+    final liveCourt = ref
+        .watch(courtByIdProvider(_booking.courtId))
+        .valueOrNull;
     final address = liveCourt?.location ?? _booking.courtAddress;
     final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
     // Only the person who made the booking can change who's playing —
     // the invited partner can see it, but not reassign it.
-    final isOrganizer = currentUserId != null && currentUserId == _booking.userId;
+    final isOrganizer =
+        currentUserId != null && currentUserId == _booking.userId;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -89,10 +96,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             title: 'Créneau',
             icon: Icons.access_time_rounded,
             children: [
-              _InfoRow(
-                label: 'Date',
-                value: _capitalize(dateStr),
-              ),
+              _InfoRow(label: 'Date', value: _capitalize(dateStr)),
               _InfoRow(
                 label: 'Horaire',
                 value: '${_booking.startTime} – ${_booking.endTime}',
@@ -122,10 +126,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               title: 'Résultat',
               icon: Icons.emoji_events_rounded,
               children: [
-                _InfoRow(
-                  label: 'Score',
-                  value: _booking.score!,
-                ),
+                _InfoRow(label: 'Score', value: _booking.score!),
                 if (_booking.result != null)
                   _InfoRow(
                     label: 'Issue',
@@ -212,8 +213,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Annuler la réservation',
-                style: TextStyle(color: AppColors.error)),
+            child: Text(
+              'Annuler la réservation',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -235,7 +238,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   void _share(BuildContext context, String? address) {
-    final dateStr = DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(_booking.date);
+    final dateStr = DateFormat(
+      'EEEE d MMMM yyyy',
+      'fr_FR',
+    ).format(_booking.date);
     final lines = [
       'Réservation — ${_booking.courtName}',
       _capitalize(dateStr),
@@ -260,8 +266,9 @@ class _StatusCard extends StatelessWidget {
     // unreadable, so switch to dark, high-contrast colors instead.
     final fgColor = isPast ? AppColors.textPrimary : Colors.white;
     final fgColorSecondary = isPast ? AppColors.textSecondary : Colors.white70;
-    final iconBgColor =
-        isPast ? AppColors.primary.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.2);
+    final iconBgColor = isPast
+        ? AppColors.primary.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.2);
     final iconColor = isPast ? AppColors.primary : Colors.white;
 
     return Container(
@@ -297,17 +304,17 @@ class _StatusCard extends StatelessWidget {
               children: [
                 Text(
                   booking.courtName,
-                  style: AppTypography.headlineMedium
-                      .copyWith(color: fgColor),
+                  style: AppTypography.headlineMedium.copyWith(color: fgColor),
                 ),
                 Text(
                   !isConfirmed
                       ? 'En attente de confirmation'
                       : isPast
-                          ? 'Réservation finie'
-                          : 'Réservation confirmée',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: fgColorSecondary),
+                      ? 'Réservation finie'
+                      : 'Réservation confirmée',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: fgColorSecondary,
+                  ),
                 ),
               ],
             ),
@@ -372,13 +379,14 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text(label,
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textSecondary)),
+            child: Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
-          Expanded(
-            child: Text(value, style: AppTypography.bodyMedium),
-          ),
+          Expanded(child: Text(value, style: AppTypography.bodyMedium)),
         ],
       ),
     );
@@ -397,9 +405,12 @@ class _PartnerRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text('Joueur',
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.textSecondary)),
+            child: Text(
+              'Joueur',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           AppAvatar(initials: partner.initials, size: 28),
           const SizedBox(width: AppSpacing.sm),
@@ -428,11 +439,13 @@ class _GateCodeCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.lock_open_rounded,
-                  size: 16, color: AppColors.primary),
+              const Icon(
+                Icons.lock_open_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: AppSpacing.sm),
-              Text("Code d'accès portail",
-                  style: AppTypography.headlineSmall),
+              Text("Code d'accès portail", style: AppTypography.headlineSmall),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -446,8 +459,7 @@ class _GateCodeCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusMd),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     border: Border.all(color: AppColors.primary),
                   ),
                   child: Text(
@@ -477,11 +489,13 @@ class _GateCodeCard extends StatelessWidget {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusMd),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
-                  child: const Icon(Icons.copy_rounded,
-                      color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.copy_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -489,8 +503,9 @@ class _GateCodeCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Valable uniquement le jour de votre réservation.',
-            style: AppTypography.bodySmall
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -509,14 +524,18 @@ class _NonCancelableNotice extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded,
-              size: 20, color: AppColors.textSecondary),
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               "Cette réservation n'est plus annulable (moins de 5 minutes avant le créneau ou créneau en cours).",
-              style: AppTypography.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ],
@@ -553,8 +572,10 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: color),
             const SizedBox(width: AppSpacing.md),
-            Text(label,
-                style: AppTypography.headlineSmall.copyWith(color: color)),
+            Text(
+              label,
+              style: AppTypography.headlineSmall.copyWith(color: color),
+            ),
           ],
         ),
       ),
@@ -592,11 +613,13 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
   List<UserModel> get _filtered {
     final q = _query.toLowerCase().trim();
     return widget.users
-        .where((u) =>
-            q.isEmpty ||
-            u.name.toLowerCase().contains(q) ||
-            u.location.toLowerCase().contains(q) ||
-            u.ranking.toLowerCase().contains(q))
+        .where(
+          (u) =>
+              q.isEmpty ||
+              u.name.toLowerCase().contains(q) ||
+              u.location.toLowerCase().contains(q) ||
+              u.ranking.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -605,7 +628,9 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xxxl),
+        ),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
@@ -625,8 +650,10 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
           const SizedBox(height: AppSpacing.lg),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            child: Text('Choisir un partenaire',
-                style: AppTypography.headlineLarge),
+            child: Text(
+              'Choisir un partenaire',
+              style: AppTypography.headlineLarge,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           Padding(
@@ -636,10 +663,13 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 hintText: 'Rechercher un joueur…',
-                hintStyle: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.textTertiary),
-                prefixIcon: const Icon(Icons.search_rounded,
-                    color: AppColors.textSecondary),
+                hintStyle: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.textSecondary,
+                ),
                 filled: true,
                 fillColor: AppColors.background,
                 contentPadding: const EdgeInsets.symmetric(
@@ -647,20 +677,19 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
                   vertical: AppSpacing.md,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusFull),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusFull),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusFull),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -688,8 +717,9 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
                         backgroundColor: isSelected
                             ? AppColors.primary
                             : AppColors.surfaceVariant,
-                        textColor:
-                            isSelected ? Colors.white : AppColors.textPrimary,
+                        textColor: isSelected
+                            ? Colors.white
+                            : AppColors.textPrimary,
                       ),
                       if (isFav)
                         Positioned(
@@ -701,18 +731,25 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.favorite_rounded,
-                                size: 10, color: AppColors.primary),
+                            child: const Icon(
+                              Icons.favorite_rounded,
+                              size: 10,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                     ],
                   ),
                   title: Text(user.name, style: AppTypography.headlineSmall),
-                  subtitle: Text('${user.location} · ${user.ranking}',
-                      style: AppTypography.bodySmall),
+                  subtitle: Text(
+                    '${user.location} · ${user.ranking}',
+                    style: AppTypography.bodySmall,
+                  ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: AppColors.primary)
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.primary,
+                        )
                       : null,
                 );
               },

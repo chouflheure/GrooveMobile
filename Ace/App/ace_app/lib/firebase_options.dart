@@ -72,5 +72,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'ace-tennis-41dc7.firebasestorage.app',
     measurementId: 'G-R1GHXPNWC2',
   );
-
 }

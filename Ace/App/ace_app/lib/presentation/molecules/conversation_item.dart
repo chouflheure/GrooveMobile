@@ -30,9 +30,7 @@ class ConversationItem extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-        ),
+        decoration: const BoxDecoration(color: AppColors.surface),
         child: Row(
           children: [
             isGroup
@@ -43,7 +41,11 @@ class ConversationItem extends StatelessWidget {
                       color: AppColors.primaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.groups_rounded, color: AppColors.primary, size: 22),
+                    child: const Icon(
+                      Icons.groups_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                   )
                 : AppAvatar(initials: initials, size: 48),
             const SizedBox(width: AppSpacing.md),
@@ -57,14 +59,20 @@ class ConversationItem extends StatelessWidget {
                       Text(
                         name,
                         style: AppTypography.headlineSmall.copyWith(
-                          fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: hasUnread
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                         ),
                       ),
                       Text(
                         timeStr,
                         style: AppTypography.bodySmall.copyWith(
-                          color: hasUnread ? AppColors.primary : AppColors.textTertiary,
-                          fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
+                          color: hasUnread
+                              ? AppColors.primary
+                              : AppColors.textTertiary,
+                          fontWeight: hasUnread
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -79,7 +87,9 @@ class ConversationItem extends StatelessWidget {
                             color: hasUnread
                                 ? AppColors.textPrimary
                                 : AppColors.textSecondary,
-                            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+                            fontWeight: hasUnread
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -94,7 +104,9 @@ class ConversationItem extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusFull,
+                            ),
                           ),
                           child: Text(
                             conversation.unreadCount.toString(),

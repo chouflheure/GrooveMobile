@@ -32,10 +32,15 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
 
   Future<void> _confirm() async {
     final phoneVm = ref.read(phoneAuthViewModelProvider.notifier);
-    final credentialResult = await phoneVm.confirmCode(_codeController.text, link: false);
+    final credentialResult = await phoneVm.confirmCode(
+      _codeController.text,
+      link: false,
+    );
     if (credentialResult == null || !mounted) return;
 
-    final profile = await ref.read(userRepositoryProvider).fetchById(credentialResult.user!.uid);
+    final profile = await ref
+        .read(userRepositoryProvider)
+        .fetchById(credentialResult.user!.uid);
     if (!mounted) return;
     if (profile == null) {
       // No app profile behind this phone number — this account was just
@@ -63,7 +68,8 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
     final phoneState = ref.watch(phoneAuthViewModelProvider);
 
     ref.listen(phoneAuthViewModelProvider, (prev, next) {
-      if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
+      if (next.errorMessage != null &&
+          next.errorMessage != prev?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
@@ -97,14 +103,23 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
               _PrimaryButton(
                 label: 'Envoyer le code',
                 isLoading: phoneState.isLoading,
-                onTap: () => ref.read(phoneAuthViewModelProvider.notifier).sendCode(_phoneInput.e164),
+                onTap: () => ref
+                    .read(phoneAuthViewModelProvider.notifier)
+                    .sendCode(_phoneInput.e164),
               ),
             ] else ...[
               Text('Code reçu par SMS', style: AppTypography.labelLarge),
               const SizedBox(height: AppSpacing.xs),
-              Text('Un code a été envoyé au ${phoneState.phoneNumber}.', style: AppTypography.bodySmall),
+              Text(
+                'Un code a été envoyé au ${phoneState.phoneNumber}.',
+                style: AppTypography.bodySmall,
+              ),
               const SizedBox(height: AppSpacing.sm),
-              _Field(controller: _codeController, hint: '123456', keyboardType: TextInputType.number),
+              _Field(
+                controller: _codeController,
+                hint: '123456',
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: AppSpacing.xl),
               _PrimaryButton(
                 label: 'Se connecter',
@@ -113,10 +128,13 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
               GestureDetector(
-                onTap: () => ref.read(phoneAuthViewModelProvider.notifier).reset(),
+                onTap: () =>
+                    ref.read(phoneAuthViewModelProvider.notifier).reset(),
                 child: Text(
                   'Changer de numéro',
-                  style: AppTypography.labelMedium.copyWith(color: AppColors.primary),
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -132,7 +150,11 @@ class _Field extends StatelessWidget {
   final String hint;
   final TextInputType keyboardType;
 
-  const _Field({required this.controller, required this.hint, required this.keyboardType});
+  const _Field({
+    required this.controller,
+    required this.hint,
+    required this.keyboardType,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +167,10 @@ class _Field extends StatelessWidget {
         hintStyle: AppTypography.bodySmall,
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.border),
@@ -168,7 +193,11 @@ class _PrimaryButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isLoading;
 
-  const _PrimaryButton({required this.label, required this.onTap, this.isLoading = false});
+  const _PrimaryButton({
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -180,16 +209,24 @@ class _PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.7),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusFull)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          ),
           elevation: 0,
         ),
         child: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
               )
-            : Text(label, style: AppTypography.labelLarge.copyWith(color: Colors.white)),
+            : Text(
+                label,
+                style: AppTypography.labelLarge.copyWith(color: Colors.white),
+              ),
       ),
     );
   }

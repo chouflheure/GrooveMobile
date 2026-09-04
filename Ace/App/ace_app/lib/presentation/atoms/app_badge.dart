@@ -21,20 +21,14 @@ class AppBadge extends StatelessWidget {
     this.icon,
   });
 
-  factory AppBadge.ranking(String ranking) => AppBadge(
-    label: ranking,
-    variant: BadgeVariant.ranking,
-  );
+  factory AppBadge.ranking(String ranking) =>
+      AppBadge(label: ranking, variant: BadgeVariant.ranking);
 
-  factory AppBadge.win() => const AppBadge(
-    label: 'V',
-    variant: BadgeVariant.win,
-  );
+  factory AppBadge.win() =>
+      const AppBadge(label: 'V', variant: BadgeVariant.win);
 
-  factory AppBadge.loss() => const AppBadge(
-    label: 'D',
-    variant: BadgeVariant.loss,
-  );
+  factory AppBadge.loss() =>
+      const AppBadge(label: 'D', variant: BadgeVariant.loss);
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +64,7 @@ class AppBadge extends StatelessWidget {
   (Color, Color) _colors() {
     switch (variant) {
       case BadgeVariant.ranking:
-        return (
-          const Color(0xFFFFF3CD),
-          const Color(0xFF856404),
-        );
+        return (const Color(0xFFFFF3CD), const Color(0xFF856404));
       case BadgeVariant.win:
         return (AppColors.winBadge.withValues(alpha: 0.15), AppColors.winBadge);
       case BadgeVariant.loss:

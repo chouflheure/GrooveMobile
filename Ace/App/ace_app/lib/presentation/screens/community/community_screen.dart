@@ -49,19 +49,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     final state = ref.watch(communityViewModelProvider);
     final vm = ref.read(communityViewModelProvider.notifier);
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
-    final activity = ref.watch(tabActivityProvider);
-
-    final latestAnnouncementAt = state.announcements.isEmpty
-        ? null
-        : state.announcements.map((a) => a.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
-    final latestMessageAt = state.conversations.isEmpty
-        ? null
-        : state.conversations.map((c) => c.lastMessageAt).reduce((a, b) => a.isAfter(b) ? a : b);
-    final hasNewAnnouncement = latestAnnouncementAt != null &&
-        (activity.lastSeenAnnouncements == null ||
-            latestAnnouncementAt.isAfter(activity.lastSeenAnnouncements!));
-    final hasNewMessage = latestMessageAt != null &&
-        (activity.lastSeenMessages == null || latestMessageAt.isAfter(activity.lastSeenMessages!));
+    final hasNewAnnouncement = ref.watch(hasNewAnnouncementProvider);
+    final hasNewMessage = ref.watch(hasNewMessageProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -82,48 +71,50 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
                 : state.activeTab == CommunityTab.announcements
-                    ? _AnnouncementsTab(
-                        announcements: state.announcements,
-                        allUsers: state.allUsers,
-                        currentUserId: currentUser?.id,
-                        onInterested: (a) => _requireAuth(
-                          currentUser,
-                          () => _onInterested(vm, currentUser!, state.allUsers, a),
-                        ),
-                        onEdit: (a) => ProposeSlotModal.show(
-                          context,
-                          initial: a,
-                          onConfirm: vm.updateAnnouncement,
-                        ),
-                        onDelete: (id) => vm.deleteAnnouncement(id),
-                        onPropose: () => _requireAuth(
-                          currentUser,
-                          () => ProposeSlotModal.show(
-                            context,
-                            onConfirm: vm.addAnnouncement,
-                          ),
-                        ),
-                      )
-                    : currentUser == null
-                        ? const _EmptyPlaceholder(
-                            icon: Icons.chat_bubble_outline_rounded,
-                            title: 'Connecte-toi pour discuter',
-                            subtitle:
-                                'La messagerie est réservée aux joueurs connectés.',
-                          )
-                        : _MessagesTab(
-                            conversations: state.conversations,
-                            currentUser: currentUser,
-                            onTap: (conv) => _openChat(
-                              context,
-                              conversationId: conv.id,
-                              otherParticipantIds: conv.otherParticipantIds(currentUser.id),
-                              title: conv.displayName(currentUser.id),
-                              avatarInitials: conv.isGroup
-                                  ? null
-                                  : conv.otherParticipantInitials(currentUser.id),
-                            ),
-                          ),
+                ? _AnnouncementsTab(
+                    announcements: state.announcements,
+                    allUsers: state.allUsers,
+                    currentUserId: currentUser?.id,
+                    onInterested: (a) => _requireAuth(
+                      currentUser,
+                      () => _onInterested(vm, currentUser!, state.allUsers, a),
+                    ),
+                    onEdit: (a) => ProposeSlotModal.show(
+                      context,
+                      initial: a,
+                      onConfirm: vm.updateAnnouncement,
+                    ),
+                    onDelete: (id) => vm.deleteAnnouncement(id),
+                    onPropose: () => _requireAuth(
+                      currentUser,
+                      () => ProposeSlotModal.show(
+                        context,
+                        onConfirm: vm.addAnnouncement,
+                      ),
+                    ),
+                  )
+                : currentUser == null
+                ? const _EmptyPlaceholder(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    title: 'Connecte-toi pour discuter',
+                    subtitle:
+                        'La messagerie est réservée aux joueurs connectés.',
+                  )
+                : _MessagesTab(
+                    conversations: state.conversations,
+                    currentUser: currentUser,
+                    onTap: (conv) => _openChat(
+                      context,
+                      conversationId: conv.id,
+                      otherParticipantIds: conv.otherParticipantIds(
+                        currentUser.id,
+                      ),
+                      title: conv.displayName(currentUser.id),
+                      avatarInitials: conv.isGroup
+                          ? null
+                          : conv.otherParticipantInitials(currentUser.id),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -145,13 +136,15 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     List<UserModel> allUsers,
     AnnouncementModel announcement,
   ) {
-    final alreadyInterested =
-        announcement.interestedUserIds.contains(currentUser.id);
+    final alreadyInterested = announcement.interestedUserIds.contains(
+      currentUser.id,
+    );
     vm.toggleInterested(announcement.id, currentUser.id);
 
     if (!alreadyInterested) {
-      final author =
-          allUsers.where((u) => u.id == announcement.userId).firstOrNull;
+      final author = allUsers
+          .where((u) => u.id == announcement.userId)
+          .firstOrNull;
       if (author == null) return;
 
       vm.setTab(CommunityTab.messages);
@@ -208,7 +201,12 @@ class _TabBar extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -350,11 +348,14 @@ class _AnnouncementsTab extends StatelessWidget {
                 onEdit: () => onEdit(a),
                 onDelete: () => onDelete(a.id),
                 onUserTap: () {
-                  final user =
-                      allUsers.where((u) => u.id == a.userId).firstOrNull;
+                  final user = allUsers
+                      .where((u) => u.id == a.userId)
+                      .firstOrNull;
                   if (user != null && user.id != currentUserId) {
                     Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)),
+                      MaterialPageRoute(
+                        builder: (_) => UserProfileScreen(user: user),
+                      ),
                     );
                   }
                 },
@@ -439,7 +440,6 @@ class _ProposeButton extends StatelessWidget {
   }
 }
 
-
 class _MessagesTab extends ConsumerWidget {
   final List<ConversationModel> conversations;
   final UserModel currentUser;
@@ -453,7 +453,8 @@ class _MessagesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final myClubs = ref
+    final myClubs =
+        ref
             .watch(clubsProvider)
             .valueOrNull
             ?.where((c) => currentUser.clubIds.contains(c.id))
@@ -461,18 +462,25 @@ class _MessagesTab extends ConsumerWidget {
         const <ClubModel>[];
 
     if (conversations.isEmpty && myClubs.isEmpty) {
-      return const Center(
-        child: _EmptyPlaceholder(
-          icon: Icons.chat_bubble_outline_rounded,
-          title: 'Aucune conversation',
-          subtitle: 'Discute avec un joueur depuis une annonce ou son profil.',
-        ),
+      // Top-anchored (not centered) so the tab doesn't show a big empty
+      // gap above it — matches the Annonces tab's layout.
+      return ListView(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        children: const [
+          _EmptyPlaceholder(
+            icon: Icons.chat_bubble_outline_rounded,
+            title: 'Aucune conversation',
+            subtitle:
+                'Discute avec un joueur depuis une annonce ou son profil.',
+          ),
+        ],
       );
     }
     return ListView(
       children: [
         ...myClubs.map(
-          (club) => _ClubBroadcastTile(club: club, canPost: currentUser.isAdmin),
+          (club) =>
+              _ClubBroadcastTile(club: club, canPost: currentUser.isAdmin),
         ),
         if (myClubs.isNotEmpty && conversations.isNotEmpty)
           const Divider(height: 1, indent: 80),
@@ -496,14 +504,19 @@ class _ClubBroadcastTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final conversationId = MessageRepository.broadcastConversationIdFor(club.id);
-    final messages = ref.watch(conversationMessagesProvider(conversationId)).valueOrNull ?? const [];
+    final conversationId = MessageRepository.broadcastConversationIdFor(
+      club.id,
+    );
+    final messages =
+        ref.watch(conversationMessagesProvider(conversationId)).valueOrNull ??
+        const [];
     final last = messages.isNotEmpty ? messages.last : null;
 
     return ListTile(
+      visualDensity: VisualDensity.compact,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
-        vertical: AppSpacing.xs,
+        vertical: 0,
       ),
       leading: Container(
         width: 44,
@@ -514,7 +527,10 @@ class _ClubBroadcastTile extends ConsumerWidget {
         ),
         child: const Icon(Icons.campaign_rounded, color: AppColors.primary),
       ),
-      title: Text('Annonces · ${club.name}', style: AppTypography.headlineSmall),
+      title: Text(
+        'Annonces · ${club.name}',
+        style: AppTypography.headlineSmall,
+      ),
       subtitle: Text(
         last?.content ??
             (canPost

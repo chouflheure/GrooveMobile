@@ -89,8 +89,9 @@ class AnnouncementModel extends Equatable {
       userId: userId ?? this.userId,
       userName: userName ?? this.userName,
       userRanking: userRanking ?? this.userRanking,
-      userImageUrl:
-          userImageUrl == _sentinel ? this.userImageUrl : userImageUrl as String?,
+      userImageUrl: userImageUrl == _sentinel
+          ? this.userImageUrl
+          : userImageUrl as String?,
       courtId: courtId ?? this.courtId,
       courtName: courtName ?? this.courtName,
       date: date ?? this.date,
@@ -132,22 +133,22 @@ class AnnouncementModel extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'userName': userName,
-        'userRanking': userRanking,
-        'userImageUrl': userImageUrl,
-        'courtId': courtId,
-        'courtName': courtName,
-        'date': date.toIso8601String(),
-        'time': time,
-        'message': message,
-        'matchType': matchType.jsonValue,
-        'level': level,
-        'responsesCount': responsesCount,
-        'createdAt': createdAt.toIso8601String(),
-        'interestedUserIds': interestedUserIds,
-      };
+    'id': id,
+    'userId': userId,
+    'userName': userName,
+    'userRanking': userRanking,
+    'userImageUrl': userImageUrl,
+    'courtId': courtId,
+    'courtName': courtName,
+    'date': date.toIso8601String(),
+    'time': time,
+    'message': message,
+    'matchType': matchType.jsonValue,
+    'level': level,
+    'responsesCount': responsesCount,
+    'createdAt': createdAt.toIso8601String(),
+    'interestedUserIds': interestedUserIds,
+  };
 
   @override
   List<Object?> get props => [id, userId, courtId, date, time];

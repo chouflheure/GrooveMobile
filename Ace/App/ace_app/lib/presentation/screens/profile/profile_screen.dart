@@ -33,7 +33,9 @@ class ProfileScreen extends ConsumerWidget {
 
     if (userAsync.isLoading && !userAsync.hasValue) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
@@ -57,7 +59,9 @@ class ProfileScreen extends ConsumerWidget {
                 ? const Padding(
                     padding: EdgeInsets.all(AppSpacing.xxl),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   )
                 : _BookingsSection(state: state),
@@ -85,7 +89,11 @@ class _GuestProfilePrompt extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.person_outline_rounded, size: 64, color: AppColors.textTertiary),
+            const Icon(
+              Icons.person_outline_rounded,
+              size: 64,
+              color: AppColors.textTertiary,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text('Pas encore connecté', style: AppTypography.headlineMedium),
             const SizedBox(height: AppSpacing.xs),
@@ -115,7 +123,8 @@ class _ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final clubNames = ref
+    final clubNames =
+        ref
             .watch(clubsProvider)
             .valueOrNull
             ?.where((c) => user.clubIds.contains(c.id))
@@ -164,11 +173,15 @@ class _ProfileHeader extends ConsumerWidget {
                           children: [
                             Text(
                               user.name,
-                              style: AppTypography.headlineLarge.copyWith(color: Colors.white),
+                              style: AppTypography.headlineLarge.copyWith(
+                                color: Colors.white,
+                              ),
                             ),
                             Text(
                               'Membre depuis ${_formatMemberSince(user.memberSince)}',
-                              style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: Colors.white70,
+                              ),
                             ),
                           ],
                         ),
@@ -181,9 +194,15 @@ class _ProfileHeader extends ConsumerWidget {
                     spacing: AppSpacing.md,
                     children: [
                       _InfoPill(Icons.location_on_rounded, user.location),
-                      _InfoPill(Icons.calendar_today_rounded, '${user.matchesPerMonth} matchs/mois'),
+                      _InfoPill(
+                        Icons.calendar_today_rounded,
+                        '${user.matchesPerMonth} matchs/mois',
+                      ),
                       if (clubNames.isNotEmpty)
-                        _InfoPill(Icons.emoji_events_outlined, clubNames.join(', ')),
+                        _InfoPill(
+                          Icons.emoji_events_outlined,
+                          clubNames.join(', '),
+                        ),
                     ],
                   ),
                 ],
@@ -197,8 +216,18 @@ class _ProfileHeader extends ConsumerWidget {
 
   String _formatMemberSince(DateTime date) {
     const months = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+      'Janvier',
+      'Février',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Août',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Décembre',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -238,7 +267,12 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final stats = user.stats;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
       child: GridView(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -249,8 +283,16 @@ class _StatsGrid extends StatelessWidget {
           mainAxisExtent: 136,
         ),
         children: [
-          StatCard(emoji: '🎾', value: '${stats.matchesPlayed}', label: 'Matchs joués'),
-          StatCard(emoji: '⏱', value: '${stats.hoursPlayed}h', label: 'Heures jouées'),
+          StatCard(
+            emoji: '🎾',
+            value: '${stats.matchesPlayed}',
+            label: 'Matchs joués',
+          ),
+          StatCard(
+            emoji: '⏱',
+            value: '${stats.hoursPlayed}h',
+            label: 'Heures jouées',
+          ),
         ],
       ),
     );
@@ -273,21 +315,29 @@ class _BookingsSection extends StatelessWidget {
     final past = state.pastBookings;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         children: [
           if (upcoming.isNotEmpty) ...[
-            _SectionHeader(title: 'Réservations à venir', count: upcoming.length),
+            _SectionHeader(
+              title: 'Réservations à venir',
+              count: upcoming.length,
+            ),
             const SizedBox(height: AppSpacing.sm),
             ...upcoming.map(
-                  (b) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: BookingHistoryItem(
-                      booking: b,
-                      onTap: () => _openDetail(context, b),
-                    ),
-                  ),
+              (b) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: BookingHistoryItem(
+                  booking: b,
+                  onTap: () => _openDetail(context, b),
                 ),
+              ),
+            ),
             const SizedBox(height: AppSpacing.md),
           ],
           _SectionHeader(
@@ -295,12 +345,16 @@ class _BookingsSection extends StatelessWidget {
             count: past.length,
             onViewMore: past.length > 3
                 ? () => Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(builder: (_) => AllBookingsScreen(bookings: past)),
-                    )
+                    MaterialPageRoute(
+                      builder: (_) => AllBookingsScreen(bookings: past),
+                    ),
+                  )
                 : null,
           ),
           const SizedBox(height: AppSpacing.sm),
-          ...past.take(3).map(
+          ...past
+              .take(3)
+              .map(
                 (b) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: BookingHistoryItem(
@@ -321,7 +375,11 @@ class _SectionHeader extends StatelessWidget {
   final int count;
   final VoidCallback? onViewMore;
 
-  const _SectionHeader({required this.title, required this.count, this.onViewMore});
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    this.onViewMore,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +388,11 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.history_rounded, size: 18, color: AppColors.textSecondary),
+            const Icon(
+              Icons.history_rounded,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: AppSpacing.xs),
             Text(title, style: AppTypography.headlineSmall),
           ],
@@ -339,10 +401,19 @@ class _SectionHeader extends StatelessWidget {
           onTap: onViewMore,
           child: Row(
             children: [
-              Text('$count', style: AppTypography.labelMedium.copyWith(color: AppColors.primary)),
+              Text(
+                '$count',
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
               if (onViewMore != null) ...[
                 const SizedBox(width: 2),
-                const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
               ],
             ],
           ),
@@ -355,10 +426,16 @@ class _SectionHeader extends StatelessWidget {
 class _SettingsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
+    final isAdmin =
+        ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         children: [
           _SettingsCard(
@@ -385,9 +462,10 @@ class _SettingsSection extends ConsumerWidget {
             icon: Icons.phone_iphone_rounded,
             label: 'Numéro de téléphone',
             subtitle: 'Lier un numéro pour te connecter aussi par SMS',
-            onTap: () => Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(builder: (_) => const LinkPhoneScreen()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+              rootNavigator: true,
+            ).push(MaterialPageRoute(builder: (_) => const LinkPhoneScreen())),
           ),
           if (isAdmin) ...[
             const SizedBox(height: AppSpacing.md),
@@ -395,9 +473,10 @@ class _SettingsSection extends ConsumerWidget {
               icon: Icons.shield_rounded,
               label: 'Manager',
               subtitle: 'Organiser des matchs et gérer les réservations',
-              onTap: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(builder: (_) => const ManagerScreen()),
-              ),
+              onTap: () => Navigator.of(
+                context,
+                rootNavigator: true,
+              ).push(MaterialPageRoute(builder: (_) => const ManagerScreen())),
             ),
           ],
           const SizedBox(height: AppSpacing.md),
@@ -459,17 +538,20 @@ class _SettingsCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: AppTypography.headlineSmall
-                          .copyWith(color: color)),
+                  Text(
+                    label,
+                    style: AppTypography.headlineSmall.copyWith(color: color),
+                  ),
                   Text(subtitle, style: AppTypography.bodySmall),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: onTap != null
-                    ? AppColors.textTertiary
-                    : Colors.transparent),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: onTap != null
+                  ? AppColors.textTertiary
+                  : Colors.transparent,
+            ),
           ],
         ),
       ),

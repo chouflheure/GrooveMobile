@@ -77,7 +77,11 @@ class _CourtImage extends StatelessWidget {
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
               color: AppColors.surfaceVariant,
-              child: const Icon(Icons.sports_tennis, size: 48, color: AppColors.textTertiary),
+              child: const Icon(
+                Icons.sports_tennis,
+                size: 48,
+                color: AppColors.textTertiary,
+              ),
             ),
           ),
         ),
@@ -155,10 +159,10 @@ class _SurfaceBadge extends StatelessWidget {
   const _SurfaceBadge({required this.court});
 
   Color get _color => switch (court.surface) {
-        CourtSurface.clay => AppColors.clay,
-        CourtSurface.grass => AppColors.grass,
-        CourtSurface.hard => AppColors.hard,
-      };
+    CourtSurface.clay => AppColors.clay,
+    CourtSurface.grass => AppColors.grass,
+    CourtSurface.hard => AppColors.hard,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -253,14 +257,20 @@ class _CourtInfo extends StatelessWidget {
           const SizedBox(height: 2),
           Row(
             children: [
-              const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
+              const Icon(
+                Icons.location_on_rounded,
+                size: 12,
+                color: Colors.white70,
+              ),
               const SizedBox(width: 2),
               Expanded(
                 child: Text(
                   court.location.trim().isEmpty
                       ? 'Pas renseigné'
                       : court.location,
-                  style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white70,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -291,7 +301,11 @@ class _SlotsHeader extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.access_time_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
@@ -319,10 +333,7 @@ class _SlotsList extends StatelessWidget {
   final List<TimeSlot> slots;
   final ValueChanged<String> onTapSlot;
 
-  const _SlotsList({
-    required this.slots,
-    required this.onTapSlot,
-  });
+  const _SlotsList({required this.slots, required this.onTapSlot});
 
   @override
   Widget build(BuildContext context) {
@@ -334,10 +345,7 @@ class _SlotsList extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (_, i) {
           final slot = slots[i];
-          return TimeSlotChip(
-            slot: slot,
-            onTap: () => onTapSlot(slot.time),
-          );
+          return TimeSlotChip(slot: slot, onTap: () => onTapSlot(slot.time));
         },
       ),
     );

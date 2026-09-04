@@ -3,7 +3,7 @@ import '../models/announcement_model.dart';
 
 class BroadcastRepository {
   BroadcastRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -14,9 +14,14 @@ class BroadcastRepository {
     return _collection
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => AnnouncementModel.fromJson({...doc.data(), 'id': doc.id}))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    AnnouncementModel.fromJson({...doc.data(), 'id': doc.id}),
+              )
+              .toList(),
+        );
   }
 
   Future<void> create(AnnouncementModel announcement) {

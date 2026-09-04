@@ -31,7 +31,8 @@ class AnnouncementDetailScreen extends ConsumerWidget {
     // The card passes in a snapshot at push-time; re-read the live copy so
     // the "Intéressé" button reflects the toggle immediately instead of
     // only after popping back to the list.
-    final live = ref
+    final live =
+        ref
             .watch(communityViewModelProvider)
             .announcements
             .where((a) => a.id == announcement.id)
@@ -70,7 +71,10 @@ class AnnouncementDetailScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text(live.message, style: AppTypography.bodyMedium.copyWith(height: 1.5)),
+          Text(
+            live.message,
+            style: AppTypography.bodyMedium.copyWith(height: 1.5),
+          ),
           const SizedBox(height: AppSpacing.lg),
           AnnouncementTags(announcement: live, dateStr: dateStr),
           if (!isOwn) ...[

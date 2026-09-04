@@ -8,7 +8,11 @@ class CountryCode {
   final String dialCode;
   final String flag;
 
-  const CountryCode({required this.name, required this.dialCode, required this.flag});
+  const CountryCode({
+    required this.name,
+    required this.dialCode,
+    required this.flag,
+  });
 }
 
 const List<CountryCode> kCountryCodes = [
@@ -33,7 +37,8 @@ const List<CountryCode> kCountryCodes = [
 /// ready to send the number to Firebase — the user just types the number
 /// the way they normally would (e.g. "0611223344").
 class PhoneInputController extends ChangeNotifier {
-  PhoneInputController({CountryCode? country}) : _country = country ?? kCountryCodes.first;
+  PhoneInputController({CountryCode? country})
+    : _country = country ?? kCountryCodes.first;
 
   CountryCode _country;
   CountryCode get country => _country;
@@ -49,7 +54,9 @@ class PhoneInputController extends ChangeNotifier {
   /// the dial code already replaces it.
   String get e164 {
     final digitsOnly = localController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    final local = digitsOnly.startsWith('0') ? digitsOnly.substring(1) : digitsOnly;
+    final local = digitsOnly.startsWith('0')
+        ? digitsOnly.substring(1)
+        : digitsOnly;
     return '${_country.dialCode}$local';
   }
 
@@ -64,7 +71,11 @@ class PhoneNumberField extends StatelessWidget {
   final PhoneInputController controller;
   final String hint;
 
-  const PhoneNumberField({super.key, required this.controller, this.hint = '0611223344'});
+  const PhoneNumberField({
+    super.key,
+    required this.controller,
+    this.hint = '0611223344',
+  });
 
   void _showCountryPicker(BuildContext context) {
     showModalBottomSheet(
@@ -92,7 +103,10 @@ class PhoneNumberField extends StatelessWidget {
             GestureDetector(
               onTap: () => _showCountryPicker(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.md,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -101,11 +115,21 @@ class PhoneNumberField extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(controller.country.flag, style: const TextStyle(fontSize: 18)),
+                    Text(
+                      controller.country.flag,
+                      style: const TextStyle(fontSize: 18),
+                    ),
                     const SizedBox(width: 6),
-                    Text(controller.country.dialCode, style: AppTypography.bodyMedium),
+                    Text(
+                      controller.country.dialCode,
+                      style: AppTypography.bodyMedium,
+                    ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.expand_more_rounded, size: 18, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.expand_more_rounded,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                   ],
                 ),
               ),
@@ -121,7 +145,10 @@ class PhoneNumberField extends StatelessWidget {
                   hintStyle: AppTypography.bodySmall,
                   filled: true,
                   fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.md,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -132,7 +159,10 @@ class PhoneNumberField extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -155,9 +185,13 @@ class _CountryPickerSheet extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xxxl),
+        ),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -185,12 +219,18 @@ class _CountryPickerSheet extends StatelessWidget {
               itemCount: kCountryCodes.length,
               itemBuilder: (_, i) {
                 final c = kCountryCodes[i];
-                final isSelected = c.dialCode == selected.dialCode && c.name == selected.name;
+                final isSelected =
+                    c.dialCode == selected.dialCode && c.name == selected.name;
                 return ListTile(
                   onTap: () => onSelect(c),
                   leading: Text(c.flag, style: const TextStyle(fontSize: 22)),
                   title: Text(c.name, style: AppTypography.bodyMedium),
-                  trailing: Text(c.dialCode, style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+                  trailing: Text(
+                    c.dialCode,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   selected: isSelected,
                   selectedTileColor: AppColors.primaryContainer,
                 );

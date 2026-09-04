@@ -24,7 +24,7 @@ Règles Firestore (`firestore.rules`) : lecture publique sur les deux collection
 Poster une annonce, "Je suis dispo", envoyer un message et lancer une conversation nécessitent un compte (voir `_requireAuth` dans `community_screen.dart`, qui redirige vers `/login` si `currentUserProvider` est `null`). Parcourir les annonces reste possible sans compte. Le tab Messages affiche un message "Connecte-toi pour discuter" pour les invités.
 
 ## Tab Annonces
-- Feed des `AnnouncementModel` (stream `BroadcastRepository.watchAll()`), triées par `createdAt desc`, filtrées côté client (créneau passé depuis +2h retiré)
+- Feed des `AnnouncementModel` (stream `BroadcastRepository.watchAll()`), triées par `createdAt desc`, filtrées côté client (créneau passé depuis +2h retiré, puis restreint aux annonces dont l'auteur partage un club avec l'utilisateur courant — `CommunityViewModel._filterByClub`, un invité sans club voit tout)
 - "Je suis dispo !" → `toggleInterested()` (écrit dans Firestore)
 - "Proposer un créneau" → `ProposeSlotModal` → écrit dans `broadcasts` (id assigné par le repository à la création)
 
@@ -37,6 +37,7 @@ Poster une annonce, "Je suis dispo", envoyer un message et lancer une conversati
 - `interestedUserIds` contient les IDs des joueurs ayant cliqué "Je suis dispo"
 - Un joueur ne peut pas être intéressé deux fois (toggle, `arrayUnion`/`arrayRemove`)
 - `ProposeSlotModal` requiert terrain + message (validation `isValid`)
+- Un admin (Manager) ne peut voir/organiser (matchs, terrains, événements, conversations de groupe) que pour les membres d'un club dont il est lui-même membre — `ManagerViewModel.players` est filtré par `clubIds` en conséquence (voir `screens/manager/manager_view_model.dart`)
 
 ## Utilisateurs
 Les noms affichés (auteur d'annonce, participants de conversation) sont résolus via `allUsersProvider` (collection Firestore `users`, partagée avec le reste de l'app — voir `screens/auth/auth_view_model.dart`). Plus de `MockData.allUsers`.

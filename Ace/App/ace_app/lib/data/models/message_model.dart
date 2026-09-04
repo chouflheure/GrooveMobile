@@ -27,28 +27,28 @@ class MessageModel extends Equatable {
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
-        id: json['id'] as String,
-        conversationId: json['conversationId'] as String,
-        participantIds: List<String>.from(json['participantIds'] as List),
-        senderId: json['senderId'] as String,
-        senderName: json['senderName'] as String,
-        content: json['content'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        isRead: json['isRead'] as bool? ?? false,
-        edited: json['edited'] as bool? ?? false,
-      );
+    id: json['id'] as String,
+    conversationId: json['conversationId'] as String,
+    participantIds: List<String>.from(json['participantIds'] as List),
+    senderId: json['senderId'] as String,
+    senderName: json['senderName'] as String,
+    content: json['content'] as String,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    isRead: json['isRead'] as bool? ?? false,
+    edited: json['edited'] as bool? ?? false,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'conversationId': conversationId,
-        'participantIds': participantIds,
-        'senderId': senderId,
-        'senderName': senderName,
-        'content': content,
-        'createdAt': createdAt.toIso8601String(),
-        'isRead': isRead,
-        'edited': edited,
-      };
+    'id': id,
+    'conversationId': conversationId,
+    'participantIds': participantIds,
+    'senderId': senderId,
+    'senderName': senderName,
+    'content': content,
+    'createdAt': createdAt.toIso8601String(),
+    'isRead': isRead,
+    'edited': edited,
+  };
 
   @override
   List<Object?> get props => [id, conversationId, senderId];

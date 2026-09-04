@@ -20,7 +20,10 @@ class AuthRepository {
     required String email,
     required String password,
   }) {
-    return _auth.createUserWithEmailAndPassword(email: email, password: password);
+    return _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
 
   Future<void> signOut() => _auth.signOut();
@@ -54,12 +57,17 @@ class AuthRepository {
     required String verificationId,
     required String smsCode,
   }) {
-    return PhoneAuthProvider.credential(verificationId: verificationId, smsCode: smsCode);
+    return PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: smsCode,
+    );
   }
 
   /// Signs in with a verified phone credential — resolves to the same
   /// account the number was linked to, if any.
-  Future<UserCredential> signInWithPhoneCredential(PhoneAuthCredential credential) {
+  Future<UserCredential> signInWithPhoneCredential(
+    PhoneAuthCredential credential,
+  ) {
     return _auth.signInWithCredential(credential);
   }
 

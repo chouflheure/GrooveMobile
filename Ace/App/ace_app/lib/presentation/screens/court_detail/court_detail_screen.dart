@@ -27,11 +27,11 @@ bool _isSameDay(DateTime a, DateTime b) =>
 
 final _bookedSlotsProvider =
     StreamProvider.family<Set<String>, ({String courtId, DateTime date})>(
-  (ref, args) => ref
-      .watch(bookingRepositoryProvider)
-      .watchBookedSlotsForDate(args.date)
-      .map((byCourtId) => byCourtId[args.courtId] ?? const <String>{}),
-);
+      (ref, args) => ref
+          .watch(bookingRepositoryProvider)
+          .watchBookedSlotsForDate(args.date)
+          .map((byCourtId) => byCourtId[args.courtId] ?? const <String>{}),
+    );
 
 class CourtDetailScreen extends ConsumerStatefulWidget {
   final CourtModel court;
@@ -54,12 +54,12 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
     // for the selected day stay current.
     final template =
         ref.watch(courtByIdProvider(widget.court.id)).valueOrNull ??
-            widget.court;
-    final booked = ref
-            .watch(_bookedSlotsProvider((
-              courtId: template.id,
-              date: _selectedDate,
-            )))
+        widget.court;
+    final booked =
+        ref
+            .watch(
+              _bookedSlotsProvider((courtId: template.id, date: _selectedDate)),
+            )
             .valueOrNull ??
         const <String>{};
     final court = _withBookedSlots(template, booked);
@@ -132,8 +132,9 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
                         const SizedBox(height: AppSpacing.lg),
                         if (template.isClosedOn(_selectedDate))
                           _ClosedBanner(
-                            period: template.unavailablePeriods
-                                .firstWhere((p) => p.covers(_selectedDate)),
+                            period: template.unavailablePeriods.firstWhere(
+                              (p) => p.covers(_selectedDate),
+                            ),
                           )
                         else
                           _SlotsSection(
@@ -176,12 +177,16 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       imageUrl: template.imageUrl,
       description: template.description,
       amenities: template.amenities,
-      availableSlots: template.baseSlotsFor(_selectedDate)
-          .map((s) => closed ||
-                  booked.contains(s.time) ||
-                  AppConstants.isSlotPast(_selectedDate, s.time)
-              ? TimeSlot(time: s.time, isAvailable: false)
-              : s)
+      availableSlots: template
+          .baseSlotsFor(_selectedDate)
+          .map(
+            (s) =>
+                closed ||
+                    booked.contains(s.time) ||
+                    AppConstants.isSlotPast(_selectedDate, s.time)
+                ? TimeSlot(time: s.time, isAvailable: false)
+                : s,
+          )
           .toList(),
       clubId: template.clubId,
       unavailablePeriods: template.unavailablePeriods,
@@ -304,7 +309,9 @@ class _QuickInfoRow extends StatelessWidget {
         if (court.pricePerHour > 0)
           Text(
             '${court.pricePerHour.toInt()}€/h',
-            style: AppTypography.headlineLarge.copyWith(color: AppColors.primary),
+            style: AppTypography.headlineLarge.copyWith(
+              color: AppColors.primary,
+            ),
           ),
       ],
     );
@@ -316,7 +323,11 @@ class _InfoChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _InfoChip({required this.icon, required this.label, required this.color});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +347,10 @@ class _InfoChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: AppTypography.labelSmall.copyWith(color: color, fontWeight: FontWeight.w600),
+            style: AppTypography.labelSmall.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -402,8 +416,9 @@ class _AddressTile extends StatelessWidget {
                   color: _hasAddress
                       ? AppColors.primary
                       : AppColors.textTertiary,
-                  decoration:
-                      _hasAddress ? TextDecoration.underline : TextDecoration.none,
+                  decoration: _hasAddress
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
                 ),
               ),
             ),
@@ -551,10 +566,7 @@ class _SlotsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final freeSlots = court.freeSlots;
     if (freeSlots.isEmpty) {
-      return Text(
-        'Aucun créneau disponible.',
-        style: AppTypography.bodySmall,
-      );
+      return Text('Aucun créneau disponible.', style: AppTypography.bodySmall);
     }
     return Wrap(
       spacing: AppSpacing.sm,

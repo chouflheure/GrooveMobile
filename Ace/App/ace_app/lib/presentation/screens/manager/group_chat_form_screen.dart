@@ -16,7 +16,8 @@ class GroupChatFormScreen extends ConsumerStatefulWidget {
   const GroupChatFormScreen({super.key, required this.players});
 
   @override
-  ConsumerState<GroupChatFormScreen> createState() => _GroupChatFormScreenState();
+  ConsumerState<GroupChatFormScreen> createState() =>
+      _GroupChatFormScreenState();
 }
 
 class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
@@ -30,7 +31,8 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
     super.dispose();
   }
 
-  bool get _isValid => _selectedIds.length >= 2 && _messageController.text.trim().isNotEmpty;
+  bool get _isValid =>
+      _selectedIds.length >= 2 && _messageController.text.trim().isNotEmpty;
 
   Future<void> _create() async {
     if (!_isValid) return;
@@ -38,8 +40,12 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
     if (senderName == null) return;
     setState(() => _isSending = true);
 
-    final conversationId = ref.read(messageRepositoryProvider).newConversationId();
-    await ref.read(communityViewModelProvider.notifier).sendMessage(
+    final conversationId = ref
+        .read(messageRepositoryProvider)
+        .newConversationId();
+    await ref
+        .read(communityViewModelProvider.notifier)
+        .sendMessage(
           conversationId,
           _selectedIds.toList(),
           senderName,
@@ -104,10 +110,16 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
                       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primaryContainer : AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        color: isSelected
+                            ? AppColors.primaryContainer
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
@@ -116,13 +128,23 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
                           AppAvatar(
                             initials: u.initials,
                             size: 36,
-                            backgroundColor:
-                                isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.surfaceVariant,
+                            backgroundColor: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.2)
+                                : AppColors.surfaceVariant,
                           ),
                           const SizedBox(width: AppSpacing.md),
-                          Expanded(child: Text(u.name, style: AppTypography.bodyMedium)),
+                          Expanded(
+                            child: Text(
+                              u.name,
+                              style: AppTypography.bodyMedium,
+                            ),
+                          ),
                           if (isSelected)
-                            const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
                         ],
                       ),
                     ),
@@ -160,6 +182,17 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,

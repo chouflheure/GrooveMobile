@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
@@ -19,17 +18,6 @@ class ClubEventCard extends StatelessWidget {
     this.onParticipate,
     this.onTap,
   });
-
-  void _share() {
-    final dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(event.date);
-    final lines = [
-      event.title,
-      if (event.description.isNotEmpty) event.description,
-      '$dateStr · ${event.clubName}',
-      if (event.address.isNotEmpty) event.address,
-    ];
-    SharePlus.instance.share(ShareParams(text: lines.join('\n')));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +38,10 @@ class ClubEventCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
@@ -71,21 +62,7 @@ class ClubEventCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(event.title, style: AppTypography.headlineMedium),
-                ),
-                GestureDetector(
-                  onTap: _share,
-                  child: const Padding(
-                    padding: EdgeInsets.only(left: AppSpacing.sm),
-                    child: Icon(Icons.ios_share_rounded, size: 20, color: AppColors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
+            Text(event.title, style: AppTypography.headlineMedium),
             if (event.description.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
@@ -101,20 +78,26 @@ class ClubEventCard extends StatelessWidget {
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
                 children: event.courtNames
-                    .map((name) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: 2,
+                    .map(
+                      (name) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusFull,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                        ),
+                        child: Text(
+                          name,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textSecondary,
                           ),
-                          child: Text(
-                            name,
-                            style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ))
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ],
@@ -122,7 +105,11 @@ class ClubEventCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  const Icon(Icons.location_on_rounded, size: 14, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -137,7 +124,11 @@ class ClubEventCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                Icon(Icons.group_outlined, size: 14, color: AppColors.textSecondary),
+                Icon(
+                  Icons.group_outlined,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${event.participantIds.length} participant${event.participantIds.length >= 2 ? 's' : ''}',
@@ -152,13 +143,19 @@ class ClubEventCard extends StatelessWidget {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: isParticipating ? AppColors.primaryContainer : AppColors.primary,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                      color: isParticipating
+                          ? AppColors.primaryContainer
+                          : AppColors.primary,
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusFull,
+                      ),
                     ),
                     child: Text(
                       isParticipating ? 'Inscrit ✓' : 'Participer',
                       style: AppTypography.labelMedium.copyWith(
-                        color: isParticipating ? AppColors.primary : Colors.white,
+                        color: isParticipating
+                            ? AppColors.primary
+                            : Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

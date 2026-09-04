@@ -3,7 +3,7 @@ import '../models/court_model.dart';
 
 class CourtRepository {
   CourtRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -25,14 +25,17 @@ class CourtRepository {
 
   Stream<List<CourtModel>> watchAll() {
     return _collection.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => CourtModel.fromJson({...doc.data(), 'id': doc.id}))
-              .toList(),
-        );
+      (snapshot) => snapshot.docs
+          .map((doc) => CourtModel.fromJson({...doc.data(), 'id': doc.id}))
+          .toList(),
+    );
   }
 
   Stream<CourtModel?> watchById(String id) {
-    return _collection.doc(id).snapshots().map(
+    return _collection
+        .doc(id)
+        .snapshots()
+        .map(
           (doc) => doc.exists
               ? CourtModel.fromJson({...doc.data()!, 'id': doc.id})
               : null,

@@ -78,8 +78,9 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
   @override
   Widget build(BuildContext context) {
     final courts = ref.watch(courtsViewModelProvider).courts;
-    final selectedCourt =
-        courts.where((c) => c.id == _selectedCourtId).firstOrNull;
+    final selectedCourt = courts
+        .where((c) => c.id == _selectedCourtId)
+        .firstOrNull;
     final mediaQuery = MediaQuery.of(context);
 
     return Container(
@@ -87,7 +88,9 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
       padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xxxl),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -106,7 +109,10 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0,
+              AppSpacing.xxl,
+              AppSpacing.lg,
+              AppSpacing.xxl,
+              0,
             ),
             child: Text(
               _isEdit ? "Modifier l'annonce" : 'Proposer un créneau',
@@ -116,7 +122,10 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, AppSpacing.lg,
+                AppSpacing.xxl,
+                AppSpacing.lg,
+                AppSpacing.xxl,
+                AppSpacing.lg,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,22 +154,35 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
                       final isSelected = _durationMinutes == d.value;
                       return Expanded(
                         child: GestureDetector(
-                          onTap: () => setState(() => _durationMinutes = d.value),
+                          onTap: () =>
+                              setState(() => _durationMinutes = d.value),
                           child: Container(
                             margin: EdgeInsets.only(
-                                right: d.value != 120 ? AppSpacing.sm : 0),
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                              right: d.value != 120 ? AppSpacing.sm : 0,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.sm,
+                            ),
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.primary : AppColors.background,
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.background,
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                               border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.border),
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                              ),
                             ),
                             child: Text(
                               d.label,
                               textAlign: TextAlign.center,
                               style: AppTypography.labelSmall.copyWith(
-                                color: isSelected ? Colors.white : AppColors.textSecondary,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
                               ),
                             ),
                           ),
@@ -201,16 +223,25 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
                       hintText: 'Décrivez votre annonce...',
                       hintStyle: AppTypography.bodySmall,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                       ),
                       filled: true,
                       fillColor: AppColors.background,
@@ -223,7 +254,10 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl, 0, AppSpacing.xxl, AppSpacing.xxl,
+              AppSpacing.xxl,
+              0,
+              AppSpacing.xxl,
+              AppSpacing.xxl,
             ),
             child: AppButton(
               label: _isEdit ? 'Mettre à jour' : "Publier l'annonce",
@@ -241,8 +275,9 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
     if (currentUser == null) return;
     setState(() => _isLoading = true);
     final courts = ref.read(courtsViewModelProvider).courts;
-    final selectedCourt =
-        courts.where((c) => c.id == _selectedCourtId).firstOrNull;
+    final selectedCourt = courts
+        .where((c) => c.id == _selectedCourtId)
+        .firstOrNull;
     final nameParts = currentUser.name.trim().split(' ');
     final displayName = nameParts.length >= 2
         ? '${nameParts.first} ${nameParts.last[0]}.'
@@ -253,7 +288,8 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
       userName: displayName,
       userRanking: currentUser.ranking,
       courtId: selectedCourt?.id ?? '',
-      courtName: selectedCourt?.name ??
+      courtName:
+          selectedCourt?.name ??
           (_noSpecificCourt ? 'Terrain, on verra' : 'Terrain à définir'),
       date: _selectedDate,
       time: _selectedTime ?? 'À définir',
@@ -317,7 +353,8 @@ class _PickerField extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.md,
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
           color: AppColors.background,
@@ -341,11 +378,19 @@ class _PickerField extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 child: const Padding(
                   padding: EdgeInsets.all(AppSpacing.xs),
-                  child: Icon(Icons.close_rounded, size: 16, color: AppColors.textTertiary),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               )
             else
-              const Icon(Icons.expand_more_rounded, size: 18, color: AppColors.textTertiary),
+              const Icon(
+                Icons.expand_more_rounded,
+                size: 18,
+                color: AppColors.textTertiary,
+              ),
           ],
         ),
       ),
@@ -358,14 +403,20 @@ class _PickerSheetShell extends StatelessWidget {
   final Widget child;
   final Widget? footer;
 
-  const _PickerSheetShell({required this.title, required this.child, this.footer});
+  const _PickerSheetShell({
+    required this.title,
+    required this.child,
+    this.footer,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xxxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xxxl),
+        ),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).padding.bottom + AppSpacing.lg,
@@ -431,7 +482,8 @@ class _DatePicker extends StatelessWidget {
     );
   }
 
-  static String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  static String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
 class _DatePickerSheet extends StatefulWidget {
@@ -456,10 +508,10 @@ class _DatePickerSheetState extends State<_DatePickerSheet> {
       child: Theme(
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(
-                primary: AppColors.primary,
-                onPrimary: Colors.white,
-                onSurface: AppColors.textPrimary,
-              ),
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            onSurface: AppColors.textPrimary,
+          ),
         ),
         child: CalendarDatePicker(
           initialDate: _selected,
@@ -525,7 +577,9 @@ class _TimePickerSheetState extends State<_TimePickerSheet> {
   void initState() {
     super.initState();
     final selected = widget.selected;
-    if (selected != null && selected != _allDayLabel && selected.contains('-')) {
+    if (selected != null &&
+        selected != _allDayLabel &&
+        selected.contains('-')) {
       final parts = selected.split('-');
       if (parts.length == 2) {
         _start = parts[0];
@@ -582,8 +636,13 @@ class _TimePickerSheetState extends State<_TimePickerSheet> {
               children: [
                 const Expanded(child: Divider(color: AppColors.border)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  child: Text('ou un créneau précis', style: AppTypography.bodySmall),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                  child: Text(
+                    'ou un créneau précis',
+                    style: AppTypography.bodySmall,
+                  ),
                 ),
                 const Expanded(child: Divider(color: AppColors.border)),
               ],
@@ -605,11 +664,15 @@ class _TimePickerSheetState extends State<_TimePickerSheet> {
             if (_start == null)
               Text(
                 "Choisis d'abord une heure de début.",
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
               )
             else
               _TimeSlotGrid(
-                slots: AppConstants.timeSlots.where((t) => t.compareTo(_start!) > 0).toList(),
+                slots: AppConstants.timeSlots
+                    .where((t) => t.compareTo(_start!) > 0)
+                    .toList(),
                 selected: _end,
                 onSelect: (t) => setState(() => _end = t),
               ),
@@ -626,12 +689,18 @@ class _TimeSlotGrid extends StatelessWidget {
   final String? selected;
   final ValueChanged<String> onSelect;
 
-  const _TimeSlotGrid({required this.slots, required this.selected, required this.onSelect});
+  const _TimeSlotGrid({
+    required this.slots,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.22),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.22,
+      ),
       child: SingleChildScrollView(
         child: Wrap(
           spacing: AppSpacing.sm,
@@ -642,7 +711,8 @@ class _TimeSlotGrid extends StatelessWidget {
               onTap: () => onSelect(t),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md, vertical: AppSpacing.sm,
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
                 ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primary : AppColors.background,
@@ -703,17 +773,18 @@ class _CourtPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = selected?.name ??
-        (noSpecificCourt ? 'Terrain, on verra' : 'Choisir un terrain (optionnel)');
+    final label =
+        selected?.name ??
+        (noSpecificCourt
+            ? 'Terrain, on verra'
+            : 'Choisir un terrain (optionnel)');
     final hasChoice = selected != null || noSpecificCourt;
     return _PickerField(
       icon: Icons.sports_tennis_rounded,
       label: label,
       labelColor: hasChoice ? AppColors.textPrimary : AppColors.textTertiary,
       onTap: () => _open(context),
-      onClear: hasChoice
-          ? () => onSelect(const _CourtPickResult())
-          : null,
+      onClear: hasChoice ? () => onSelect(const _CourtPickResult()) : null,
     );
   }
 }
@@ -742,26 +813,41 @@ class _CourtPickerSheet extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           children: [
             ListTile(
-              leading: const Icon(Icons.shuffle_rounded, color: AppColors.primary),
+              leading: const Icon(
+                Icons.shuffle_rounded,
+                color: AppColors.primary,
+              ),
               title: Text('Terrain, on verra', style: AppTypography.bodyMedium),
               trailing: noSpecificCourtSelected
-                  ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                  ? const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primary,
+                    )
                   : null,
-              onTap: () => Navigator.of(context, rootNavigator: true)
-                  .pop(const _CourtPickResult(noSpecificCourt: true)),
+              onTap: () => Navigator.of(
+                context,
+                rootNavigator: true,
+              ).pop(const _CourtPickResult(noSpecificCourt: true)),
             ),
             ...courts.map(
               (c) => ListTile(
                 leading: Icon(
                   Icons.sports_tennis_rounded,
-                  color: c.id == selectedId ? AppColors.primary : AppColors.textSecondary,
+                  color: c.id == selectedId
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                 ),
                 title: Text(c.name, style: AppTypography.bodyMedium),
                 trailing: c.id == selectedId
-                    ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.primary,
+                      )
                     : null,
-                onTap: () => Navigator.of(context, rootNavigator: true)
-                    .pop(_CourtPickResult(courtId: c.id)),
+                onTap: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pop(_CourtPickResult(courtId: c.id)),
               ),
             ),
           ],
@@ -786,12 +872,16 @@ class _MatchTypeSelector extends StatelessWidget {
           child: GestureDetector(
             onTap: () => onSelect(t),
             child: Container(
-              margin: EdgeInsets.only(right: t != MatchType.mixed ? AppSpacing.sm : 0),
+              margin: EdgeInsets.only(
+                right: t != MatchType.mixed ? AppSpacing.sm : 0,
+              ),
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : AppColors.background,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                ),
               ),
               child: Text(
                 t.label,

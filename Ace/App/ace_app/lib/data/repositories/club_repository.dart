@@ -3,7 +3,7 @@ import '../models/club_model.dart';
 
 class ClubRepository {
   ClubRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -19,9 +19,9 @@ class ClubRepository {
 
   Stream<List<ClubModel>> watchAll() {
     return _collection.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ClubModel.fromJson({...doc.data(), 'id': doc.id}))
-              .toList(),
-        );
+      (snapshot) => snapshot.docs
+          .map((doc) => ClubModel.fromJson({...doc.data(), 'id': doc.id}))
+          .toList(),
+    );
   }
 }

@@ -17,10 +17,16 @@ class AllBookingsScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         scrolledUnderElevation: 0,
-        title: Text('Historique des matchs', style: AppTypography.headlineLarge),
+        title: Text(
+          'Historique des matchs',
+          style: AppTypography.headlineLarge,
+        ),
         leading: GestureDetector(
           onTap: () => Navigator.of(context, rootNavigator: true).pop(),
-          child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          child: const Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.textPrimary,
+          ),
         ),
       ),
       body: bookings.isEmpty
@@ -28,7 +34,11 @@ class AllBookingsScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.history_rounded, size: 64, color: AppColors.textTertiary),
+                  const Icon(
+                    Icons.history_rounded,
+                    size: 64,
+                    color: AppColors.textTertiary,
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   Text('Aucun match joué', style: AppTypography.headlineMedium),
                 ],
@@ -42,7 +52,9 @@ class AllBookingsScreen extends StatelessWidget {
                 booking: bookings[i],
                 titleColor: AppColors.primary,
                 onTap: () => Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: bookings[i])),
+                  MaterialPageRoute(
+                    builder: (_) => BookingDetailScreen(booking: bookings[i]),
+                  ),
                 ),
               ),
             ),

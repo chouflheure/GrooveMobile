@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -13,6 +14,17 @@ class EventDetailScreen extends ConsumerWidget {
   final ClubEventModel event;
 
   const EventDetailScreen({super.key, required this.event});
+
+  void _share(ClubEventModel current) {
+    final dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(current.date);
+    final lines = [
+      current.title,
+      if (current.description.isNotEmpty) current.description,
+      '$dateStr · ${current.clubName}',
+      if (current.address.isNotEmpty) current.address,
+    ];
+    SharePlus.instance.share(ShareParams(text: lines.join('\n')));
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,12 +39,21 @@ class EventDetailScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
     final isParticipating =
         currentUser != null && current.participantIds.contains(currentUser.id);
-    final dateStr = DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(current.date);
+    final dateStr = DateFormat(
+      'EEEE d MMMM yyyy',
+      'fr_FR',
+    ).format(current.date);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(current.clubName, style: AppTypography.headlineSmall),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            onPressed: () => _share(current),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -43,7 +64,11 @@ class EventDetailScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(Icons.event_rounded, size: 16, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.event_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${dateStr[0].toUpperCase()}${dateStr.substring(1)}',
@@ -69,21 +94,26 @@ class EventDetailScreen extends ConsumerWidget {
                   spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   children: current.courtNames
-                      .map((name) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: 4,
+                      .map(
+                        (name) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusFull,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                          ),
+                          child: Text(
+                            name,
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
                             ),
-                            child: Text(
-                              name,
-                              style: AppTypography.labelSmall
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                          ))
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -94,10 +124,17 @@ class EventDetailScreen extends ConsumerWidget {
                 title: 'Adresse',
                 child: Row(
                   children: [
-                    const Icon(Icons.location_on_rounded, size: 16, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(current.address, style: AppTypography.bodyMedium),
+                      child: Text(
+                        current.address,
+                        style: AppTypography.bodyMedium,
+                      ),
                     ),
                   ],
                 ),
@@ -108,10 +145,14 @@ class EventDetailScreen extends ConsumerWidget {
               title: 'Participants',
               child: Row(
                 children: [
-                  const Icon(Icons.group_outlined, size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.group_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    '${current.participantIds.length} participant(s)',
+                    '${current.participantIds.length} participant${current.participantIds.length >= 2 ? 's' : ''}',
                     style: AppTypography.bodyMedium,
                   ),
                 ],
@@ -128,8 +169,12 @@ class EventDetailScreen extends ConsumerWidget {
           height: 52,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isParticipating ? AppColors.primaryContainer : AppColors.primary,
-              foregroundColor: isParticipating ? AppColors.primary : Colors.white,
+              backgroundColor: isParticipating
+                  ? AppColors.primaryContainer
+                  : AppColors.primary,
+              foregroundColor: isParticipating
+                  ? AppColors.primary
+                  : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
               ),
@@ -140,7 +185,9 @@ class EventDetailScreen extends ConsumerWidget {
                 context.go('/login');
                 return;
               }
-              ref.read(clubEventRepositoryProvider).setParticipating(
+              ref
+                  .read(clubEventRepositoryProvider)
+                  .setParticipating(
                     current.id,
                     currentUser.id,
                     !isParticipating,

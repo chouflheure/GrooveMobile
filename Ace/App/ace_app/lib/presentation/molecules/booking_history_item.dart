@@ -13,7 +13,12 @@ class BookingHistoryItem extends ConsumerWidget {
   final VoidCallback? onTap;
   final Color? titleColor;
 
-  const BookingHistoryItem({super.key, required this.booking, this.onTap, this.titleColor});
+  const BookingHistoryItem({
+    super.key,
+    required this.booking,
+    this.onTap,
+    this.titleColor,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +82,9 @@ class BookingHistoryItem extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           booking.courtName,
-                          style: AppTypography.headlineSmall.copyWith(color: titleColor),
+                          style: AppTypography.headlineSmall.copyWith(
+                            color: titleColor,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -135,7 +142,10 @@ class _CountdownPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
         color: AppColors.primaryContainer,
         borderRadius: BorderRadius.circular(AppSpacing.radiusFull),

@@ -42,9 +42,9 @@ class TimeSlot extends Equatable {
   const TimeSlot({required this.time, required this.isAvailable});
 
   factory TimeSlot.fromJson(Map<String, dynamic> json) => TimeSlot(
-        time: json['time'] as String,
-        isAvailable: json['isAvailable'] as bool,
-      );
+    time: json['time'] as String,
+    isAvailable: json['isAvailable'] as bool,
+  );
 
   Map<String, dynamic> toJson() => {'time': time, 'isAvailable': isAvailable};
 
@@ -73,17 +73,18 @@ class UnavailablePeriod extends Equatable {
     return !day.isBefore(start) && !day.isAfter(end);
   }
 
-  factory UnavailablePeriod.fromJson(Map<String, dynamic> json) => UnavailablePeriod(
+  factory UnavailablePeriod.fromJson(Map<String, dynamic> json) =>
+      UnavailablePeriod(
         startDate: DateTime.parse(json['startDate'] as String),
         endDate: DateTime.parse(json['endDate'] as String),
         reason: json['reason'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate.toIso8601String(),
-        'reason': reason,
-      };
+    'startDate': startDate.toIso8601String(),
+    'endDate': endDate.toIso8601String(),
+    'reason': reason,
+  };
 
   @override
   List<Object?> get props => [startDate, endDate, reason];
@@ -115,9 +116,11 @@ class AvailabilityOverride extends Equatable {
   }
 
   // Zero-padded HH:mm strings compare correctly lexicographically.
-  bool allowsTime(String time) => time.compareTo(openFrom) >= 0 && time.compareTo(openTo) < 0;
+  bool allowsTime(String time) =>
+      time.compareTo(openFrom) >= 0 && time.compareTo(openTo) < 0;
 
-  factory AvailabilityOverride.fromJson(Map<String, dynamic> json) => AvailabilityOverride(
+  factory AvailabilityOverride.fromJson(Map<String, dynamic> json) =>
+      AvailabilityOverride(
         startDate: DateTime.parse(json['startDate'] as String),
         endDate: DateTime.parse(json['endDate'] as String),
         openFrom: json['openFrom'] as String,
@@ -126,12 +129,12 @@ class AvailabilityOverride extends Equatable {
       );
 
   Map<String, dynamic> toJson() => {
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate.toIso8601String(),
-        'openFrom': openFrom,
-        'openTo': openTo,
-        'note': note,
-      };
+    'startDate': startDate.toIso8601String(),
+    'endDate': endDate.toIso8601String(),
+    'openFrom': openFrom,
+    'openTo': openTo,
+    'note': note,
+  };
 
   @override
   List<Object?> get props => [startDate, endDate, openFrom, openTo, note];
@@ -180,56 +183,65 @@ class CourtModel extends Equatable {
   /// [AvailabilityOverride] covers that date, or the court's normal
   /// [availableSlots] otherwise.
   List<TimeSlot> baseSlotsFor(DateTime date) {
-    final override = availabilityOverrides.where((o) => o.covers(date)).firstOrNull;
+    final override = availabilityOverrides
+        .where((o) => o.covers(date))
+        .firstOrNull;
     if (override == null) return availableSlots;
     return availableSlots
-        .map((s) => TimeSlot(time: s.time, isAvailable: override.allowsTime(s.time)))
+        .map(
+          (s) =>
+              TimeSlot(time: s.time, isAvailable: override.allowsTime(s.time)),
+        )
         .toList();
   }
 
   factory CourtModel.fromJson(Map<String, dynamic> json) => CourtModel(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        type: CourtTypeJson.fromJson(json['type'] as String),
-        surface: CourtSurfaceJson.fromJson(json['surface'] as String),
-        location: json['location'] as String,
-        pricePerHour: (json['pricePerHour'] as num).toDouble(),
-        rating: (json['rating'] as num).toDouble(),
-        imageUrl: json['imageUrl'] as String,
-        description: json['description'] as String,
-        amenities: List<String>.from(json['amenities'] as List),
-        availableSlots: (json['availableSlots'] as List)
-            .map((s) => TimeSlot.fromJson(s as Map<String, dynamic>))
-            .toList(),
-        clubId: json['clubId'] as String? ?? '',
-        unavailablePeriods: json['unavailablePeriods'] != null
-            ? (json['unavailablePeriods'] as List)
-                .map((p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>))
-                .toList()
-            : const [],
-        availabilityOverrides: json['availabilityOverrides'] != null
-            ? (json['availabilityOverrides'] as List)
-                .map((p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>))
-                .toList()
-            : const [],
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    type: CourtTypeJson.fromJson(json['type'] as String),
+    surface: CourtSurfaceJson.fromJson(json['surface'] as String),
+    location: json['location'] as String,
+    pricePerHour: (json['pricePerHour'] as num).toDouble(),
+    rating: (json['rating'] as num).toDouble(),
+    imageUrl: json['imageUrl'] as String,
+    description: json['description'] as String,
+    amenities: List<String>.from(json['amenities'] as List),
+    availableSlots: (json['availableSlots'] as List)
+        .map((s) => TimeSlot.fromJson(s as Map<String, dynamic>))
+        .toList(),
+    clubId: json['clubId'] as String? ?? '',
+    unavailablePeriods: json['unavailablePeriods'] != null
+        ? (json['unavailablePeriods'] as List)
+              .map((p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>))
+              .toList()
+        : const [],
+    availabilityOverrides: json['availabilityOverrides'] != null
+        ? (json['availabilityOverrides'] as List)
+              .map(
+                (p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>),
+              )
+              .toList()
+        : const [],
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type.jsonValue,
-        'surface': surface.jsonValue,
-        'location': location,
-        'pricePerHour': pricePerHour,
-        'rating': rating,
-        'imageUrl': imageUrl,
-        'description': description,
-        'amenities': amenities,
-        'availableSlots': availableSlots.map((s) => s.toJson()).toList(),
-        'clubId': clubId,
-        'unavailablePeriods': unavailablePeriods.map((p) => p.toJson()).toList(),
-        'availabilityOverrides': availabilityOverrides.map((p) => p.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'type': type.jsonValue,
+    'surface': surface.jsonValue,
+    'location': location,
+    'pricePerHour': pricePerHour,
+    'rating': rating,
+    'imageUrl': imageUrl,
+    'description': description,
+    'amenities': amenities,
+    'availableSlots': availableSlots.map((s) => s.toJson()).toList(),
+    'clubId': clubId,
+    'unavailablePeriods': unavailablePeriods.map((p) => p.toJson()).toList(),
+    'availabilityOverrides': availabilityOverrides
+        .map((p) => p.toJson())
+        .toList(),
+  };
 
   @override
   List<Object?> get props => [id, name, type, surface, clubId];

@@ -38,8 +38,9 @@ class CourtsState {
       clubs: clubs ?? this.clubs,
       searchQuery: searchQuery ?? this.searchQuery,
       selectedFilter: selectedFilter ?? this.selectedFilter,
-      selectedClubId:
-          selectedClubId == _sentinel ? this.selectedClubId : selectedClubId as String?,
+      selectedClubId: selectedClubId == _sentinel
+          ? this.selectedClubId
+          : selectedClubId as String?,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -103,9 +104,9 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
     _bookingsSubscription = _bookingRepository
         .watchBookedSlotsForDate(AppConstants.today())
         .listen((bookedSlots) {
-      _bookedSlots = bookedSlots;
-      _recompute();
-    });
+          _bookedSlots = bookedSlots;
+          _recompute();
+        });
     _clubsSubscription = _clubRepository.watchAll().listen((clubs) {
       state = state.copyWith(
         clubs: _userClubIds == null
@@ -122,8 +123,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
   // player only ever sees courts belonging to a club they're a member of.
   final List<String>? _userClubIds;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
-  late final StreamSubscription<Map<String, Set<String>>>
-      _bookingsSubscription;
+  late final StreamSubscription<Map<String, Set<String>>> _bookingsSubscription;
   late final StreamSubscription<List<ClubModel>> _clubsSubscription;
 
   List<CourtModel> _rawCourts = const [];
@@ -147,12 +147,16 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
         imageUrl: court.imageUrl,
         description: court.description,
         amenities: court.amenities,
-        availableSlots: court.baseSlotsFor(today)
-            .map((s) => court.isClosedOn(today) ||
-                    booked.contains(s.time) ||
-                    AppConstants.isSlotPast(today, s.time)
-                ? TimeSlot(time: s.time, isAvailable: false)
-                : s)
+        availableSlots: court
+            .baseSlotsFor(today)
+            .map(
+              (s) =>
+                  court.isClosedOn(today) ||
+                      booked.contains(s.time) ||
+                      AppConstants.isSlotPast(today, s.time)
+                  ? TimeSlot(time: s.time, isAvailable: false)
+                  : s,
+            )
             .toList(),
         clubId: court.clubId,
         unavailablePeriods: court.unavailablePeriods,
@@ -208,18 +212,18 @@ final clubsProvider = StreamProvider<List<ClubModel>>(
 /// (e.g. the admin/manager booking tools, which pick an arbitrary date).
 final bookedSlotsForCourtProvider =
     StreamProvider.family<Set<String>, ({String courtId, DateTime date})>(
-  (ref, args) => ref
-      .watch(bookingRepositoryProvider)
-      .watchBookedSlotsForDate(args.date)
-      .map((byCourtId) => byCourtId[args.courtId] ?? const <String>{}),
-);
+      (ref, args) => ref
+          .watch(bookingRepositoryProvider)
+          .watchBookedSlotsForDate(args.date)
+          .map((byCourtId) => byCourtId[args.courtId] ?? const <String>{}),
+    );
 
 final courtsViewModelProvider =
     StateNotifierProvider<CourtsViewModel, CourtsState>(
-  (ref) => CourtsViewModel(
-    ref.watch(courtRepositoryProvider),
-    ref.watch(bookingRepositoryProvider),
-    ref.watch(clubRepositoryProvider),
-    ref.watch(currentUserProvider).valueOrNull?.clubIds,
-  ),
-);
+      (ref) => CourtsViewModel(
+        ref.watch(courtRepositoryProvider),
+        ref.watch(bookingRepositoryProvider),
+        ref.watch(clubRepositoryProvider),
+        ref.watch(currentUserProvider).valueOrNull?.clubIds,
+      ),
+    );

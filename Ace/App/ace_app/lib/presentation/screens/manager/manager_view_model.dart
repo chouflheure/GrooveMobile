@@ -138,12 +138,16 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     this._currentUserId,
     this._adminClubIds,
   ) : super(
-          ManagerState(
-            players: allUsers,
-            admins: allUsers.where((u) => u.isAdmin).toList(),
-            isLoading: true,
-          ),
-        ) {
+        ManagerState(
+          // An admin only sees/organizes for members of their own
+          // club(s) — same rule applied to booking partners.
+          players: allUsers
+              .where((u) => u.clubIds.any(_adminClubIds.contains))
+              .toList(),
+          admins: allUsers.where((u) => u.isAdmin).toList(),
+          isLoading: true,
+        ),
+      ) {
     _courtsSubscription = _courtRepository.watchAll().listen((courts) {
       _rawCourts = courts;
       _recomputeScope();
@@ -180,11 +184,13 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   List<BookingModel> _rawBookings = const [];
 
   void _recomputeScope() {
-    final scopedCourts =
-        _rawCourts.where((c) => _adminClubIds.contains(c.clubId)).toList();
+    final scopedCourts = _rawCourts
+        .where((c) => _adminClubIds.contains(c.clubId))
+        .toList();
     final scopedCourtIds = scopedCourts.map((c) => c.id).toSet();
-    final scopedBookings =
-        _rawBookings.where((b) => scopedCourtIds.contains(b.courtId)).toList();
+    final scopedBookings = _rawBookings
+        .where((b) => scopedCourtIds.contains(b.courtId))
+        .toList();
     state = state.copyWith(
       courts: scopedCourts,
       allBookings: scopedBookings,
@@ -206,7 +212,9 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
 
   void setTitle(String? title) {
     state = state.copyWith(
-      form: state.form.copyWith(title: title == null || title.isEmpty ? null : title),
+      form: state.form.copyWith(
+        title: title == null || title.isEmpty ? null : title,
+      ),
     );
   }
 
@@ -273,7 +281,9 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
         await _bookingRepository.create(booking);
         succeeded++;
       } catch (e) {
-        failures.add('${slot.startTime} le ${slot.date.day}/${slot.date.month} : $e');
+        failures.add(
+          '${slot.startTime} le ${slot.date.day}/${slot.date.month} : $e',
+        );
       }
     }
 
@@ -285,8 +295,8 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     final summary = playerA == null
         ? 'Créneau(x) bloqué(s) sur ${court.name}.'
         : playerB == null
-            ? '$succeeded créneau(x) programmé(s) pour ${playerA.name}.'
-            : '$succeeded créneau(x) programmé(s) entre ${playerA.name} et ${playerB.name}.';
+        ? '$succeeded créneau(x) programmé(s) pour ${playerA.name}.'
+        : '$succeeded créneau(x) programmé(s) entre ${playerA.name} et ${playerB.name}.';
 
     state = state.copyWith(
       isSubmitting: false,
@@ -309,12 +319,16 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
         if (mounted) state = state.copyWith(message: '${court.name} ajouté.');
       } else {
         await _courtRepository.update(court);
-        if (mounted) state = state.copyWith(message: '${court.name} mis à jour.');
+        if (mounted) {
+          state = state.copyWith(message: '${court.name} mis à jour.');
+        }
       }
       return true;
     } catch (e) {
       if (mounted) {
-        state = state.copyWith(message: 'Erreur lors de l\'enregistrement : $e');
+        state = state.copyWith(
+          message: 'Erreur lors de l\'enregistrement : $e',
+        );
       }
       return false;
     }
@@ -329,6 +343,35 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     } catch (e) {
       if (mounted) {
         state = state.copyWith(message: 'Erreur lors de la création : $e');
+      }
+      return false;
+    }
+  }
+
+  /// Updates a club event on behalf of the current admin.
+  Future<bool> updateEvent(ClubEventModel event) async {
+    try {
+      await _clubEventRepository.update(event);
+      if (mounted) {
+        state = state.copyWith(message: '${event.title} mis à jour.');
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la mise à jour : $e');
+      }
+      return false;
+    }
+  }
+
+  Future<bool> deleteEvent(String eventId, String title) async {
+    try {
+      await _clubEventRepository.delete(eventId);
+      if (mounted) state = state.copyWith(message: '$title supprimé.');
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la suppression : $e');
       }
       return false;
     }
@@ -350,13 +393,13 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
 
 final managerViewModelProvider =
     StateNotifierProvider<ManagerViewModel, ManagerState>(
-  (ref) => ManagerViewModel(
-    ref.watch(courtRepositoryProvider),
-    ref.watch(bookingRepositoryProvider),
-    ref.watch(clubRepositoryProvider),
-    ref.watch(clubEventRepositoryProvider),
-    ref.watch(allUsersProvider).valueOrNull ?? const [],
-    ref.watch(currentUserProvider).valueOrNull?.id,
-    ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],
-  ),
-);
+      (ref) => ManagerViewModel(
+        ref.watch(courtRepositoryProvider),
+        ref.watch(bookingRepositoryProvider),
+        ref.watch(clubRepositoryProvider),
+        ref.watch(clubEventRepositoryProvider),
+        ref.watch(allUsersProvider).valueOrNull ?? const [],
+        ref.watch(currentUserProvider).valueOrNull?.id,
+        ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],
+      ),
+    );

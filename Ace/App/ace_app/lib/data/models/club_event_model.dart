@@ -26,34 +26,34 @@ class ClubEventModel extends Equatable {
   });
 
   factory ClubEventModel.fromJson(Map<String, dynamic> json) => ClubEventModel(
-        id: json['id'] as String,
-        clubId: json['clubId'] as String,
-        clubName: json['clubName'] as String? ?? '',
-        title: json['title'] as String,
-        description: json['description'] as String? ?? '',
-        date: DateTime.parse(json['date'] as String),
-        address: json['address'] as String? ?? '',
-        courtNames: json['courtNames'] != null
-            ? List<String>.from(json['courtNames'] as List)
-            : const [],
-        participantIds: json['participantIds'] != null
-            ? List<String>.from(json['participantIds'] as List)
-            : const [],
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+    id: json['id'] as String,
+    clubId: json['clubId'] as String,
+    clubName: json['clubName'] as String? ?? '',
+    title: json['title'] as String,
+    description: json['description'] as String? ?? '',
+    date: DateTime.parse(json['date'] as String),
+    address: json['address'] as String? ?? '',
+    courtNames: json['courtNames'] != null
+        ? List<String>.from(json['courtNames'] as List)
+        : const [],
+    participantIds: json['participantIds'] != null
+        ? List<String>.from(json['participantIds'] as List)
+        : const [],
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'clubId': clubId,
-        'clubName': clubName,
-        'title': title,
-        'description': description,
-        'date': date.toIso8601String(),
-        'address': address,
-        'courtNames': courtNames,
-        'participantIds': participantIds,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'clubId': clubId,
+    'clubName': clubName,
+    'title': title,
+    'description': description,
+    'date': date.toIso8601String(),
+    'address': address,
+    'courtNames': courtNames,
+    'participantIds': participantIds,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [id, clubId, title, date];

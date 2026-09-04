@@ -4,9 +4,13 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/user_repository.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((_) => AuthRepository());
+final authRepositoryProvider = Provider<AuthRepository>(
+  (_) => AuthRepository(),
+);
 
-final userRepositoryProvider = Provider<UserRepository>((_) => UserRepository());
+final userRepositoryProvider = Provider<UserRepository>(
+  (_) => UserRepository(),
+);
 
 /// Raw Firebase Auth state — null means signed out (including guest browsing).
 final authStateProvider = StreamProvider<User?>(
@@ -38,7 +42,7 @@ class AuthActionState {
 
 class AuthViewModel extends StateNotifier<AuthActionState> {
   AuthViewModel(this._authRepository, this._userRepository)
-      : super(const AuthActionState());
+    : super(const AuthActionState());
 
   final AuthRepository _authRepository;
   final UserRepository _userRepository;
@@ -53,7 +57,9 @@ class AuthViewModel extends StateNotifier<AuthActionState> {
       state = AuthActionState(errorMessage: _messageFor(e));
       return false;
     } catch (_) {
-      state = const AuthActionState(errorMessage: 'Une erreur est survenue, réessaie.');
+      state = const AuthActionState(
+        errorMessage: 'Une erreur est survenue, réessaie.',
+      );
       return false;
     }
   }
@@ -65,27 +71,34 @@ class AuthViewModel extends StateNotifier<AuthActionState> {
   }) async {
     state = const AuthActionState(isLoading: true);
     try {
-      final credential = await _authRepository.signUp(email: email, password: password);
-      final uid = credential.user!.uid;
-      await _userRepository.create(UserModel(
-        id: uid,
-        name: name,
+      final credential = await _authRepository.signUp(
         email: email,
-        ranking: 'N.C.',
-        location: '',
-        rating: 0,
-        memberSince: DateTime.now(),
-        matchesPerMonth: 0,
-        stats: const UserStats(matchesPlayed: 0, wins: 0, hoursPlayed: 0),
-        surfaces: const SurfacePreferences(clay: 0, hard: 0, grass: 0),
-      ));
+        password: password,
+      );
+      final uid = credential.user!.uid;
+      await _userRepository.create(
+        UserModel(
+          id: uid,
+          name: name,
+          email: email,
+          ranking: 'N.C.',
+          location: '',
+          rating: 0,
+          memberSince: DateTime.now(),
+          matchesPerMonth: 0,
+          stats: const UserStats(matchesPlayed: 0, wins: 0, hoursPlayed: 0),
+          surfaces: const SurfacePreferences(clay: 0, hard: 0, grass: 0),
+        ),
+      );
       state = const AuthActionState();
       return true;
     } on FirebaseAuthException catch (e) {
       state = AuthActionState(errorMessage: _messageFor(e));
       return false;
     } catch (_) {
-      state = const AuthActionState(errorMessage: 'Une erreur est survenue, réessaie.');
+      state = const AuthActionState(
+        errorMessage: 'Une erreur est survenue, réessaie.',
+      );
       return false;
     }
   }
@@ -106,7 +119,9 @@ class AuthViewModel extends StateNotifier<AuthActionState> {
       );
       return false;
     } catch (_) {
-      state = const AuthActionState(errorMessage: 'Une erreur est survenue, réessaie.');
+      state = const AuthActionState(
+        errorMessage: 'Une erreur est survenue, réessaie.',
+      );
       return false;
     }
   }
@@ -129,9 +144,10 @@ class AuthViewModel extends StateNotifier<AuthActionState> {
   }
 }
 
-final authViewModelProvider = StateNotifierProvider<AuthViewModel, AuthActionState>(
-  (ref) => AuthViewModel(
-    ref.watch(authRepositoryProvider),
-    ref.watch(userRepositoryProvider),
-  ),
-);
+final authViewModelProvider =
+    StateNotifierProvider<AuthViewModel, AuthActionState>(
+      (ref) => AuthViewModel(
+        ref.watch(authRepositoryProvider),
+        ref.watch(userRepositoryProvider),
+      ),
+    );

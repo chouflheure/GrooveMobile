@@ -47,6 +47,7 @@ class CourtCard extends StatelessWidget {
                     const SizedBox(height: AppSpacing.sm),
                     _SlotsList(
                       slots: freeSlots,
+                      peakTimes: court.peakHours,
                       onTapSlot: (slot) => onSlotTap?.call(court.id, slot),
                     ),
                   ],
@@ -345,9 +346,14 @@ class _SlotsHeader extends StatelessWidget {
 
 class _SlotsList extends StatelessWidget {
   final List<TimeSlot> slots;
+  final List<String> peakTimes;
   final ValueChanged<String> onTapSlot;
 
-  const _SlotsList({required this.slots, required this.onTapSlot});
+  const _SlotsList({
+    required this.slots,
+    required this.peakTimes,
+    required this.onTapSlot,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -359,7 +365,11 @@ class _SlotsList extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (_, i) {
           final slot = slots[i];
-          return TimeSlotChip(slot: slot, onTap: () => onTapSlot(slot.time));
+          return TimeSlotChip(
+            slot: slot,
+            isPeak: peakTimes.contains(slot.time),
+            onTap: () => onTapSlot(slot.time),
+          );
         },
       ),
     );

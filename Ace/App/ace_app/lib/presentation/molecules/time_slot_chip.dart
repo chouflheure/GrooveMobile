@@ -7,18 +7,25 @@ import '../../data/models/models.dart';
 class TimeSlotChip extends StatelessWidget {
   final TimeSlot slot;
   final bool isSelected;
+  // Purely a visual accent (green = heure creuse, blue = heure pleine) so
+  // players can see which price/demand band a slot falls into before
+  // picking it — set by the court's `peakHours`.
+  final bool isPeak;
   final VoidCallback? onTap;
 
   const TimeSlotChip({
     super.key,
     required this.slot,
     this.isSelected = false,
+    this.isPeak = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     if (!slot.isAvailable) return const SizedBox.shrink();
+
+    final accent = isPeak ? AppColors.peakHour : AppColors.offPeakHour;
 
     return GestureDetector(
       onTap: onTap,
@@ -32,8 +39,8 @@ class TimeSlotChip extends StatelessWidget {
           color: isSelected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? AppColors.primary : accent,
+            width: isSelected ? 1.5 : 1.5,
           ),
         ),
         child: Text(

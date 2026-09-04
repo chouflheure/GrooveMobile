@@ -155,6 +155,11 @@ class CourtModel extends Equatable {
   final String clubId;
   final List<UnavailablePeriod> unavailablePeriods;
   final List<AvailabilityOverride> availabilityOverrides;
+  // Which of `availableSlots`' times are "heures pleines" (peak) rather
+  // than the default "heures creuses" (off-peak) — purely informational for
+  // now (shown as a blue vs. green accent), not tied to price or booking
+  // eligibility yet.
+  final List<String> peakHours;
 
   const CourtModel({
     required this.id,
@@ -171,6 +176,7 @@ class CourtModel extends Equatable {
     required this.clubId,
     this.unavailablePeriods = const [],
     this.availabilityOverrides = const [],
+    this.peakHours = const [],
   });
 
   List<TimeSlot> get freeSlots =>
@@ -178,6 +184,8 @@ class CourtModel extends Equatable {
 
   bool isClosedOn(DateTime date) =>
       unavailablePeriods.any((p) => p.covers(date));
+
+  bool isPeakHour(String time) => peakHours.contains(time);
 
   /// The hourly template for a given date — narrowed by whichever
   /// [AvailabilityOverride] covers that date, or the court's normal
@@ -222,6 +230,9 @@ class CourtModel extends Equatable {
               )
               .toList()
         : const [],
+    peakHours: json['peakHours'] != null
+        ? List<String>.from(json['peakHours'] as List)
+        : const [],
   );
 
   Map<String, dynamic> toJson() => {
@@ -241,6 +252,7 @@ class CourtModel extends Equatable {
     'availabilityOverrides': availabilityOverrides
         .map((p) => p.toJson())
         .toList(),
+    'peakHours': peakHours,
   };
 
   @override

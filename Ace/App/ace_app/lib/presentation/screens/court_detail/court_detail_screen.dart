@@ -192,6 +192,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       clubId: template.clubId,
       unavailablePeriods: template.unavailablePeriods,
       availabilityOverrides: template.availabilityOverrides,
+      peakHours: template.peakHours,
     );
   }
 
@@ -578,19 +579,56 @@ class _SlotsSection extends StatelessWidget {
     if (freeSlots.isEmpty) {
       return Text('Aucun créneau disponible.', style: AppTypography.bodySmall);
     }
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: freeSlots
-          .map(
-            (slot) => TimeSlotChip(
-              slot: slot,
-              isSelected: selectedSlot == slot.time,
-              onTap: () =>
-                  onSelect(selectedSlot == slot.time ? null : slot.time),
-            ),
-          )
-          .toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _HourLegendDot(color: AppColors.offPeakHour, label: 'Heure creuse'),
+            const SizedBox(width: AppSpacing.md),
+            _HourLegendDot(color: AppColors.peakHour, label: 'Heure pleine'),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: freeSlots
+              .map(
+                (slot) => TimeSlotChip(
+                  slot: slot,
+                  isSelected: selectedSlot == slot.time,
+                  isPeak: court.isPeakHour(slot.time),
+                  onTap: () =>
+                      onSelect(selectedSlot == slot.time ? null : slot.time),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _HourLegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _HourLegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: AppTypography.labelSmall),
+      ],
     );
   }
 }

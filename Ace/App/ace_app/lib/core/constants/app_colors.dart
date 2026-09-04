@@ -35,4 +35,9 @@ class AppColors {
 
   static const Color indoorBadge = Color(0xFF6366F1);
   static const Color outdoorBadge = Color(0xFF10B981);
+
+  // Court hour categories — "heure creuse" (off-peak) vs. "heure pleine"
+  // (peak), shown as an accent on the slot chip/pastille.
+  static const Color offPeakHour = Color(0xFF22C55E);
+  static const Color peakHour = Color(0xFF3B82F6);
 }

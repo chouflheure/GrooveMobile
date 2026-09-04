@@ -172,6 +172,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
         clubId: court.clubId,
         unavailablePeriods: court.unavailablePeriods,
         availabilityOverrides: court.availabilityOverrides,
+        peakHours: court.peakHours,
       );
     }).toList();
     state = state.copyWith(courts: courts, isLoading: false);

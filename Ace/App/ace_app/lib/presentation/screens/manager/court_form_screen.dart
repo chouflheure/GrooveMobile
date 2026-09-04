@@ -48,6 +48,9 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
   late final Set<String> _selectedTimes = widget.court != null
       ? widget.court!.availableSlots.map((s) => s.time).toSet()
       : AppConstants.timeSlots.toSet();
+  late final Set<String> _peakTimes = widget.court != null
+      ? widget.court!.peakHours.toSet()
+      : {};
   final List<UnavailablePeriod> _periods = [];
   final List<AvailabilityOverride> _overrides = [];
   String _overrideFrom = AppConstants.timeSlots.first;
@@ -163,6 +166,8 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
       clubId: _clubId ?? '',
       unavailablePeriods: _periods,
       availabilityOverrides: _overrides,
+      // A time can only be "peak" if it's actually offered.
+      peakHours: _peakTimes.where(_selectedTimes.contains).toList(),
     );
 
     final ok = await ref
@@ -448,9 +453,32 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
           const SizedBox(height: AppSpacing.lg),
           _Label('Créneaux proposés'),
           const SizedBox(height: AppSpacing.xs),
-          Text(
-            "Les horaires que ce terrain propose entre 8h et 20h.",
-            style: AppTypography.bodySmall,
+          Text.rich(
+            TextSpan(
+              style: AppTypography.bodySmall,
+              children: [
+                const TextSpan(
+                  text: 'Clique sur un horaire pour le faire passer par : '
+                      'non proposé (gris) → ',
+                ),
+                TextSpan(
+                  text: 'heure creuse',
+                  style: TextStyle(
+                    color: AppColors.offPeakHour,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const TextSpan(text: ' (vert) → '),
+                TextSpan(
+                  text: 'heure pleine',
+                  style: TextStyle(
+                    color: AppColors.peakHour,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const TextSpan(text: ' (bleu).'),
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
@@ -458,37 +486,24 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             runSpacing: AppSpacing.sm,
             children: AppConstants.timeSlots.map((t) {
               final isSelected = _selectedTimes.contains(t);
-              return GestureDetector(
+              final isPeak = _peakTimes.contains(t);
+              return _HourStateChip(
+                time: t,
+                isOffered: isSelected,
+                isPeak: isPeak,
                 onTap: () => setState(() {
-                  if (isSelected) {
-                    _selectedTimes.remove(t);
-                  } else {
+                  if (!isSelected) {
+                    // Not offered -> heure creuse.
                     _selectedTimes.add(t);
+                  } else if (!isPeak) {
+                    // Heure creuse -> heure pleine.
+                    _peakTimes.add(t);
+                  } else {
+                    // Heure pleine -> not offered.
+                    _selectedTimes.remove(t);
+                    _peakTimes.remove(t);
                   }
                 }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.background,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    t,
-                    style: AppTypography.labelMedium.copyWith(
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
               );
             }).toList(),
           ),
@@ -688,6 +703,55 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
       vertical: AppSpacing.sm,
     ),
   );
+}
+
+/// One hour "pastille" in the court edit form's "Créneaux proposés" — tap
+/// cycles it through not-offered (grey) → heure creuse (green) → heure
+/// pleine (blue) → back to not-offered.
+class _HourStateChip extends StatelessWidget {
+  final String time;
+  final bool isOffered;
+  final bool isPeak;
+  final VoidCallback onTap;
+
+  const _HourStateChip({
+    required this.time,
+    required this.isOffered,
+    required this.isPeak,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accent = !isOffered
+        ? AppColors.textTertiary
+        : isPeak
+        ? AppColors.peakHour
+        : AppColors.offPeakHour;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isOffered ? accent : AppColors.background,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          border: Border.all(color: accent, width: isOffered ? 1.5 : 1),
+        ),
+        child: Text(
+          time,
+          style: AppTypography.labelMedium.copyWith(
+            color: isOffered ? Colors.white : AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Label extends StatelessWidget {

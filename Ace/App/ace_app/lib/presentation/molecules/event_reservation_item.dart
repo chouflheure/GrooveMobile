@@ -25,10 +25,10 @@ class EventReservationItem extends StatelessWidget {
     final dateStr =
         '${event.date.day.toString().padLeft(2, '0')}/${event.date.month.toString().padLeft(2, '0')}/${event.date.year}';
     final timeStr = event.startTime.isEmpty
-        ? ''
+        ? null
         : event.endTime.isEmpty
-        ? ' · ${event.startTime}'
-        : ' · ${event.startTime} – ${event.endTime}';
+        ? event.startTime
+        : '${event.startTime} – ${event.endTime}';
 
     return GestureDetector(
       onTap: onTap,
@@ -60,7 +60,9 @@ class EventReservationItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text('$dateStr$timeStr', style: AppTypography.bodySmall),
+                  Text(dateStr, style: AppTypography.bodySmall),
+                  if (timeStr != null)
+                    Text(timeStr, style: AppTypography.bodySmall),
                   Text(
                     'Événement · ${event.clubName}',
                     style: AppTypography.bodySmall.copyWith(

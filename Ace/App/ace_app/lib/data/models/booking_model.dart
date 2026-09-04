@@ -39,6 +39,10 @@ class BookingModel extends Equatable {
   // Optional label an admin can attach when creating a booking through
   // Manager (e.g. "Tournoi interne", "Cours particulier").
   final String? title;
+  // True for the slot-blocking bookings an admin's event creation writes to
+  // reserve its courts — these exist purely to mark the court unavailable,
+  // not as anyone's personal reservation, so profile screens exclude them.
+  final bool isEventBlock;
 
   const BookingModel({
     required this.id,
@@ -59,6 +63,7 @@ class BookingModel extends Equatable {
     this.gateCode,
     this.courtAddress,
     this.title,
+    this.isEventBlock = false,
   });
 
   bool get isConfirmed => status == BookingStatus.confirmed;
@@ -83,6 +88,7 @@ class BookingModel extends Equatable {
   bool get hasPartner => partnerId != null;
 
   DateTime get startDateTime => _timeOn(startTime);
+  DateTime get endDateTime => _timeOn(endTime);
 
   /// Cancellation is blocked once the slot is within 5 minutes of starting
   /// (or already under way) — cancelling a booking that's about to happen
@@ -117,6 +123,7 @@ class BookingModel extends Equatable {
     gateCode: json['gateCode'] as String?,
     courtAddress: json['courtAddress'] as String?,
     title: json['title'] as String?,
+    isEventBlock: json['isEventBlock'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -138,6 +145,7 @@ class BookingModel extends Equatable {
     'gateCode': gateCode,
     'courtAddress': courtAddress,
     'title': title,
+    'isEventBlock': isEventBlock,
   };
 
   BookingModel copyWith({

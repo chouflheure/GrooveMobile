@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -43,9 +44,14 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     if (user == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
-        body: _GuestProfilePrompt(),
+        body: const Column(
+          children: [
+            Expanded(child: _GuestProfilePrompt()),
+            _VersionFooter(),
+          ],
+        ),
       );
     }
 
@@ -70,6 +76,7 @@ class ProfileScreen extends ConsumerWidget {
                 : _BookingsSection(state: state, currentUserId: user.id),
           ),
           SliverToBoxAdapter(child: _SettingsSection()),
+          const SliverToBoxAdapter(child: _VersionFooter()),
           SliverToBoxAdapter(
             child: SizedBox(
               height: AppSpacing.xxxl + MediaQuery.paddingOf(context).bottom,
@@ -575,6 +582,32 @@ class _SettingsSection extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _VersionFooter extends StatelessWidget {
+  const _VersionFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        if (info == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.md),
+          child: Center(
+            child: Text(
+              'Version ${info.version} (${info.buildNumber})',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -14,7 +14,6 @@ import 'community_view_model.dart';
 import 'chat_screen.dart';
 import 'club_broadcast_screen.dart';
 import 'propose_slot_modal.dart';
-import '../user_profile/user_profile_screen.dart';
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -347,18 +346,6 @@ class _AnnouncementsTab extends StatelessWidget {
                 onInterested: () => onInterested(a),
                 onEdit: () => onEdit(a),
                 onDelete: () => onDelete(a.id),
-                onUserTap: () {
-                  final user = allUsers
-                      .where((u) => u.id == a.userId)
-                      .firstOrNull;
-                  if (user != null && user.id != currentUserId) {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => UserProfileScreen(user: user),
-                      ),
-                    );
-                  }
-                },
               ),
             ),
           ),

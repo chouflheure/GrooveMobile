@@ -53,4 +53,9 @@ class CourtRepository {
   Future<void> update(CourtModel court) {
     return _collection.doc(court.id).set(court.toJson());
   }
+
+  /// Admin-only — deletes a court. Existing bookings on it aren't touched.
+  Future<void> delete(String courtId) {
+    return _collection.doc(courtId).delete();
+  }
 }

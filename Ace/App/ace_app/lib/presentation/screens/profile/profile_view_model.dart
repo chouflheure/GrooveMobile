@@ -12,14 +12,18 @@ class ProfileState {
 
   const ProfileState({this.bookings = const [], this.isLoading = false});
 
+  // Event-driven slot blocks aren't a personal reservation — they just mark
+  // a court unavailable for an event — so they're excluded from here even
+  // when the admin who created the event is the one who'd otherwise see it.
   List<BookingModel> get pastBookings =>
-      bookings.where((b) => b.isPast).toList();
+      bookings.where((b) => b.isPast && !b.isEventBlock).toList();
 
   List<BookingModel> get upcomingBookings =>
-      bookings.where((b) => b.isUpcoming).toList()..sort((a, b) {
-        final cmp = a.date.compareTo(b.date);
-        return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
-      });
+      bookings.where((b) => b.isUpcoming && !b.isEventBlock).toList()
+        ..sort((a, b) {
+          final cmp = a.date.compareTo(b.date);
+          return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
+        });
 
   ProfileState copyWith({List<BookingModel>? bookings, bool? isLoading}) {
     return ProfileState(

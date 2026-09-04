@@ -340,6 +340,19 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
+  Future<bool> deleteCourt(String courtId, String name) async {
+    try {
+      await _courtRepository.delete(courtId);
+      if (mounted) state = state.copyWith(message: '$name supprimé.');
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la suppression : $e');
+      }
+      return false;
+    }
+  }
+
   /// Creates a club event on behalf of the current admin. When the event has
   /// a start/end time and courts were selected, also books every hourly
   /// slot in that range on each of those courts so they show as occupied.
@@ -411,6 +424,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
           isAdminBooking: true,
           courtAddress: court.location,
           title: title,
+          isEventBlock: true,
         );
         try {
           await _bookingRepository.create(booking);

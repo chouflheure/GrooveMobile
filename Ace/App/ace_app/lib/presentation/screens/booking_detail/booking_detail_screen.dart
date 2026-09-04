@@ -1,3 +1,4 @@
+import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,6 +63,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           child: const Icon(Icons.arrow_back_rounded),
         ),
         actions: [
+          IconButton(
+            onPressed: () => _addToCalendar(address),
+            icon: const Icon(Icons.calendar_month_rounded),
+          ),
           IconButton(
             onPressed: () => _share(context, address),
             icon: const Icon(Icons.ios_share_rounded),
@@ -236,6 +241,22 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  void _addToCalendar(String? address) {
+    Add2Calendar.addEvent2Cal(
+      Event(
+        title: _booking.title?.isNotEmpty == true
+            ? _booking.title!
+            : 'Réservation — ${_booking.courtName}',
+        description: _booking.partnerName != null
+            ? 'Avec ${_booking.partnerName}'
+            : '',
+        location: address ?? '',
+        startDate: _booking.startDateTime,
+        endDate: _booking.endDateTime,
+      ),
+    );
+  }
 
   void _share(BuildContext context, String? address) {
     final dateStr = DateFormat(

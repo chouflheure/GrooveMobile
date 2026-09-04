@@ -1,3 +1,4 @@
+import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +28,37 @@ class EventDetailScreen extends ConsumerWidget {
     SharePlus.instance.share(ShareParams(text: lines.join('\n')));
   }
 
+  DateTime _timeOn(DateTime date, String hhmm) {
+    final parts = hhmm.split(':');
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+  }
+
+  void _addToCalendar(ClubEventModel current) {
+    final hasTime = current.startTime.isNotEmpty;
+    final start = hasTime
+        ? _timeOn(current.date, current.startTime)
+        : current.date;
+    final end = hasTime && current.endTime.isNotEmpty
+        ? _timeOn(current.date, current.endTime)
+        : start.add(const Duration(hours: 1));
+    Add2Calendar.addEvent2Cal(
+      Event(
+        title: current.title,
+        description: current.description,
+        location: current.address,
+        startDate: start,
+        endDate: end,
+        allDay: !hasTime,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Falls back to the snapshot passed at navigation time until the live
@@ -50,6 +82,10 @@ class EventDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(current.clubName, style: AppTypography.headlineSmall),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month_rounded),
+            onPressed: () => _addToCalendar(current),
+          ),
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),
             onPressed: () => _share(current),

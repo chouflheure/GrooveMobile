@@ -21,11 +21,14 @@ class CourtsScreen extends ConsumerWidget {
     final state = ref.watch(courtsViewModelProvider);
     final vm = ref.read(courtsViewModelProvider.notifier);
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
-    // Guests (no club) see every event, same as they see every court;
-    // a signed-in player only sees events from a club they belong to.
+    // Guests only browse the demo club ("MockClub", see `state.clubs`
+    // scoping in CourtsViewModel); a signed-in player sees events from a
+    // club they belong to.
     final allEvents = ref.watch(clubEventsProvider).valueOrNull ?? const [];
     final events = currentUser == null
         ? allEvents
+              .where((e) => state.clubs.any((c) => c.id == e.clubId))
+              .toList()
         : allEvents
               .where((e) => currentUser.clubIds.contains(e.clubId))
               .toList();

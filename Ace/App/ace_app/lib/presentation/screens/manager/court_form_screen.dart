@@ -53,6 +53,7 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
   String _overrideFrom = AppConstants.timeSlots.first;
   String _overrideTo = AppConstants.timeSlots.last;
   bool _isSaving = false;
+  bool _isDeleting = false;
 
   bool get _isEditing => widget.court != null;
 
@@ -172,6 +173,41 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
     if (ok) Navigator.of(context, rootNavigator: true).pop();
   }
 
+  Future<void> _delete() async {
+    final court = widget.court;
+    if (court == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supprimer ce terrain ?'),
+        content: Text(
+          '"${court.name}" sera définitivement supprimé. Les réservations existantes ne seront pas annulées.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _isDeleting = true);
+    final ok = await ref
+        .read(managerViewModelProvider.notifier)
+        .deleteCourt(court.id, court.name);
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
+    if (ok) Navigator.of(context, rootNavigator: true).pop();
+  }
+
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
@@ -205,6 +241,16 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
       appBar: AppBar(
         scrolledUnderElevation: 0,
         title: Text(_isEditing ? 'Modifier le terrain' : 'Ajouter un terrain'),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              onPressed: _isDeleting ? null : _delete,
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+              ),
+            ),
+        ],
         leading: GestureDetector(
           onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),

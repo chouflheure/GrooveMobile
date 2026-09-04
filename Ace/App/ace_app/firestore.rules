@@ -16,7 +16,12 @@ service cloud.firestore {
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds
         && request.resource.data.clubId in
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
-      allow delete: if false;
+      // Same admin/club scoping as update — only the admin of that club can
+      // delete the court.
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
     }
 
     match /clubs/{clubId} {

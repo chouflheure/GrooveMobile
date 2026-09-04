@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>CourtConnect a besoin d'accéder à ton calendrier pour y ajouter tes matchs et événements.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>CourtConnect a besoin d'accéder à ton calendrier pour y ajouter tes matchs et événements.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

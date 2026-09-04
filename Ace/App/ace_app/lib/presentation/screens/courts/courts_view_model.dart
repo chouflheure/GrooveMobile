@@ -108,20 +108,31 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
           _recompute();
         });
     _clubsSubscription = _clubRepository.watchAll().listen((clubs) {
-      state = state.copyWith(
-        clubs: _userClubIds == null
-            ? clubs
-            : clubs.where((c) => _userClubIds.contains(c.id)).toList(),
-      );
+      if (_userClubIds == null) {
+        // Guests only get a browsable preview, scoped to the single demo
+        // club (doc id "MockClub") rather than every real club in the
+        // database.
+        _mockClubId = clubs.where((c) => c.id == 'MockClub').firstOrNull?.id;
+        state = state.copyWith(
+          clubs: clubs.where((c) => c.id == 'MockClub').toList(),
+        );
+        _recompute();
+      } else {
+        state = state.copyWith(
+          clubs: clubs.where((c) => _userClubIds.contains(c.id)).toList(),
+        );
+      }
     });
   }
 
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
   final ClubRepository _clubRepository;
-  // Null for guests (no restriction, browse everything); a signed-in
-  // player only ever sees courts belonging to a club they're a member of.
+  // Null for guests (scoped to the demo club only, see `_mockClubId`); a
+  // signed-in player only ever sees courts belonging to a club they're a
+  // member of.
   final List<String>? _userClubIds;
+  String? _mockClubId;
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<Map<String, Set<String>>> _bookingsSubscription;
   late final StreamSubscription<List<ClubModel>> _clubsSubscription;
@@ -132,7 +143,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
   void _recompute() {
     final today = AppConstants.today();
     final scoped = _userClubIds == null
-        ? _rawCourts
+        ? _rawCourts.where((c) => c.clubId == _mockClubId).toList()
         : _rawCourts.where((c) => _userClubIds.contains(c.clubId)).toList();
     final courts = scoped.map((court) {
       final booked = _bookedSlots[court.id] ?? const <String>{};

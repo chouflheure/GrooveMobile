@@ -42,9 +42,22 @@ function localMidnightIsoString(date, timeZone) {
   return `${dateKeyInTimeZone(date, timeZone)}T00:00:00.000`;
 }
 
+/**
+ * Formats a booking/event/broadcast `date` field (a plain no-offset ISO
+ * string, e.g. "2026-12-10T00:00:00.000") as "10/12/2026" for display —
+ * reads the "YYYY-MM-DD" straight out of the string instead of going
+ * through a `Date` object, so it can't be shifted by a day depending on
+ * the Cloud Function's own timezone.
+ */
+function formatDateFr(isoDate) {
+  const [year, month, day] = isoDate.slice(0, 10).split("-");
+  return `${day}/${month}/${year}`;
+}
+
 module.exports = {
   APP_TIMEZONE,
   dateKeyInTimeZone,
   zonedTimeToUtc,
   localMidnightIsoString,
+  formatDateFr,
 };

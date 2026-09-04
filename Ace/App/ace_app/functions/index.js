@@ -11,6 +11,7 @@ const {
   dateKeyInTimeZone,
   zonedTimeToUtc,
   localMidnightIsoString,
+  formatDateFr,
 } = require("./lib/time");
 
 admin.initializeApp();
@@ -118,13 +119,32 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
     : [booking.partnerId].filter(Boolean);
   if (recipientIds.length === 0) return;
 
-  await sendPushToUserIds(recipientIds, {
-    title: "Nouveau match",
-    body: `Tu as été ajouté à un match le ${booking.startTime} sur ${booking.courtName}.`,
-  }, {
-    type: "booking_created",
-    bookingId: event.params.bookingId,
-  });
+  // The title names the opponent, which depends on who's receiving it — the
+  // booking doc only carries the booker's id (not their name), so it's
+  // looked up once, only if someone other than the booker actually needs it.
+  let bookerName = null;
+  if (recipientIds.includes(booking.partnerId)) {
+    const bookerDoc = await admin.firestore().collection("users").doc(booking.userId).get();
+    bookerName = bookerDoc.exists ? bookerDoc.get("name") : null;
+  }
+
+  const dateStr = formatDateFr(booking.date);
+  const titleFor = (recipientId) => {
+    const opponentName =
+      (recipientId === booking.partnerId ? bookerName : booking.partnerName) ||
+      "un partenaire";
+    return `Match contre ${opponentName} le ${dateStr} à ${booking.startTime} sur le terrain ${booking.courtName}`;
+  };
+
+  await Promise.all(
+    recipientIds.map((recipientId) =>
+      sendPushToUserIds(
+        [recipientId],
+        { title: titleFor(recipientId), body: "Tu as été ajouté à ce match." },
+        { type: "booking_created", bookingId: event.params.bookingId },
+      ),
+    ),
+  );
 });
 
 /**

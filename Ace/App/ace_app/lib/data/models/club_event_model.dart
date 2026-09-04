@@ -9,6 +9,11 @@ class ClubEventModel extends Equatable {
   final DateTime date;
   final String address;
   final List<String> courtNames;
+  // Hourly start/end times ("HH:mm") the event occupies on its selected
+  // courts — empty when the event doesn't block any court time (e.g. no
+  // court was picked). Only meaningful together with `courtNames`.
+  final String startTime;
+  final String endTime;
   final List<String> participantIds;
   final DateTime createdAt;
 
@@ -21,6 +26,8 @@ class ClubEventModel extends Equatable {
     required this.date,
     required this.address,
     this.courtNames = const [],
+    this.startTime = '',
+    this.endTime = '',
     this.participantIds = const [],
     required this.createdAt,
   });
@@ -36,6 +43,8 @@ class ClubEventModel extends Equatable {
     courtNames: json['courtNames'] != null
         ? List<String>.from(json['courtNames'] as List)
         : const [],
+    startTime: json['startTime'] as String? ?? '',
+    endTime: json['endTime'] as String? ?? '',
     participantIds: json['participantIds'] != null
         ? List<String>.from(json['participantIds'] as List)
         : const [],
@@ -51,6 +60,8 @@ class ClubEventModel extends Equatable {
     'date': date.toIso8601String(),
     'address': address,
     'courtNames': courtNames,
+    'startTime': startTime,
+    'endTime': endTime,
     'participantIds': participantIds,
     'createdAt': createdAt.toIso8601String(),
   };

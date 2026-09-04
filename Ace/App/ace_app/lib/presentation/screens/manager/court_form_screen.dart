@@ -211,10 +211,15 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
         ),
       ),
       body: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           _Label('Nom'),
-          _TextField(controller: _nameController, hint: 'Court Central'),
+          _TextField(
+            controller: _nameController,
+            hint: 'Court Central',
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Club'),
           const SizedBox(height: AppSpacing.xs),
@@ -258,7 +263,11 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Adresse'),
-          _TextField(controller: _locationController, hint: 'Paris 12e'),
+          _TextField(
+            controller: _locationController,
+            hint: 'Paris 12e',
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Image (URL)'),
           _TextField(controller: _imageUrlController, hint: 'https://...'),
@@ -275,6 +284,7 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             controller: _priceController,
             hint: '25',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Type'),
@@ -648,12 +658,14 @@ class _TextField extends StatelessWidget {
   final String hint;
   final int maxLines;
   final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
 
   const _TextField({
     required this.controller,
     required this.hint,
     this.maxLines = 1,
     this.keyboardType,
+    this.onChanged,
   });
 
   @override
@@ -662,6 +674,7 @@ class _TextField extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       style: AppTypography.bodyMedium,
       decoration: InputDecoration(
         hintText: hint,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/repositories/club_event_repository.dart';
@@ -90,12 +91,11 @@ class ManagerState {
   });
 
   List<BookingModel> get activeBookings {
-    final active =
-        allBookings.where((b) => b.status != BookingStatus.cancelled).toList()
-          ..sort((a, b) {
-            final cmp = a.date.compareTo(b.date);
-            return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
-          });
+    final active = allBookings.where((b) => b.isUpcoming).toList()
+      ..sort((a, b) {
+        final cmp = a.date.compareTo(b.date);
+        return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
+      });
     return active;
   }
 
@@ -334,11 +334,33 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
-  /// Creates a club event on behalf of the current admin.
-  Future<bool> createEvent(ClubEventModel event) async {
+  /// Creates a club event on behalf of the current admin. When the event has
+  /// a start/end time and courts were selected, also books every hourly
+  /// slot in that range on each of those courts so they show as occupied.
+  Future<bool> createEvent(
+    ClubEventModel event, {
+    List<CourtModel> reserveCourts = const [],
+  }) async {
     try {
       await _clubEventRepository.create(event);
-      if (mounted) state = state.copyWith(message: '${event.title} créé.');
+      String message = '${event.title} créé.';
+      if (reserveCourts.isNotEmpty &&
+          event.startTime.isNotEmpty &&
+          event.endTime.isNotEmpty) {
+        final failures = await _reserveSlots(
+          courts: reserveCourts,
+          date: event.date,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          title: event.title,
+        );
+        if (failures.isNotEmpty) {
+          message =
+              '${event.title} créé, mais ${failures.length} créneau(x) '
+              "n'ont pas pu être réservé(s) (déjà pris).";
+        }
+      }
+      if (mounted) state = state.copyWith(message: message);
       return true;
     } catch (e) {
       if (mounted) {
@@ -346,6 +368,52 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
       }
       return false;
     }
+  }
+
+  /// Books one hour-long slot per court, per hour between [startTime]
+  /// (inclusive) and [endTime] (exclusive) — same 1h-slot model as
+  /// `createMatch`. Returns the slots that failed (already booked, etc).
+  Future<List<String>> _reserveSlots({
+    required List<CourtModel> courts,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String title,
+  }) async {
+    final bookerId = _currentUserId;
+    if (bookerId == null) return const [];
+    final allTimes = [...AppConstants.timeSlots, '24:00'];
+    final startIdx = allTimes.indexOf(startTime);
+    final endIdx = allTimes.indexOf(endTime);
+    if (startIdx == -1 || endIdx == -1 || endIdx <= startIdx) return const [];
+    final hourlySlots = allTimes.sublist(startIdx, endIdx);
+
+    final failures = <String>[];
+    for (final court in courts) {
+      for (final slot in hourlySlots) {
+        final booking = BookingModel(
+          id: '',
+          courtId: court.id,
+          courtName: court.name,
+          userId: bookerId,
+          date: date,
+          startTime: slot,
+          endTime: _addHours(slot, 1),
+          status: BookingStatus.confirmed,
+          price: court.pricePerHour,
+          createdAt: DateTime.now(),
+          isAdminBooking: true,
+          courtAddress: court.location,
+          title: title,
+        );
+        try {
+          await _bookingRepository.create(booking);
+        } catch (e) {
+          failures.add('${court.name} $slot');
+        }
+      }
+    }
+    return failures;
   }
 
   /// Updates a club event on behalf of the current admin.

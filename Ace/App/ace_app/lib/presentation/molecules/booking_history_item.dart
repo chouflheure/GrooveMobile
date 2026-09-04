@@ -61,6 +61,12 @@ class BookingHistoryItem extends ConsumerWidget {
                     : AppColors.lossBadge.withValues(alpha: 0.15),
                 textColor: isWin ? AppColors.winBadge : AppColors.lossBadge,
               )
+            else if (booking.status == BookingStatus.cancelled)
+              AppBadge(
+                label: '✕',
+                backgroundColor: AppColors.error.withValues(alpha: 0.12),
+                textColor: AppColors.error,
+              )
             else
               AppBadge(
                 label: booking.status == BookingStatus.confirmed ? '✓' : '...',

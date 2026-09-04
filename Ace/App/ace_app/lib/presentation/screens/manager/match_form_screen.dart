@@ -66,6 +66,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
         ),
       ),
       body: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: EdgeInsets.fromLTRB(
           AppSpacing.lg,
           AppSpacing.lg,

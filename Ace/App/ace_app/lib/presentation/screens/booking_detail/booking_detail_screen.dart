@@ -260,6 +260,7 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isConfirmed = booking.status == BookingStatus.confirmed;
+    final isCancelled = booking.status == BookingStatus.cancelled;
     final isPast = booking.isPast;
 
     // Past bookings use a light gradient — white text/icons on it would be
@@ -292,7 +293,11 @@ class _StatusCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isConfirmed ? Icons.check_circle_rounded : Icons.pending_rounded,
+              isConfirmed
+                  ? Icons.check_circle_rounded
+                  : isCancelled
+                  ? Icons.cancel_rounded
+                  : Icons.pending_rounded,
               color: iconColor,
               size: 28,
             ),
@@ -307,7 +312,9 @@ class _StatusCard extends StatelessWidget {
                   style: AppTypography.headlineMedium.copyWith(color: fgColor),
                 ),
                 Text(
-                  !isConfirmed
+                  isCancelled
+                      ? 'Réservation annulée'
+                      : !isConfirmed
                       ? 'En attente de confirmation'
                       : isPast
                       ? 'Réservation finie'

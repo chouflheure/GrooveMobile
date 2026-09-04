@@ -22,17 +22,28 @@ class GroupChatFormScreen extends ConsumerStatefulWidget {
 
 class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
   final _messageController = TextEditingController();
+  final _searchController = TextEditingController();
   final Set<String> _selectedIds = {};
+  String _query = '';
   bool _isSending = false;
 
   @override
   void dispose() {
     _messageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
+  List<UserModel> get _filteredPlayers {
+    final query = _query.toLowerCase().trim();
+    if (query.isEmpty) return widget.players;
+    return widget.players
+        .where((u) => u.name.toLowerCase().contains(query))
+        .toList();
+  }
+
   bool get _isValid =>
-      _selectedIds.length >= 2 && _messageController.text.trim().isNotEmpty;
+      _selectedIds.isNotEmpty && _messageController.text.trim().isNotEmpty;
 
   Future<void> _create() async {
     if (!_isValid) return;
@@ -87,16 +98,62 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
         children: [
           Expanded(
             child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 Text('Participants', style: AppTypography.labelLarge),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Choisis au moins 2 personnes.',
+                  'Choisis au moins 1 personne.',
                   style: AppTypography.bodySmall,
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                ...widget.players.map((u) {
+                TextField(
+                  controller: _searchController,
+                  onChanged: (q) => setState(() => _query = q),
+                  style: AppTypography.bodyMedium,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher un joueur...',
+                    hintStyle: AppTypography.bodySmall,
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                if (_filteredPlayers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.lg,
+                    ),
+                    child: Text(
+                      'Aucun joueur trouvé.',
+                      style: AppTypography.bodySmall,
+                    ),
+                  ),
+                ..._filteredPlayers.map((u) {
                   final isSelected = _selectedIds.contains(u.id);
                   return GestureDetector(
                     onTap: () => setState(() {

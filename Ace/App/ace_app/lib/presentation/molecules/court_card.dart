@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
@@ -72,10 +73,23 @@ class _CourtImage extends StatelessWidget {
         SizedBox(
           height: 180,
           width: double.infinity,
-          child: Image.network(
-            court.imageUrl,
+          child: CachedNetworkImage(
+            imageUrl: court.imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            placeholder: (context, url) => Container(
+              color: AppColors.surfaceVariant,
+              child: const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) => Container(
               color: AppColors.surfaceVariant,
               child: const Icon(
                 Icons.sports_tennis,

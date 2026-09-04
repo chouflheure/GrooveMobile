@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -231,10 +232,19 @@ class _SliverHero extends StatelessWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(
-              court.imageUrl,
+            CachedNetworkImage(
+              imageUrl: court.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+              placeholder: (context, url) => Container(
+                color: AppColors.surfaceVariant,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
                 color: AppColors.surfaceVariant,
                 child: const Icon(
                   Icons.sports_tennis,

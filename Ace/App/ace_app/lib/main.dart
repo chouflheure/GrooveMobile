@@ -55,12 +55,14 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
     // A push tapped while the app was backgrounded (not terminated) resumes
     // it and fires here.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      debugPrint('Notification: onMessageOpenedApp data=${message.data}');
       handleNotificationTap(ref, message.data);
     });
     // A push tapped while the app was fully terminated launches it fresh —
     // that tap is instead handed back the first time this is read, so it's
     // checked once at startup rather than via a stream.
     FirebaseMessaging.instance.getInitialMessage().then((message) {
+      debugPrint('Notification: getInitialMessage data=${message?.data}');
       if (message != null) handleNotificationTap(ref, message.data);
     });
 

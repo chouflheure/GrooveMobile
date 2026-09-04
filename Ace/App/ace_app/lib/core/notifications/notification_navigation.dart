@@ -19,6 +19,7 @@ import '../router/app_router.dart';
 /// notification (Android only) via its tap payload.
 Future<void> handleNotificationTap(WidgetRef ref, Map<String, dynamic> data) async {
   final context = rootNavigatorKey.currentContext;
+  debugPrint('NotificationNav: handleNotificationTap data=$data context=$context');
   if (context == null) return;
 
   switch (data['type']) {
@@ -42,11 +43,15 @@ Future<void> _openConversation(
 ) async {
   if (conversationId == null) return;
   final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
-  if (currentUserId == null) return;
+  if (currentUserId == null) {
+    debugPrint('NotificationNav: _openConversation aborted, no current user yet');
+    return;
+  }
 
   final participantIds = await ref
       .read(messageRepositoryProvider)
       .participantIdsForConversation(conversationId);
+  debugPrint('NotificationNav: _openConversation participantIds=$participantIds');
   if (participantIds == null || !context.mounted) return;
 
   final otherIds = participantIds.where((id) => id != currentUserId).toList();
@@ -75,9 +80,13 @@ Future<void> _openBroadcast(
 ) async {
   if (broadcastId == null) return;
   final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
-  if (currentUserId == null) return;
+  if (currentUserId == null) {
+    debugPrint('NotificationNav: _openBroadcast aborted, no current user yet');
+    return;
+  }
 
   final announcement = await ref.read(broadcastRepositoryProvider).getById(broadcastId);
+  debugPrint('NotificationNav: _openBroadcast announcement=$announcement');
   if (announcement == null || !context.mounted) return;
 
   Navigator.of(context, rootNavigator: true).push(
@@ -97,6 +106,7 @@ Future<void> _openClubEvent(
 ) async {
   if (eventId == null) return;
   final event = await ref.read(clubEventRepositoryProvider).getById(eventId);
+  debugPrint('NotificationNav: _openClubEvent event=$event');
   if (event == null || !context.mounted) return;
   context.push('/event/${event.id}', extra: event);
 }
@@ -108,6 +118,7 @@ Future<void> _openBooking(
 ) async {
   if (bookingId == null) return;
   final booking = await ref.read(bookingRepositoryProvider).getById(bookingId);
+  debugPrint('NotificationNav: _openBooking booking=$booking');
   if (booking == null || !context.mounted) return;
 
   Navigator.of(context, rootNavigator: true).push(

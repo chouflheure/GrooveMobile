@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../molecules/molecules.dart';
 import '../booking_detail/booking_detail_screen.dart';
@@ -13,6 +14,7 @@ class AllBookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final groups = groupConsecutiveBookings(bookings);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -29,7 +31,7 @@ class AllBookingsScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: bookings.isEmpty
+      body: groups.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -46,14 +48,15 @@ class AllBookingsScreen extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: bookings.length,
+              itemCount: groups.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
               itemBuilder: (_, i) => BookingHistoryItem(
-                booking: bookings[i],
+                group: groups[i],
                 titleColor: AppColors.primary,
                 onTap: () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute(
-                    builder: (_) => BookingDetailScreen(booking: bookings[i]),
+                    builder: (_) =>
+                        BookingDetailScreen(booking: groups[i].first),
                   ),
                 ),
               ),

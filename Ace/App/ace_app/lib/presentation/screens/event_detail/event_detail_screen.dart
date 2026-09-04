@@ -9,6 +9,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../auth/auth_view_model.dart';
 import '../courts/club_event_providers.dart';
+import 'event_participants_screen.dart';
 
 class EventDetailScreen extends ConsumerWidget {
   final ClubEventModel event;
@@ -76,6 +77,25 @@ class EventDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            if (current.startTime.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time_rounded,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    current.endTime.isNotEmpty
+                        ? '${current.startTime} - ${current.endTime}'
+                        : current.startTime,
+                    style: AppTypography.bodyMedium,
+                  ),
+                ],
+              ),
+            ],
             if (current.description.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.xxl),
               _Section(
@@ -143,19 +163,35 @@ class EventDetailScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xxl),
             _Section(
               title: 'Participants',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.group_outlined,
-                    size: 16,
-                    color: AppColors.textSecondary,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => EventParticipantsScreen(
+                      participantIds: current.participantIds,
+                      eventTitle: current.title,
+                    ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${current.participantIds.length} participant${current.participantIds.length >= 2 ? 's' : ''}',
-                    style: AppTypography.bodyMedium,
-                  ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.group_outlined,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${current.participantIds.length} participant${current.participantIds.length >= 2 ? 's' : ''}',
+                      style: AppTypography.bodyMedium,
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xxxl),

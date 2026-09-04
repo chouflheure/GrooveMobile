@@ -8,20 +8,29 @@ import '../../data/models/models.dart';
 import '../atoms/atoms.dart';
 import '../screens/auth/auth_view_model.dart';
 
+/// Renders one card per logical booking — `group` holds every hourly slot
+/// that got merged into it (see `groupConsecutiveBookings`), so a match or
+/// event booked across several hours shows as a single card with the
+/// combined time range instead of one card per hour. Pass a single-element
+/// list for an ordinary 1h booking.
 class BookingHistoryItem extends ConsumerWidget {
-  final BookingModel booking;
+  final List<BookingModel> group;
   final VoidCallback? onTap;
   final Color? titleColor;
 
   const BookingHistoryItem({
     super.key,
-    required this.booking,
+    required this.group,
     this.onTap,
     this.titleColor,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final booking = group.first;
+    final timeRange = group.length > 1
+        ? '${booking.startTime} – ${group.last.endTime}'
+        : '${booking.startTime} – ${booking.endTime}';
     final dateStr = DateFormat('dd MMM yyyy', 'fr_FR').format(booking.date);
     final isWin = booking.result == BookingResult.win;
     final hasResult = booking.result != null;
@@ -102,10 +111,15 @@ class BookingHistoryItem extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '$dateStr · ${booking.startTime} – ${booking.endTime}',
-                    style: AppTypography.bodySmall,
-                  ),
+                  if (booking.title != null && booking.title!.isNotEmpty)
+                    Text(
+                      booking.title!,
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  Text('$dateStr · $timeRange', style: AppTypography.bodySmall),
                   if (opponentName != null)
                     Text(
                       'vs $opponentName${booking.score != null ? ' — ${booking.score}' : ''}',

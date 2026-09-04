@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
@@ -311,8 +312,8 @@ class _BookingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = state.upcomingBookings;
-    final past = state.pastBookings;
+    final upcoming = groupConsecutiveBookings(state.upcomingBookings);
+    final past = groupConsecutiveBookings(state.pastBookings);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -330,11 +331,11 @@ class _BookingsSection extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             ...upcoming.map(
-              (b) => Padding(
+              (g) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: BookingHistoryItem(
-                  booking: b,
-                  onTap: () => _openDetail(context, b),
+                  group: g,
+                  onTap: () => _openDetail(context, g.first),
                 ),
               ),
             ),
@@ -346,7 +347,8 @@ class _BookingsSection extends StatelessWidget {
             onViewMore: past.length > 3
                 ? () => Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
-                      builder: (_) => AllBookingsScreen(bookings: past),
+                      builder: (_) =>
+                          AllBookingsScreen(bookings: state.pastBookings),
                     ),
                   )
                 : null,
@@ -355,12 +357,12 @@ class _BookingsSection extends StatelessWidget {
           ...past
               .take(3)
               .map(
-                (b) => Padding(
+                (g) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: BookingHistoryItem(
-                    booking: b,
+                    group: g,
                     titleColor: AppColors.primary,
-                    onTap: () => _openDetail(context, b),
+                    onTap: () => _openDetail(context, g.first),
                   ),
                 ),
               ),

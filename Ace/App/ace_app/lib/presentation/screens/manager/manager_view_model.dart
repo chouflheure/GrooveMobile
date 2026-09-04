@@ -311,6 +311,12 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     return _bookingRepository.cancel(bookingId);
   }
 
+  Future<void> cancelBookings(List<String> bookingIds) async {
+    for (final id in bookingIds) {
+      await _bookingRepository.cancel(id);
+    }
+  }
+
   /// Creates a court when `court.id` is empty, otherwise updates it.
   Future<bool> saveCourt(CourtModel court) async {
     try {

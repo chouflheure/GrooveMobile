@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import 'court_form_screen.dart';
@@ -137,44 +138,145 @@ class _MatchOrganizerSection extends StatelessWidget {
   }
 }
 
-class _ActiveBookingsSection extends StatelessWidget {
+class _ActiveBookingsSection extends StatefulWidget {
   final ManagerState state;
   final ManagerViewModel vm;
 
   const _ActiveBookingsSection({required this.state, required this.vm});
 
   @override
+  State<_ActiveBookingsSection> createState() => _ActiveBookingsSectionState();
+}
+
+class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String? _organizerName(BookingModel b) =>
+      widget.state.players.where((u) => u.id == b.userId).firstOrNull?.name;
+
+  bool _matches(List<BookingModel> group) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final first = group.first;
+    final courtMatch = first.courtName.toLowerCase().contains(q);
+    final timeMatch = group.any(
+      (b) => b.startTime.contains(q) || b.endTime.contains(q),
+    );
+    final organizerName = _organizerName(first) ?? '';
+    final playerMatch =
+        organizerName.toLowerCase().contains(q) ||
+        (first.partnerName ?? '').toLowerCase().contains(q) ||
+        (first.title ?? '').toLowerCase().contains(q);
+    return courtMatch || timeMatch || playerMatch;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bookings = state.activeBookings;
+    final groups = _groupBookings(
+      widget.state.activeBookings,
+    ).where(_matches).toList();
     return _SectionCard(
       icon: Icons.event_busy_rounded,
       title: 'Annuler une réservation',
-      child: bookings.isEmpty
-          ? Text('Aucune réservation active.', style: AppTypography.bodySmall)
-          : Column(
-              children: bookings
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (q) => setState(() => _query = q),
+            style: AppTypography.bodyMedium,
+            decoration: InputDecoration(
+              hintText: 'Rechercher un joueur, une heure, un terrain...',
+              hintStyle: AppTypography.bodySmall,
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: AppColors.textSecondary,
+              ),
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (groups.isEmpty)
+            Text(
+              widget.state.activeBookings.isEmpty
+                  ? 'Aucune réservation active.'
+                  : 'Aucun résultat.',
+              style: AppTypography.bodySmall,
+            )
+          else
+            Column(
+              children: groups
                   .map(
-                    (b) => _BookingRow(
-                      booking: b,
-                      onCancel: () => _confirmCancel(context, vm, b),
+                    (g) => _BookingRow(
+                      group: g,
+                      onCancel: () => _confirmCancel(context, widget.vm, g),
                     ),
                   )
                   .toList(),
             ),
+        ],
+      ),
     );
+  }
+
+  // Sorted by date/time for display — groupConsecutiveBookings otherwise
+  // preserves input order, which activeBookings already provides, but this
+  // makes the ordering explicit and stable regardless of that.
+  List<List<BookingModel>> _groupBookings(List<BookingModel> bookings) {
+    final groups = groupConsecutiveBookings(bookings);
+    groups.sort((a, b) {
+      final cmp = a.first.date.compareTo(b.first.date);
+      return cmp != 0 ? cmp : a.first.startTime.compareTo(b.first.startTime);
+    });
+    return groups;
   }
 
   void _confirmCancel(
     BuildContext context,
     ManagerViewModel vm,
-    BookingModel booking,
+    List<BookingModel> group,
   ) {
+    final first = group.first;
+    final rangeLabel = group.length > 1
+        ? '${first.startTime}-${group.last.endTime}'
+        : first.startTime;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Annuler cette réservation ?'),
+        title: Text(
+          group.length > 1
+              ? 'Annuler ces ${group.length} réservations ?'
+              : 'Annuler cette réservation ?',
+        ),
         content: Text(
-          '${booking.courtName} · ${booking.date.day}/${booking.date.month} · ${booking.startTime}',
+          '${first.courtName} · ${first.date.day}/${first.date.month} · $rangeLabel',
         ),
         actions: [
           TextButton(
@@ -184,7 +286,7 @@ class _ActiveBookingsSection extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              vm.cancelBooking(booking.id);
+              vm.cancelBookings(group.map((b) => b.id).toList());
             },
             child: const Text(
               'Annuler la réservation',
@@ -198,13 +300,17 @@ class _ActiveBookingsSection extends StatelessWidget {
 }
 
 class _BookingRow extends StatelessWidget {
-  final BookingModel booking;
+  final List<BookingModel> group;
   final VoidCallback onCancel;
 
-  const _BookingRow({required this.booking, required this.onCancel});
+  const _BookingRow({required this.group, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
+    final first = group.first;
+    final timeRange = group.length > 1
+        ? '${first.startTime}-${group.last.endTime}'
+        : '${first.startTime}-${first.endTime}';
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -219,17 +325,17 @@ class _BookingRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(booking.courtName, style: AppTypography.headlineSmall),
-                if (booking.title != null && booking.title!.isNotEmpty)
+                Text(first.courtName, style: AppTypography.headlineSmall),
+                if (first.title != null && first.title!.isNotEmpty)
                   Text(
-                    booking.title!,
+                    first.title!,
                     style: AppTypography.labelSmall.copyWith(
                       color: AppColors.primary,
                     ),
                   ),
                 Text(
-                  '${booking.date.day.toString().padLeft(2, '0')}/${booking.date.month.toString().padLeft(2, '0')} · ${booking.startTime}-${booking.endTime}'
-                  '${booking.partnerName != null ? ' · avec ${booking.partnerName}' : ''}',
+                  '${first.date.day.toString().padLeft(2, '0')}/${first.date.month.toString().padLeft(2, '0')} · $timeRange'
+                  '${first.partnerName != null ? ' · avec ${first.partnerName}' : ''}',
                   style: AppTypography.bodySmall,
                 ),
               ],

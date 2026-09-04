@@ -11,8 +11,10 @@ import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
 import '../auth/link_phone_screen.dart';
 import '../booking_detail/booking_detail_screen.dart';
+import '../courts/club_event_providers.dart';
 import '../courts/courts_view_model.dart';
 import '../edit_profile/edit_profile_screen.dart';
+import '../event_detail/event_detail_screen.dart';
 import '../manager/manager_screen.dart';
 import '../notification_settings/notification_settings_screen.dart';
 import 'all_bookings_screen.dart';
@@ -65,7 +67,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                   )
-                : _BookingsSection(state: state),
+                : _BookingsSection(state: state, currentUserId: user.id),
           ),
           SliverToBoxAdapter(child: _SettingsSection()),
           SliverToBoxAdapter(
@@ -300,9 +302,11 @@ class _StatsGrid extends StatelessWidget {
   }
 }
 
-class _BookingsSection extends StatelessWidget {
+class _BookingsSection extends ConsumerWidget {
   final ProfileState state;
-  const _BookingsSection({required this.state});
+  final String currentUserId;
+
+  const _BookingsSection({required this.state, required this.currentUserId});
 
   void _openDetail(BuildContext context, BookingModel booking) {
     Navigator.of(context, rootNavigator: true).push(
@@ -310,10 +314,92 @@ class _BookingsSection extends StatelessWidget {
     );
   }
 
+  void _openEvent(BuildContext context, ClubEventModel event) {
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)));
+  }
+
+  bool _isEventUpcoming(ClubEventModel event) {
+    final today = DateTime.now();
+    final todayDay = DateTime(today.year, today.month, today.day);
+    final eventDay = DateTime(
+      event.date.year,
+      event.date.month,
+      event.date.day,
+    );
+    return !eventDay.isBefore(todayDay);
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final upcoming = groupConsecutiveBookings(state.upcomingBookings);
-    final past = groupConsecutiveBookings(state.pastBookings);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final myEvents = (ref.watch(clubEventsProvider).valueOrNull ?? const [])
+        .where((e) => e.participantIds.contains(currentUserId))
+        .toList();
+    final upcomingEvents = myEvents.where(_isEventUpcoming).toList();
+    final pastEvents = myEvents.where((e) => !_isEventUpcoming(e)).toList();
+
+    final upcomingBookingGroups = groupConsecutiveBookings(
+      state.upcomingBookings,
+    );
+    final pastBookingGroups = groupConsecutiveBookings(state.pastBookings);
+
+    final upcoming =
+        [
+          ...upcomingBookingGroups.map(
+            (g) => ProfileEntry(
+              date: g.first.date,
+              startTime: g.first.startTime,
+              child: BookingHistoryItem(
+                group: g,
+                onTap: () => _openDetail(context, g.first),
+              ),
+            ),
+          ),
+          ...upcomingEvents.map(
+            (e) => ProfileEntry(
+              date: e.date,
+              startTime: e.startTime,
+              child: EventReservationItem(
+                event: e,
+                onTap: () => _openEvent(context, e),
+              ),
+            ),
+          ),
+        ]..sort((a, b) {
+          final cmp = a.date.compareTo(b.date);
+          return cmp != 0 ? cmp : a.startTime.compareTo(b.startTime);
+        });
+
+    final past =
+        [
+          ...pastBookingGroups.map(
+            (g) => ProfileEntry(
+              date: g.first.date,
+              startTime: g.first.startTime,
+              child: BookingHistoryItem(
+                group: g,
+                titleColor: AppColors.primary,
+                onTap: () => _openDetail(context, g.first),
+              ),
+            ),
+          ),
+          ...pastEvents.map(
+            (e) => ProfileEntry(
+              date: e.date,
+              startTime: e.startTime,
+              child: EventReservationItem(
+                event: e,
+                titleColor: AppColors.primary,
+                onTap: () => _openEvent(context, e),
+              ),
+            ),
+          ),
+        ]..sort((a, b) {
+          final cmp = b.date.compareTo(a.date);
+          return cmp != 0 ? cmp : b.startTime.compareTo(a.startTime);
+        });
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -331,12 +417,9 @@ class _BookingsSection extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             ...upcoming.map(
-              (g) => Padding(
+              (entry) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: BookingHistoryItem(
-                  group: g,
-                  onTap: () => _openDetail(context, g.first),
-                ),
+                child: entry.child,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -347,8 +430,10 @@ class _BookingsSection extends StatelessWidget {
             onViewMore: past.length > 3
                 ? () => Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(
-                      builder: (_) =>
-                          AllBookingsScreen(bookings: state.pastBookings),
+                      builder: (_) => AllBookingsScreen(
+                        bookings: state.pastBookings,
+                        events: pastEvents,
+                      ),
                     ),
                   )
                 : null,
@@ -357,13 +442,9 @@ class _BookingsSection extends StatelessWidget {
           ...past
               .take(3)
               .map(
-                (g) => Padding(
+                (entry) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: BookingHistoryItem(
-                    group: g,
-                    titleColor: AppColors.primary,
-                    onTap: () => _openDetail(context, g.first),
-                  ),
+                  child: entry.child,
                 ),
               ),
         ],

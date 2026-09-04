@@ -6,4 +6,5 @@ export 'court_card.dart';
 export 'club_event_card.dart';
 export 'announcement_card.dart';
 export 'booking_history_item.dart';
+export 'event_reservation_item.dart';
 export 'conversation_item.dart';

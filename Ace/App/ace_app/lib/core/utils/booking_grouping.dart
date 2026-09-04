@@ -1,4 +1,20 @@
+import 'package:flutter/widgets.dart';
 import '../../data/models/models.dart';
+
+/// One row in a "Réservations" feed — a booking group or a club event,
+/// carried together with the date/time to sort them by so the two kinds can
+/// be merged into a single chronological list.
+class ProfileEntry {
+  final DateTime date;
+  final String startTime;
+  final Widget child;
+
+  const ProfileEntry({
+    required this.date,
+    required this.startTime,
+    required this.child,
+  });
+}
 
 /// Merges consecutive hourly bookings that share the same court, day, title
 /// and players — an event or a multi-slot match booked across several

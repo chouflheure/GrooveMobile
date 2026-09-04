@@ -6,15 +6,57 @@ import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../molecules/molecules.dart';
 import '../booking_detail/booking_detail_screen.dart';
+import '../event_detail/event_detail_screen.dart';
 
 class AllBookingsScreen extends StatelessWidget {
   final List<BookingModel> bookings;
+  final List<ClubEventModel> events;
 
-  const AllBookingsScreen({super.key, required this.bookings});
+  const AllBookingsScreen({
+    super.key,
+    required this.bookings,
+    this.events = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
-    final groups = groupConsecutiveBookings(bookings);
+    final entries =
+        [
+          ...groupConsecutiveBookings(bookings).map(
+            (g) => ProfileEntry(
+              date: g.first.date,
+              startTime: g.first.startTime,
+              child: BookingHistoryItem(
+                group: g,
+                titleColor: AppColors.primary,
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => BookingDetailScreen(booking: g.first),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ...events.map(
+            (e) => ProfileEntry(
+              date: e.date,
+              startTime: e.startTime,
+              child: EventReservationItem(
+                event: e,
+                titleColor: AppColors.primary,
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailScreen(event: e),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]..sort((a, b) {
+          final cmp = b.date.compareTo(a.date);
+          return cmp != 0 ? cmp : b.startTime.compareTo(a.startTime);
+        });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -31,7 +73,7 @@ class AllBookingsScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: groups.isEmpty
+      body: entries.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -48,18 +90,9 @@ class AllBookingsScreen extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: groups.length,
+              itemCount: entries.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (_, i) => BookingHistoryItem(
-                group: groups[i],
-                titleColor: AppColors.primary,
-                onTap: () => Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        BookingDetailScreen(booking: groups[i].first),
-                  ),
-                ),
-              ),
+              itemBuilder: (_, i) => entries[i].child,
             ),
     );
   }

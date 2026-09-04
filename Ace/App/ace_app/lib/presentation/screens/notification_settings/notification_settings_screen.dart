@@ -23,7 +23,7 @@ const _kMeta = <String, _NotificationMeta>{
   ),
   'Rappel de créneau': _NotificationMeta(
     Icons.notifications_active_outlined,
-    'Recevoir des notifs 30 minutes avant créneau',
+    'Recevoir des notifs 1 heure avant créneau',
   ),
   'Nouveaux créneaux': _NotificationMeta(
     Icons.event_available_rounded,

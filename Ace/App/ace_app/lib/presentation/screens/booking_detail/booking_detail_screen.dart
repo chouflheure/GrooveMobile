@@ -440,7 +440,11 @@ class _PartnerRow extends StatelessWidget {
               ),
             ),
           ),
-          AppAvatar(initials: partner.initials, size: 28),
+          AppAvatar(
+            initials: partner.initials,
+            imageUrl: partner.profileImageUrl,
+            size: 28,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Text(partner.name, style: AppTypography.bodyMedium),
         ],
@@ -741,6 +745,7 @@ class _PartnerPickerSheetState extends State<_PartnerPickerSheet> {
                     children: [
                       AppAvatar(
                         initials: user.initials,
+                        imageUrl: user.profileImageUrl,
                         size: 44,
                         backgroundColor: isSelected
                             ? AppColors.primary

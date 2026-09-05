@@ -30,6 +30,8 @@
 		<string>CourtConnect a besoin d'accéder à ton calendrier pour y ajouter tes matchs et événements.</string>
 		<key>NSCalendarsFullAccessUsageDescription</key>
 		<string>CourtConnect a besoin d'accéder à ton calendrier pour y ajouter tes matchs et événements.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Ace Connect a besoin d'accéder à tes photos pour changer une image de profil, de terrain ou de club.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

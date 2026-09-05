@@ -66,6 +66,9 @@ class _BookingConfirmationSheetState
   UserModel? _selectedPartner;
   String _searchQuery = '';
   bool _isLoading = false;
+  // Shown in place of the confirm button rather than as a SnackBar, so it
+  // stays visible until the player actually does something about it.
+  String? _errorMessage;
   final _searchController = TextEditingController();
 
   String get _endTime {
@@ -214,6 +217,7 @@ class _BookingConfirmationSheetState
                         _selectedPartner = _selectedPartner?.id == user.id
                             ? null
                             : user;
+                        _errorMessage = null;
                       }),
                       onViewProfile: () =>
                           Navigator.of(context, rootNavigator: true).push(
@@ -230,7 +234,9 @@ class _BookingConfirmationSheetState
             selectedPartner: _selectedPartner,
             price: _price,
             isLoading: _isLoading,
+            errorMessage: _errorMessage,
             onConfirm: _confirm,
+            onDismissError: () => setState(() => _errorMessage = null),
           ),
         ],
       ),
@@ -274,24 +280,19 @@ class _BookingConfirmationSheetState
         ),
       );
     } catch (e) {
-      setState(() => _isLoading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
             e is SlotAlreadyBookedException ||
-                    e is ClubMismatchException ||
-                    e is CourtClosedException ||
-                    e is SlotOutsideHoursException ||
-                    e is PeakHourLimitExceededException ||
-                    e is OffPeakHourLimitExceededException
-                ? e.toString()
-                : 'Une erreur est survenue, réessaie.',
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+                e is ClubMismatchException ||
+                e is CourtClosedException ||
+                e is SlotOutsideHoursException ||
+                e is PeakHourLimitExceededException ||
+                e is OffPeakHourLimitExceededException
+            ? e.toString()
+            : 'Une erreur est survenue, réessaie.';
+      });
     }
   }
 }
@@ -458,6 +459,7 @@ class _PartnerTile extends StatelessWidget {
               children: [
                 AppAvatar(
                   initials: user.initials,
+                  imageUrl: user.profileImageUrl,
                   size: 48,
                   backgroundColor: isSelected
                       ? AppColors.primary
@@ -551,13 +553,17 @@ class _BottomBar extends StatelessWidget {
   final UserModel? selectedPartner;
   final double price;
   final bool isLoading;
+  final String? errorMessage;
   final VoidCallback onConfirm;
+  final VoidCallback onDismissError;
 
   const _BottomBar({
     required this.selectedPartner,
     required this.price,
     required this.isLoading,
+    required this.errorMessage,
     required this.onConfirm,
+    required this.onDismissError,
   });
 
   @override
@@ -565,6 +571,7 @@ class _BottomBar extends StatelessWidget {
     final confirmLabel = price > 0
         ? 'Confirmer — ${price.toInt()}€'
         : 'Confirmer';
+    final error = errorMessage;
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xxl,
@@ -576,12 +583,61 @@ class _BottomBar extends StatelessWidget {
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
-      child: AppButton(
-        label: selectedPartner == null
-            ? 'Sélectionner un partenaire'
-            : confirmLabel,
-        onTap: selectedPartner == null || isLoading ? null : onConfirm,
-        isLoading: isLoading,
+      child: error != null
+          ? _ErrorBanner(message: error, onDismiss: onDismissError)
+          : AppButton(
+              label: selectedPartner == null
+                  ? 'Sélectionner un partenaire'
+                  : confirmLabel,
+              onTap: selectedPartner == null || isLoading ? null : onConfirm,
+              isLoading: isLoading,
+            ),
+    );
+  }
+}
+
+/// Takes the confirm button's exact place when a booking attempt fails, so
+/// the reason stays visible instead of flashing by as a SnackBar. Tapping
+/// it dismisses it and brings the button back (e.g. to try a different
+/// partner or slot).
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _ErrorBanner({required this.message, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onDismiss,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 18,
+              color: AppColors.error,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                message,
+                style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+              ),
+            ),
+            const Icon(Icons.close_rounded, size: 16, color: AppColors.error),
+          ],
+        ),
       ),
     );
   }

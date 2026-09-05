@@ -70,7 +70,11 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     });
     if (_currentUserId != null) {
       _conversationsSubscription = _messageRepository
-          .watchConversationsForUser(_currentUserId, resolveName: _resolveName)
+          .watchConversationsForUser(
+            _currentUserId,
+            resolveName: _resolveName,
+            resolveImageUrl: _resolveImageUrl,
+          )
           .listen((conversations) {
             state = state.copyWith(conversations: conversations);
           });
@@ -88,6 +92,9 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
   String _resolveName(String userId) =>
       state.allUsers.where((u) => u.id == userId).firstOrNull?.name ??
       'Utilisateur';
+
+  String? _resolveImageUrl(String userId) =>
+      state.allUsers.where((u) => u.id == userId).firstOrNull?.profileImageUrl;
 
   // Only announcements posted by a member of a club the current user is
   // also in are visible — guests (no club) see everything.

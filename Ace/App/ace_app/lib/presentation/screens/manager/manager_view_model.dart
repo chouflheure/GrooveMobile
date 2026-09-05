@@ -317,10 +317,12 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
-  /// Creates a court when `court.id` is empty, otherwise updates it.
-  Future<bool> saveCourt(CourtModel court) async {
+  /// Creates or updates a court — `isNew` decides which, since `court.id`
+  /// is now always pre-generated (needed up front for its Storage image
+  /// path) rather than empty until the first save.
+  Future<bool> saveCourt(CourtModel court, {required bool isNew}) async {
     try {
-      if (court.id.isEmpty) {
+      if (isNew) {
         await _courtRepository.create(court);
         if (mounted) state = state.copyWith(message: '${court.name} ajouté.');
       } else {
@@ -329,6 +331,23 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
           state = state.copyWith(message: '${court.name} mis à jour.');
         }
       }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(
+          message: 'Erreur lors de l\'enregistrement : $e',
+        );
+      }
+      return false;
+    }
+  }
+
+  /// Updates a club (name/location/image) — clubs are pre-seeded, never
+  /// created through the app.
+  Future<bool> saveClub(ClubModel club) async {
+    try {
+      await _clubRepository.update(club);
+      if (mounted) state = state.copyWith(message: '${club.name} mis à jour.');
       return true;
     } catch (e) {
       if (mounted) {

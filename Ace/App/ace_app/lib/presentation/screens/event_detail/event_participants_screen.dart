@@ -150,7 +150,11 @@ class _ParticipantTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          AppAvatar(initials: user.initials, size: 40),
+          AppAvatar(
+            initials: user.initials,
+            imageUrl: user.profileImageUrl,
+            size: 40,
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

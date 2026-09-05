@@ -170,6 +170,7 @@ class _ProfileHeader extends ConsumerWidget {
                 children: [
                   AppAvatar(
                     initials: user.initials,
+                    imageUrl: user.profileImageUrl,
                     size: 72,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
                   ),

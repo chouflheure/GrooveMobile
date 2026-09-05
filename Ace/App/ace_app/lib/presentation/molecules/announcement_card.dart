@@ -182,6 +182,7 @@ class AnnouncementHeader extends StatelessWidget {
                 .map((p) => p[0])
                 .take(2)
                 .join(),
+            imageUrl: announcement.userImageUrl,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

@@ -112,6 +112,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       avatarInitials: conv.isGroup
                           ? null
                           : conv.otherParticipantInitials(currentUser.id),
+                      avatarImageUrl: conv.isGroup
+                          ? null
+                          : conv.otherParticipantImageUrl(currentUser.id),
                     ),
                   ),
           ),
@@ -155,6 +158,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         otherParticipantIds: [author.id],
         title: author.name,
         avatarInitials: author.initials,
+        avatarImageUrl: author.profileImageUrl,
         subtitle: 'Proposition de match',
       );
     }
@@ -166,6 +170,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     required List<String> otherParticipantIds,
     required String title,
     String? avatarInitials,
+    String? avatarImageUrl,
     String? subtitle,
   }) {
     Navigator.of(context, rootNavigator: true).push(
@@ -175,6 +180,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           otherParticipantIds: otherParticipantIds,
           title: title,
           avatarInitials: avatarInitials,
+          avatarImageUrl: avatarImageUrl,
           subtitle: subtitle,
         ),
       ),
@@ -210,21 +216,21 @@ class _TabBar extends StatelessWidget {
           children: [
             Expanded(
               child: _Tab(
-                label: 'Annonces',
-                icon: Icons.campaign_rounded,
-                isActive: active == CommunityTab.announcements,
-                showBadge: hasNewAnnouncement,
-                onTap: () => onSelect(CommunityTab.announcements),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _Tab(
                 label: 'Messages',
                 icon: Icons.chat_bubble_outline_rounded,
                 isActive: active == CommunityTab.messages,
                 showBadge: hasNewMessage,
                 onTap: () => onSelect(CommunityTab.messages),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _Tab(
+                label: 'Annonces',
+                icon: Icons.campaign_rounded,
+                isActive: active == CommunityTab.announcements,
+                showBadge: hasNewAnnouncement,
+                onTap: () => onSelect(CommunityTab.announcements),
               ),
             ),
           ],
@@ -326,7 +332,12 @@ class _AnnouncementsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg + MediaQuery.of(context).padding.bottom,
+      ),
       children: [
         _ProposeButton(onTap: onPropose),
         const SizedBox(height: AppSpacing.md),

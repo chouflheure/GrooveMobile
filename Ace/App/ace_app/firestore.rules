@@ -26,7 +26,15 @@ service cloud.firestore {
 
     match /clubs/{clubId} {
       allow read: if true;
-      allow write: if false;
+      // Only an admin of this club can edit it (e.g. its image) — clubs
+      // aren't created/deleted through the app, only pre-seeded, so create
+      // and delete stay closed.
+      allow update: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+      allow create: if false;
+      allow delete: if false;
     }
 
     match /events/{eventId} {

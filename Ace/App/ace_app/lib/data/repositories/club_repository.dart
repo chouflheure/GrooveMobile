@@ -24,4 +24,10 @@ class ClubRepository {
           .toList(),
     );
   }
+
+  /// Admin-only — full replace of an existing club's document. Clubs are
+  /// pre-seeded, not created through the app, so there's no `create`.
+  Future<void> update(ClubModel club) {
+    return _collection.doc(club.id).set(club.toJson());
+  }
 }

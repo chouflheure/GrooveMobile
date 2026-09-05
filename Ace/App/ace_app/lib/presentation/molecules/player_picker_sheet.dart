@@ -186,6 +186,7 @@ class _PlayerPickerSheetState extends State<PlayerPickerSheet> {
                     subtitle: '${user.location} · ${user.ranking}',
                     isSelected: widget.selectedPlayerId == user.id,
                     initials: user.initials,
+                    imageUrl: user.profileImageUrl,
                     onTap: () => Navigator.of(context).pop(user),
                   ),
                 ),
@@ -203,6 +204,7 @@ class _PlayerTile extends StatelessWidget {
   final String subtitle;
   final bool isSelected;
   final String? initials;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   const _PlayerTile({
@@ -211,6 +213,7 @@ class _PlayerTile extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.initials,
+    this.imageUrl,
   });
 
   @override
@@ -236,6 +239,7 @@ class _PlayerTile extends StatelessWidget {
             if (initials != null)
               AppAvatar(
                 initials: initials!,
+                imageUrl: imageUrl,
                 size: 40,
                 backgroundColor: isSelected
                     ? AppColors.primary

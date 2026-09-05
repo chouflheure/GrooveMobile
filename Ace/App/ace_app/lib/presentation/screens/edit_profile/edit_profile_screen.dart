@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../atoms/atoms.dart';
 import '../auth/auth_view_model.dart';
 
@@ -20,6 +24,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _phoneController;
   late final TextEditingController _locationController;
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
+  late String? _profileImageUrl;
 
   @override
   void initState() {
@@ -29,6 +35,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _emailController = TextEditingController(text: user.email);
     _phoneController = TextEditingController(text: user.phone ?? '');
     _locationController = TextEditingController(text: user.location);
+    _profileImageUrl = user.profileImageUrl;
+  }
+
+  Future<void> _pickAndUploadPhoto(String userId) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 80,
+    );
+    if (picked == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final url = await ref
+          .read(storageRepositoryProvider)
+          .uploadUserImage(userId, File(picked.path));
+      if (!mounted) return;
+      setState(() => _profileImageUrl = url);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Échec de l\'envoi de la photo : $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   @override
@@ -57,30 +93,43 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Center(
-            child: Stack(
-              children: [
-                AppAvatar(
-                  initials: user.initials,
-                  size: 80,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      color: Colors.white,
-                      size: 14,
+            child: GestureDetector(
+              onTap: _isUploadingPhoto ? null : () => _pickAndUploadPhoto(user.id),
+              child: Stack(
+                children: [
+                  AppAvatar(
+                    initials: user.initials,
+                    imageUrl: _profileImageUrl,
+                    size: 80,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isUploadingPhoto
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -133,6 +182,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ? null
                   : _phoneController.text.trim(),
               location: _locationController.text.trim(),
+              profileImageUrl: _profileImageUrl,
             ),
           );
       if (!mounted) return;

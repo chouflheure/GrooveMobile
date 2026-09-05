@@ -6,6 +6,7 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import 'club_form_screen.dart';
 import 'court_form_screen.dart';
 import 'event_form_screen.dart';
 import 'group_chat_form_screen.dart';
@@ -51,6 +52,8 @@ class ManagerScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _MatchOrganizerSection(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _ClubsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _CourtsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
@@ -354,6 +357,72 @@ class _BookingRow extends StatelessWidget {
   }
 }
 
+class _ClubsManagementSection extends StatelessWidget {
+  final ManagerState state;
+
+  const _ClubsManagementSection({required this.state});
+
+  void _openForm(BuildContext context, ClubModel club) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => ClubFormScreen(club: club)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.groups_rounded,
+      title: 'Clubs',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (state.clubs.isEmpty)
+            Text(
+              'Aucun club à gérer pour le moment.',
+              style: AppTypography.bodySmall,
+            )
+          else
+            ...state.clubs.map(
+              (club) => GestureDetector(
+                onTap: () => _openForm(context, club),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              club.name,
+                              style: AppTypography.headlineSmall,
+                            ),
+                            Text(club.location, style: AppTypography.bodySmall),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CourtsManagementSection extends StatelessWidget {
   final ManagerState state;
 
@@ -576,7 +645,11 @@ class _AdminsSection extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: Row(
                         children: [
-                          AppAvatar(initials: u.initials, size: 36),
+                          AppAvatar(
+                            initials: u.initials,
+                            imageUrl: u.profileImageUrl,
+                            size: 36,
+                          ),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Column(

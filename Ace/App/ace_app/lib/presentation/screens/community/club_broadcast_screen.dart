@@ -5,6 +5,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/message_repository.dart';
+import '../../atoms/atoms.dart';
 import '../auth/auth_view_model.dart';
 import 'community_view_model.dart';
 
@@ -69,8 +70,11 @@ class _ClubBroadcastScreenState extends ConsumerState<ClubBroadcastScreen> {
         );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
+        // The list is built `reverse: true` (newest message at the bottom,
+        // which is offset 0 in a reversed list), so scrolling "to the
+        // latest message" means scrolling to 0, not maxScrollExtent.
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -186,6 +190,7 @@ class _ClubBroadcastScreenState extends ConsumerState<ClubBroadcastScreen> {
       conversationMessagesProvider(conversationId),
     );
     final currentUserId = ref.watch(currentUserProvider).valueOrNull?.id;
+    final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -237,13 +242,25 @@ class _ClubBroadcastScreenState extends ConsumerState<ClubBroadcastScreen> {
                     )
                   : ListView.builder(
                       controller: _scrollController,
+                      reverse: true,
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       itemCount: messages.length,
                       itemBuilder: (_, i) {
-                        final message = messages[i];
+                        // `messages` comes oldest-first; reversed indexing
+                        // here (last message at index 0) pairs with
+                        // `reverse: true` to anchor the list on the newest
+                        // message instead of opening scrolled to the oldest
+                        // one — and keeps it pinned there as new messages
+                        // stream in, instead of hiding them below the fold.
+                        final message = messages[messages.length - 1 - i];
                         final isMe = message.senderId == currentUserId;
+                        final senderImageUrl = allUsers
+                            .where((u) => u.id == message.senderId)
+                            .firstOrNull
+                            ?.profileImageUrl;
                         return _AnnouncementBubble(
                           message: message,
+                          senderImageUrl: senderImageUrl,
                           onLongPress: isMe
                               ? () => _showMessageActions(message)
                               : null,
@@ -268,9 +285,20 @@ class _ClubBroadcastScreenState extends ConsumerState<ClubBroadcastScreen> {
 
 class _AnnouncementBubble extends StatelessWidget {
   final MessageModel message;
+  final String? senderImageUrl;
   final VoidCallback? onLongPress;
 
-  const _AnnouncementBubble({required this.message, this.onLongPress});
+  const _AnnouncementBubble({
+    required this.message,
+    this.senderImageUrl,
+    this.onLongPress,
+  });
+
+  String get _senderInitials {
+    final parts = message.senderName.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return parts.isEmpty || parts[0].isEmpty ? '?' : parts[0][0].toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +320,12 @@ class _AnnouncementBubble extends StatelessWidget {
           children: [
             Row(
               children: [
+                AppAvatar(
+                  initials: _senderInitials,
+                  imageUrl: senderImageUrl,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
                 const Icon(
                   Icons.campaign_rounded,
                   size: 14,

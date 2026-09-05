@@ -102,6 +102,7 @@ class MessageRepository {
   Stream<List<ConversationModel>> watchConversationsForUser(
     String userId, {
     required String Function(String otherUserId) resolveName,
+    required String? Function(String otherUserId) resolveImageUrl,
   }) {
     return _collection
         .where('participantIds', arrayContains: userId)
@@ -127,6 +128,9 @@ class MessageRepository {
                 id: entry.key,
                 participantIds: last.participantIds,
                 participantNames: last.participantIds.map(resolveName).toList(),
+                participantImageUrls: last.participantIds
+                    .map(resolveImageUrl)
+                    .toList(),
                 lastMessage: last.content,
                 lastMessageAt: last.createdAt,
                 unreadCount: unread,

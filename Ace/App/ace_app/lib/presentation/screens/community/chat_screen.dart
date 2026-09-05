@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
@@ -16,6 +17,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String? subtitle;
   // Null shows a generic group icon instead of initials.
   final String? avatarInitials;
+  final String? avatarImageUrl;
 
   const ChatScreen({
     super.key,
@@ -24,6 +26,7 @@ class ChatScreen extends ConsumerStatefulWidget {
     required this.title,
     this.subtitle,
     this.avatarInitials,
+    this.avatarImageUrl,
   });
 
   @override
@@ -35,6 +38,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _inputFocusNode = FocusNode();
   final _scrollController = ScrollController();
   MessageModel? _editingMessage;
+  // Tracks the last seen message count so the list only auto-scrolls when
+  // it actually changes — jumping straight to the bottom on first load
+  // (no animation), then animating down for every message after that.
+  int? _lastMessageCount;
 
   bool get _isGroup => widget.otherParticipantIds.length > 1;
 
@@ -84,13 +91,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           senderName,
           content,
         );
+    // The stream updating with the new message triggers _scheduleScrollToBottom
+    // itself, so no explicit scroll is needed here.
+  }
+
+  /// Keeps the list pinned to the latest message: it starts stacked at the
+  /// top and grows downward while it fits the screen, then jumps straight
+  /// to the bottom on first load once it overflows, and animates down for
+  /// every message after that.
+  void _scheduleScrollToBottom(int messageCount) {
+    final isFirstLoad = _lastMessageCount == null;
+    final changed = _lastMessageCount != messageCount;
+    _lastMessageCount = messageCount;
+    if (!changed) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        // The list is built `reverse: true` (newest message at the bottom,
-        // which is offset 0 in a reversed list), so scrolling "to the
-        // latest message" means scrolling to 0, not maxScrollExtent.
+      if (!_scrollController.hasClients) return;
+      final target = _scrollController.position.maxScrollExtent;
+      if (isFirstLoad) {
+        _scrollController.jumpTo(target);
+      } else {
         _scrollController.animateTo(
-          0,
+          target,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -234,7 +255,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             color: AppColors.primary,
                           ),
                         )
-                      : AppAvatar(initials: widget.avatarInitials!, size: 36),
+                      : AppAvatar(
+                          initials: widget.avatarInitials!,
+                          imageUrl: widget.avatarImageUrl,
+                          size: 36,
+                        ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
@@ -260,28 +285,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   style: AppTypography.bodySmall,
                 ),
               ),
-              data: (messages) => ListView.builder(
-                controller: _scrollController,
-                reverse: true,
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: messages.length,
-                itemBuilder: (_, i) {
-                  // `messages` comes oldest-first; reversed indexing here
-                  // (last message at index 0) is what pairs with
-                  // `reverse: true` to anchor the list on the newest
-                  // message instead of opening scrolled to the oldest one.
-                  final message = messages[messages.length - 1 - i];
-                  final isMe = message.senderId == currentUserId;
-                  return _MessageBubble(
-                    message: message,
-                    isMe: isMe,
-                    showSenderName: _isGroup && !isMe,
-                    onLongPress: isMe
-                        ? () => _showMessageActions(message)
-                        : null,
-                  );
-                },
-              ),
+              data: (messages) {
+                _scheduleScrollToBottom(messages.length);
+                // Plain top-to-bottom order: a short conversation stacks at
+                // the top and grows downward instead of hanging anchored to
+                // the bottom of the screen; `_scheduleScrollToBottom` keeps
+                // the latest message in view once it overflows.
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: messages.length,
+                  itemBuilder: (_, i) {
+                    final message = messages[i];
+                    final isMe = message.senderId == currentUserId;
+                    final previous = i == 0 ? null : messages[i - 1];
+                    final isFirstInGroup =
+                        previous == null ||
+                        previous.senderId != message.senderId;
+                    final showTime =
+                        previous == null ||
+                        previous.senderId != message.senderId ||
+                        message.createdAt
+                                .difference(previous.createdAt)
+                                .inMinutes
+                                .abs() >=
+                            10;
+                    return _MessageBubble(
+                      message: message,
+                      isMe: isMe,
+                      showSenderName: _isGroup && !isMe && isFirstInGroup,
+                      showTime: showTime,
+                      onLongPress: isMe
+                          ? () => _showMessageActions(message)
+                          : null,
+                    );
+                  },
+                );
+              },
             ),
           ),
           _BookCourtBanner(
@@ -355,14 +395,39 @@ class _MessageBubble extends StatelessWidget {
   final MessageModel message;
   final bool isMe;
   final bool showSenderName;
+  final bool showTime;
   final VoidCallback? onLongPress;
 
   const _MessageBubble({
     required this.message,
     required this.isMe,
     this.showSenderName = false,
+    this.showTime = true,
     this.onLongPress,
   });
+
+  static const _weekdays = [
+    'Lundi',
+    'Mardi',
+    'Mercredi',
+    'Jeudi',
+    'Vendredi',
+    'Samedi',
+    'Dimanche',
+  ];
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDay = DateTime(time.year, time.month, time.day);
+    final diffDays = today.difference(messageDay).inDays;
+    final hhmm = DateFormat('HH:mm').format(time);
+
+    if (diffDays == 0) return hhmm;
+    if (diffDays == 1) return 'Hier $hhmm';
+    if (diffDays < 7) return '${_weekdays[time.weekday - 1]} $hhmm';
+    return '${DateFormat('dd/MM').format(time)} $hhmm';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +436,10 @@ class _MessageBubble extends StatelessWidget {
       child: GestureDetector(
         onLongPress: onLongPress,
         child: Container(
-          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+          // Same sender within the showTime threshold (< 10 min apart) gets
+          // pulled tight against the message before it, visually grouping
+          // the burst instead of spacing every bubble the same.
+          margin: EdgeInsets.only(bottom: showTime ? AppSpacing.sm : 3),
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.72,
           ),
@@ -436,6 +504,16 @@ class _MessageBubble extends StatelessWidget {
                   ],
                 ),
               ),
+              if (showTime)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+                  child: Text(
+                    _formatTime(message.createdAt),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

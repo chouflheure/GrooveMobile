@@ -60,6 +60,9 @@ Future<void> _openConversation(
       .map((id) => users.where((u) => u.id == id).firstOrNull?.name ?? 'Joueur')
       .toList();
   final isGroup = otherIds.length > 1;
+  final otherImageUrl = otherIds.isEmpty
+      ? null
+      : users.where((u) => u.id == otherIds.first).firstOrNull?.profileImageUrl;
 
   Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute(
@@ -68,6 +71,7 @@ Future<void> _openConversation(
         otherParticipantIds: otherIds,
         title: otherNames.isEmpty ? 'Conversation' : otherNames.join(', '),
         avatarInitials: isGroup || otherNames.isEmpty ? null : _initialsOf(otherNames.first),
+        avatarImageUrl: isGroup || otherNames.isEmpty ? null : otherImageUrl,
       ),
     ),
   );

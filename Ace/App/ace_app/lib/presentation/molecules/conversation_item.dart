@@ -22,6 +22,7 @@ class ConversationItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = conversation.displayName(currentUserId);
     final initials = conversation.otherParticipantInitials(currentUserId);
+    final imageUrl = conversation.otherParticipantImageUrl(currentUserId);
     final isGroup = conversation.isGroup;
     final timeStr = DateFormat('HH:mm').format(conversation.lastMessageAt);
     final hasUnread = conversation.unreadCount > 0;
@@ -47,7 +48,7 @@ class ConversationItem extends StatelessWidget {
                       size: 22,
                     ),
                   )
-                : AppAvatar(initials: initials, size: 48),
+                : AppAvatar(initials: initials, imageUrl: imageUrl, size: 48),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

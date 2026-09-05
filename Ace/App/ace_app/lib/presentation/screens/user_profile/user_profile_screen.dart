@@ -93,6 +93,7 @@ class _UserHeader extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               AppAvatar(
                 initials: user.initials,
+                imageUrl: user.profileImageUrl,
                 size: 72,
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
               ),

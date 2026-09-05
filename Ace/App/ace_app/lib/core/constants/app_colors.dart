@@ -38,6 +38,6 @@ class AppColors {
 
   // Court hour categories — "heure creuse" (off-peak) vs. "heure pleine"
   // (peak), shown as an accent on the slot chip/pastille.
-  static const Color offPeakHour = Color(0xFF22C55E);
-  static const Color peakHour = Color(0xFF3B82F6);
+  static const Color offPeakHour = Color(0xFF3B82F6);
+  static const Color peakHour = Color(0xFF22C55E);
 }

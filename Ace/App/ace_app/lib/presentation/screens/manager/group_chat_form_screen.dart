@@ -184,6 +184,7 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
                         children: [
                           AppAvatar(
                             initials: u.initials,
+                            imageUrl: u.profileImageUrl,
                             size: 36,
                             backgroundColor: isSelected
                                 ? AppColors.primary.withValues(alpha: 0.2)

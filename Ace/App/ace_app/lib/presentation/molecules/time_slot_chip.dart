@@ -7,7 +7,7 @@ import '../../data/models/models.dart';
 class TimeSlotChip extends StatelessWidget {
   final TimeSlot slot;
   final bool isSelected;
-  // Purely a visual accent (green = heure creuse, blue = heure pleine) so
+  // Purely a visual accent (blue = heure creuse, green = heure pleine) so
   // players can see which price/demand band a slot falls into before
   // picking it — set by the court's `peakHours`.
   final bool isPeak;

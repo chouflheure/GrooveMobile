@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Every profile/club/court image is public to read (same as the
+    // Firestore docs they're attached to), keyed by the id of the thing
+    // they belong to so there's at most one image per user/club/court.
+
+    match /users/{userId}.{ext} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Same admin gate as `firestore.rules` for `courts`/`clubs` writes —
+    // presence of a doc at admin/{uid} in Firestore marks that uid admin.
+    match /clubs/{clubId}.{ext} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && firestore.exists(/databases/(default)/documents/admin/$(request.auth.uid));
+    }
+
+    match /courts/{courtId}.{ext} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && firestore.exists(/databases/(default)/documents/admin/$(request.auth.uid));
+    }
+  }
+}

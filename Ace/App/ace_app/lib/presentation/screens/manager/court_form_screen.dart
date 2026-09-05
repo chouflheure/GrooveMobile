@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -5,7 +6,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
+import '../../../data/providers/storage_provider.dart';
 import '../../atoms/atoms.dart';
+import '../../molecules/molecules.dart';
 import 'manager_view_model.dart';
 
 /// Create/edit form for a court — reached from the Manager screen's
@@ -21,6 +24,10 @@ class CourtFormScreen extends ConsumerStatefulWidget {
 }
 
 class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
+  // Pre-generated so a court's Storage image path is known up front, even
+  // before it's actually saved — the id it's created with matches this.
+  late final String _courtId =
+      widget.court?.id ?? FirebaseFirestore.instance.collection('courts').doc().id;
   late final _nameController = TextEditingController(
     text: widget.court?.name ?? '',
   );
@@ -149,7 +156,7 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
     setState(() => _isSaving = true);
 
     final court = CourtModel(
-      id: widget.court?.id ?? '',
+      id: _courtId,
       name: _nameController.text.trim(),
       type: _type,
       surface: _surface,
@@ -172,7 +179,7 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
 
     final ok = await ref
         .read(managerViewModelProvider.notifier)
-        .saveCourt(court);
+        .saveCourt(court, isNew: !_isEditing);
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (ok) Navigator.of(context, rootNavigator: true).pop();
@@ -320,8 +327,14 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _Label('Image (URL)'),
-          _TextField(controller: _imageUrlController, hint: 'https://...'),
+          _Label('Image'),
+          const SizedBox(height: AppSpacing.xs),
+          ImageUrlField(
+            controller: _imageUrlController,
+            onPickAndUpload: (file) => ref
+                .read(storageRepositoryProvider)
+                .uploadCourtImage(_courtId, file),
+          ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Description'),
           _TextField(
@@ -706,8 +719,8 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
 }
 
 /// One hour "pastille" in the court edit form's "Créneaux proposés" — tap
-/// cycles it through not-offered (grey) → heure creuse (green) → heure
-/// pleine (blue) → back to not-offered.
+/// cycles it through not-offered (grey) → heure creuse (blue) → heure
+/// pleine (green) → back to not-offered.
 class _HourStateChip extends StatelessWidget {
   final String time;
   final bool isOffered;

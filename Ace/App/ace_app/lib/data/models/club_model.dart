@@ -28,5 +28,5 @@ class ClubModel extends Equatable {
   };
 
   @override
-  List<Object?> get props => [id, name, location];
+  List<Object?> get props => [id, name, location, imageUrl];
 }

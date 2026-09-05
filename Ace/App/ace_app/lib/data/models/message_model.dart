@@ -60,6 +60,7 @@ class ConversationModel extends Equatable {
   final String id;
   final List<String> participantIds;
   final List<String> participantNames;
+  final List<String?> participantImageUrls;
   final String lastMessage;
   final DateTime lastMessageAt;
   final int unreadCount;
@@ -69,6 +70,7 @@ class ConversationModel extends Equatable {
     required this.id,
     required this.participantIds,
     required this.participantNames,
+    this.participantImageUrls = const [],
     required this.lastMessage,
     required this.lastMessageAt,
     this.unreadCount = 0,
@@ -103,6 +105,16 @@ class ConversationModel extends Equatable {
     final parts = name.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return parts[0][0].toUpperCase();
+  }
+
+  /// Only meaningful for a 1:1 (a group shows a generic icon instead).
+  String? otherParticipantImageUrl(String currentUserId) {
+    for (var i = 0; i < participantIds.length; i++) {
+      if (participantIds[i] != currentUserId) {
+        return i < participantImageUrls.length ? participantImageUrls[i] : null;
+      }
+    }
+    return null;
   }
 
   @override

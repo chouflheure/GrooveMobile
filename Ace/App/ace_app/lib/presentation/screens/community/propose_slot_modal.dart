@@ -287,6 +287,7 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
       userId: currentUser.id,
       userName: displayName,
       userRanking: currentUser.ranking,
+      userImageUrl: currentUser.profileImageUrl,
       courtId: selectedCourt?.id ?? '',
       courtName:
           selectedCourt?.name ??

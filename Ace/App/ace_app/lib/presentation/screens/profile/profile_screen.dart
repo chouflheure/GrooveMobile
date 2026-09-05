@@ -143,10 +143,13 @@ class _ProfileHeader extends ConsumerWidget {
         const [];
     return SliverAppBar(
       expandedHeight: 200,
-      pinned: true,
+      pinned: false,
       stretch: true,
       automaticallyImplyLeading: false,
-      backgroundColor: const Color.fromARGB(255, 1, 22, 4),
+      // Transparent so nothing shows behind the gradient container's
+      // rounded bottom corners — a solid color here would paint square
+      // right up to the sliver's edges, peeking out past the radius.
+      backgroundColor: const Color.fromARGB(0, 255, 255, 255),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
@@ -280,29 +283,30 @@ class _StatsGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
-        AppSpacing.md,
+        AppSpacing.xl,
         AppSpacing.lg,
-        AppSpacing.sm,
+        AppSpacing.xl,
       ),
-      child: GridView(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.md,
-          mainAxisExtent: 136,
-        ),
+      // A plain Row instead of a 2-cell GridView: there are always exactly
+      // two cards, so there's no need for grid machinery (and its fixed
+      // mainAxisExtent, which was reserving far more height than the cards
+      // actually need) — this sizes to the cards' real content height.
+      child: Row(
         children: [
-          StatCard(
-            emoji: '🎾',
-            value: '${stats.matchesPlayed}',
-            label: 'Matchs joués',
+          Expanded(
+            child: StatCard(
+              emoji: '🎾',
+              value: '${stats.matchesPlayed}',
+              label: 'Matchs joués',
+            ),
           ),
-          StatCard(
-            emoji: '⏱',
-            value: '${stats.hoursPlayed}h',
-            label: 'Heures jouées',
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: StatCard(
+              emoji: '⏱',
+              value: '${stats.hoursPlayed}h',
+              label: 'Heures jouées',
+            ),
           ),
         ],
       ),

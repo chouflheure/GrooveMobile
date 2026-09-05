@@ -25,6 +25,7 @@ class StatCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(emoji, style: const TextStyle(fontSize: 24)),
           const SizedBox(height: AppSpacing.sm),

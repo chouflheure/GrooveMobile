@@ -80,4 +80,14 @@ class AuthRepository {
     }
     return user.linkWithCredential(credential);
   }
+
+  /// Rolls back a phone link — used when the Firestore-side write that's
+  /// supposed to follow a successful [linkPhoneCredential] fails, so the
+  /// account doesn't end up with a phone credential Firebase will accept
+  /// for sign-in but no matching `phone` field on its profile.
+  Future<void> unlinkPhoneCredential() {
+    final user = _auth.currentUser;
+    if (user == null) return Future.value();
+    return user.unlink(PhoneAuthProvider.PROVIDER_ID).then((_) {});
+  }
 }

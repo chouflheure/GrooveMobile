@@ -207,6 +207,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				18317667E2F4351FD52D7862 /* [CP] Embed Pods Frameworks */,
 				D3BC760FCFAEF2B0761E60C8 /* [CP] Copy Pods Resources */,
+				11689C3BB6CE4A5C843E17F6 /* Re-sign native asset frameworks */,
 			);
 			buildRules = (
 			);
@@ -386,6 +387,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		11689C3BB6CE4A5C843E17F6 /* Re-sign native asset frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign native asset frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Dart FFI native-assets packages (e.g. `objective_c`, pulled in by\n# path_provider_foundation) ship prebuilt frameworks that Flutter's own\n# embed step leaves ad-hoc signed, with no team identity — `installd`\n# rejects that on a real device (works fine in the Simulator, which\n# doesn't enforce this), failing with \"invalid signature\". Re-sign\n# everything under Frameworks/ with the project's real identity so it\n# matches the rest of the already-correctly-signed app bundle.\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n  echo \"Simulator build, skipping framework re-sign.\"\n  exit 0\nfi\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY}\"\nif [ -z \"$IDENTITY\" ]; then\n  echo \"No code signing identity available, skipping framework re-sign.\"\n  exit 0\nfi\nFRAMEWORKS_DIR=\"${CODESIGNING_FOLDER_PATH}/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n  find \"$FRAMEWORKS_DIR\" -maxdepth 1 -name \"*.framework\" -print0 | while IFS= read -r -d '' framework; do\n    echo \"Re-signing $framework with $IDENTITY\"\n    codesign --force --sign \"$IDENTITY\" \"$framework\"\n  done\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

@@ -32,6 +32,26 @@
 		<string>CourtConnect a besoin d'accéder à ton calendrier pour y ajouter tes matchs et événements.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Ace Connect a besoin d'accéder à tes photos pour changer une image de profil, de terrain ou de club.</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<!-- Firebase Phone Auth's reCAPTCHA fallback (used when silent
+					     APNs verification doesn't complete in time, e.g. on the
+					     Simulator) redirects back into the app via this scheme.
+					     Required format: app-1-<PROJECT_NUMBER>-ios-<GOOGLE_APP_ID
+					     suffix>, derived from GOOGLE_APP_ID in GoogleService-Info.plist
+					     (1:93012964636:ios:ff3825bfea2fb8df7936d9) — NOT the bundle
+					     id, which is what FirebaseAuth actually asserts on at
+					     runtime (see PhoneAuthProvider.swift's isCallbackSchemeRegistered
+					     check). -->
+					<string>app-1-93012964636-ios-ff3825bfea2fb8df7936d9</string>
+				</array>
+			</dict>
+		</array>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

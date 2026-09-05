@@ -35,9 +35,28 @@ class _LinkPhoneScreenState extends ConsumerState<LinkPhoneScreen> {
 
     final user = ref.read(currentUserProvider).valueOrNull;
     if (user != null) {
-      await ref
-          .read(userRepositoryProvider)
-          .update(user.copyWith(phone: _phoneInput.e164));
+      try {
+        await ref
+            .read(userRepositoryProvider)
+            .update(user.copyWith(phone: _phoneInput.e164));
+      } catch (_) {
+        // The Firebase Auth link above already succeeded — if the Firestore
+        // write fails, undo it so the account doesn't end up with a phone
+        // credential that works for sign-in but no matching profile field.
+        await ref.read(authRepositoryProvider).unlinkPhoneCredential();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Le numéro n'a pas pu être enregistré sur ton profil, réessaie.",
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        ref.read(phoneAuthViewModelProvider.notifier).reset();
+        return;
+      }
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

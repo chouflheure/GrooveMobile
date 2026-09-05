@@ -1,4 +1,5 @@
 import Flutter
+import FirebaseAuth
 import UIKit
 
 @main
@@ -31,5 +32,19 @@ import UIKit
     application.registerForRemoteNotifications()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Firebase Phone Auth's reCAPTCHA fallback redirects back into the app
+  // through the URL scheme registered in Info.plist — hand it to
+  // FirebaseAuth first, since it can't be routed through Flutter.
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    if Auth.auth().canHandle(url) {
+      return true
+    }
+    return super.application(app, open: url, options: options)
   }
 }

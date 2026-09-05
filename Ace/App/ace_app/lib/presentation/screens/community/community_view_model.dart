@@ -182,6 +182,10 @@ class CommunityViewModel extends StateNotifier<CommunityState> {
     return _messageRepository.deleteMessage(messageId);
   }
 
+  Future<void> deleteConversation(String conversationId) {
+    return _messageRepository.deleteConversation(conversationId);
+  }
+
   @override
   void dispose() {
     _announcementsSubscription.cancel();

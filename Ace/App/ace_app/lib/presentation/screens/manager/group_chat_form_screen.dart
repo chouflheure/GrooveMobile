@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
+import '../../../data/repositories/message_repository.dart';
 import '../../atoms/atoms.dart';
 import '../auth/auth_view_model.dart';
 import '../community/chat_screen.dart';
@@ -47,13 +48,31 @@ class _GroupChatFormScreenState extends ConsumerState<GroupChatFormScreen> {
 
   Future<void> _create() async {
     if (!_isValid) return;
-    final senderName = ref.read(currentUserProvider).valueOrNull?.name;
-    if (senderName == null) return;
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    if (currentUser == null) return;
     setState(() => _isSending = true);
 
-    final conversationId = ref
-        .read(messageRepositoryProvider)
-        .newConversationId();
+    final repository = ref.read(messageRepositoryProvider);
+    final String conversationId;
+    if (_selectedIds.length == 1) {
+      // Same deterministic id the 1:1 chat flow uses elsewhere, so starting
+      // "a group" of just one person here continues that same conversation
+      // instead of forking a duplicate.
+      conversationId = MessageRepository.conversationIdFor(
+        currentUser.id,
+        _selectedIds.first,
+      );
+    } else {
+      final participantIds = {currentUser.id, ..._selectedIds};
+      conversationId =
+          await repository.findGroupConversationId(
+            currentUserId: currentUser.id,
+            participantIds: participantIds,
+          ) ??
+          repository.newConversationId();
+    }
+
+    final senderName = currentUser.name;
     await ref
         .read(communityViewModelProvider.notifier)
         .sendMessage(

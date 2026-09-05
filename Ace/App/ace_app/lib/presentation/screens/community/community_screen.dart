@@ -354,6 +354,10 @@ class _AnnouncementsTab extends StatelessWidget {
               child: AnnouncementCard(
                 announcement: a,
                 currentUserId: currentUserId ?? '',
+                userImageUrl: allUsers
+                    .where((u) => u.id == a.userId)
+                    .firstOrNull
+                    ?.profileImageUrl,
                 onInterested: () => onInterested(a),
                 onEdit: () => onEdit(a),
                 onDelete: () => onDelete(a.id),
@@ -483,14 +487,54 @@ class _MessagesTab extends ConsumerWidget {
         if (myClubs.isNotEmpty && conversations.isNotEmpty)
           const Divider(height: 1, indent: 80),
         ...conversations.map(
-          (conv) => ConversationItem(
-            conversation: conv,
-            currentUserId: currentUser.id,
-            onTap: () => onTap(conv),
+          (conv) => Dismissible(
+            key: ValueKey(conv.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              color: AppColors.error,
+              child: const Icon(Icons.delete_rounded, color: Colors.white),
+            ),
+            confirmDismiss: (_) => _confirmDeleteConversation(context),
+            onDismissed: (_) => ref
+                .read(communityViewModelProvider.notifier)
+                .deleteConversation(conv.id),
+            child: ConversationItem(
+              conversation: conv,
+              currentUserId: currentUser.id,
+              onTap: () => onTap(conv),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Future<bool> _confirmDeleteConversation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supprimer cette conversation ?'),
+        content: const Text(
+          'Tous les messages seront supprimés. Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 }
 

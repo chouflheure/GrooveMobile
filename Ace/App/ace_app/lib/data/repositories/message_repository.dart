@@ -15,6 +15,32 @@ class MessageRepository {
   /// own, so it just gets a normal Firestore-generated id.
   String newConversationId() => _collection.doc().id;
 
+  /// Looks for a group conversation already made up of exactly
+  /// `participantIds` (order-independent), so starting a "new" group with
+  /// the same people just continues it instead of spawning a duplicate —
+  /// 1:1s never need this since [conversationIdFor] already gives them a
+  /// stable id.
+  Future<String?> findGroupConversationId({
+    required String currentUserId,
+    required Set<String> participantIds,
+  }) async {
+    final snapshot = await _collection
+        .where('participantIds', arrayContains: currentUserId)
+        .get();
+    final seen = <String>{};
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final conversationId = data['conversationId'] as String;
+      if (!seen.add(conversationId)) continue;
+      final ids = Set<String>.from(data['participantIds'] as List);
+      if (ids.length == participantIds.length &&
+          ids.containsAll(participantIds)) {
+        return conversationId;
+      }
+    }
+    return null;
+  }
+
   /// Deterministic id for a 1:1 conversation — no separate "does this
   /// conversation exist" lookup needed, and it doubles as the value stored
   /// in every message's `conversationId` field.
@@ -149,6 +175,23 @@ class MessageRepository {
 
   Future<void> deleteMessage(String messageId) {
     return _collection.doc(messageId).delete();
+  }
+
+  /// Deletes every message in a conversation — there's no separate
+  /// `conversations` document to remove, the conversation *is* its
+  /// messages. Batched in chunks of 500 (Firestore's per-batch write limit).
+  Future<void> deleteConversation(String conversationId) async {
+    final snapshot = await _collection
+        .where('conversationId', isEqualTo: conversationId)
+        .get();
+    final docs = snapshot.docs;
+    for (var i = 0; i < docs.length; i += 500) {
+      final batch = _firestore.batch();
+      for (final doc in docs.skip(i).take(500)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> markConversationRead(

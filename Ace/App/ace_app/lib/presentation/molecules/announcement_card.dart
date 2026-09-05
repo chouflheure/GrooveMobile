@@ -10,6 +10,11 @@ import '../screens/announcement_detail/announcement_detail_screen.dart';
 class AnnouncementCard extends StatelessWidget {
   final AnnouncementModel announcement;
   final String currentUserId;
+  // Resolved live from the poster's current profile (falls back to
+  // `announcement.userImageUrl` when not given) so a photo added or
+  // changed after the announcement was posted still shows up, and old
+  // announcements posted before this field existed aren't stuck without one.
+  final String? userImageUrl;
   final VoidCallback? onInterested;
   final VoidCallback? onUserTap;
   final VoidCallback? onEdit;
@@ -19,6 +24,7 @@ class AnnouncementCard extends StatelessWidget {
     super.key,
     required this.announcement,
     required this.currentUserId,
+    this.userImageUrl,
     this.onInterested,
     this.onUserTap,
     this.onEdit,
@@ -33,6 +39,7 @@ class AnnouncementCard extends StatelessWidget {
         builder: (_) => AnnouncementDetailScreen(
           announcement: announcement,
           currentUserId: currentUserId,
+          userImageUrl: userImageUrl,
           onInterested: onInterested,
           onUserTap: onUserTap,
           onEdit: onEdit,
@@ -66,6 +73,7 @@ class AnnouncementCard extends StatelessWidget {
             AnnouncementHeader(
               announcement: announcement,
               isOwn: _isOwn,
+              userImageUrl: userImageUrl,
               onUserTap: _isOwn ? null : onUserTap,
               onEdit: onEdit,
               onDelete: onDelete,
@@ -97,6 +105,7 @@ class AnnouncementCard extends StatelessWidget {
 class AnnouncementHeader extends StatelessWidget {
   final AnnouncementModel announcement;
   final bool isOwn;
+  final String? userImageUrl;
   final VoidCallback? onUserTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -105,6 +114,7 @@ class AnnouncementHeader extends StatelessWidget {
     super.key,
     required this.announcement,
     this.isOwn = false,
+    this.userImageUrl,
     this.onUserTap,
     this.onEdit,
     this.onDelete,
@@ -182,7 +192,7 @@ class AnnouncementHeader extends StatelessWidget {
                 .map((p) => p[0])
                 .take(2)
                 .join(),
-            imageUrl: announcement.userImageUrl,
+            imageUrl: userImageUrl ?? announcement.userImageUrl,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

@@ -11,6 +11,7 @@ import '../community/community_view_model.dart';
 class AnnouncementDetailScreen extends ConsumerWidget {
   final AnnouncementModel announcement;
   final String currentUserId;
+  final String? userImageUrl;
   final VoidCallback? onInterested;
   final VoidCallback? onUserTap;
   final VoidCallback? onEdit;
@@ -20,6 +21,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
     super.key,
     required this.announcement,
     required this.currentUserId,
+    this.userImageUrl,
     this.onInterested,
     this.onUserTap,
     this.onEdit,
@@ -58,6 +60,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
           AnnouncementHeader(
             announcement: live,
             isOwn: isOwn,
+            userImageUrl: userImageUrl,
             onUserTap: isOwn ? null : onUserTap,
             // Modifier/Supprimer act on this announcement — leave the
             // detail page before running them, same as "back".

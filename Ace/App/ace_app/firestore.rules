@@ -118,7 +118,13 @@ service cloud.firestore {
       // unrestricted like the rest of this collection; the app only shows
       // the edit action on the sender's own bubble.
       allow update: if true;
-      allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+      // The sender can delete their own message (editing/removing a single
+      // message); any participant can delete any message in the
+      // conversation (deleting the whole conversation removes every
+      // message, not just the ones they sent).
+      allow delete: if request.auth != null
+        && (resource.data.senderId == request.auth.uid
+          || request.auth.uid in resource.data.participantIds);
     }
 
     // Real Firebase Auth is wired up, so unlike the collections above this

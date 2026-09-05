@@ -142,11 +142,11 @@ class _ProfileHeader extends ConsumerWidget {
             .toList() ??
         const [];
     return SliverAppBar(
-      expandedHeight: 230,
+      expandedHeight: 200,
       pinned: true,
       stretch: true,
       automaticallyImplyLeading: false,
-      backgroundColor: AppColors.primary,
+      backgroundColor: const Color.fromARGB(255, 1, 22, 4),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(

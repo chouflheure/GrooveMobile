@@ -6,6 +6,7 @@ const admin = require("firebase-admin");
 
 const { sendPushToUserIds } = require("./lib/push");
 const { deleteAll } = require("./lib/firestore");
+const { createBooking } = require("./lib/booking");
 const {
   APP_TIMEZONE,
   dateKeyInTimeZone,
@@ -15,6 +16,12 @@ const {
 } = require("./lib/time");
 
 admin.initializeApp();
+
+// The only way a `bookings` document is created — `firestore.rules` denies
+// writing to that collection directly from the client, so every rule the
+// court's `BookingPolicy` defines is enforced here with Admin SDK
+// privileges instead of trusting the app.
+exports.createBooking = createBooking;
 
 // Deployed in the same region as the Firestore database (europe-west9,
 // Paris) — mixing regions between the functions and the Firestore trigger

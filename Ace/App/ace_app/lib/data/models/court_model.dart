@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'booking_policy.dart';
 
 enum CourtType { indoor, outdoor }
 
@@ -160,6 +161,16 @@ class CourtModel extends Equatable {
   // now (shown as a blue vs. green accent), not tied to price or booking
   // eligibility yet.
   final List<String> peakHours;
+  // Which reusable `BookingScenario` this court's rules are drawn from —
+  // null means "no scenario assigned, use defaults" (or, on a court saved
+  // before scenarios existed, the legacy embedded `policy` below).
+  final String? scenarioId;
+  // In-memory only — resolved by joining `scenarioId` against the current
+  // `BookingScenario` list (see `CourtsViewModel._recompute`), never
+  // written back to the court's own Firestore document. `fromJson` seeds
+  // it from a pre-scenario court's embedded `policy` field as a
+  // backward-compat fallback until that court gets a scenario assigned.
+  final BookingPolicy policy;
 
   const CourtModel({
     required this.id,
@@ -177,6 +188,8 @@ class CourtModel extends Equatable {
     this.unavailablePeriods = const [],
     this.availabilityOverrides = const [],
     this.peakHours = const [],
+    this.scenarioId,
+    this.policy = const BookingPolicy(),
   });
 
   List<TimeSlot> get freeSlots =>
@@ -185,7 +198,11 @@ class CourtModel extends Equatable {
   bool isClosedOn(DateTime date) =>
       unavailablePeriods.any((p) => p.covers(date));
 
-  bool isPeakHour(String time) => peakHours.contains(time);
+  // When the policy has no peak/off-peak distinction, every offered slot
+  // renders as the single "peak" (green) accent rather than the "off-peak"
+  // (blue) one — see `AppColors.peakHour`/`offPeakHour`.
+  bool isPeakHour(String time) =>
+      !policy.peakHoursEnabled || peakHours.contains(time);
 
   /// The hourly template for a given date — narrowed by whichever
   /// [AvailabilityOverride] covers that date, or the court's normal
@@ -233,6 +250,11 @@ class CourtModel extends Equatable {
     peakHours: json['peakHours'] != null
         ? List<String>.from(json['peakHours'] as List)
         : const [],
+    scenarioId: json['scenarioId'] as String?,
+    // Legacy fallback: a court saved by the earlier inline-policy version
+    // of this feature still carries its custom rules under 'policy' — keep
+    // honoring them (as the resolved default) until a scenario is assigned.
+    policy: BookingPolicy.fromJson(json['policy'] as Map<String, dynamic>?),
   );
 
   Map<String, dynamic> toJson() => {
@@ -253,6 +275,11 @@ class CourtModel extends Equatable {
         .map((p) => p.toJson())
         .toList(),
     'peakHours': peakHours,
+    'scenarioId': scenarioId,
+    // Deliberately not persisted — `policy` is either a scenario-resolved,
+    // in-memory value or this same court's legacy embedded fallback; a
+    // save must not write it back (that would re-embed a stale copy of a
+    // scenario's rules, defeating the whole point of referencing it).
   };
 
   @override

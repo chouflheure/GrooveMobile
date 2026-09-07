@@ -47,7 +47,7 @@ class CourtCard extends StatelessWidget {
                     const SizedBox(height: AppSpacing.sm),
                     _SlotsList(
                       slots: freeSlots,
-                      peakTimes: court.peakHours,
+                      isPeak: court.isPeakHour,
                       onTapSlot: (slot) => onSlotTap?.call(court.id, slot),
                     ),
                   ],
@@ -346,12 +346,12 @@ class _SlotsHeader extends StatelessWidget {
 
 class _SlotsList extends StatelessWidget {
   final List<TimeSlot> slots;
-  final List<String> peakTimes;
+  final bool Function(String time) isPeak;
   final ValueChanged<String> onTapSlot;
 
   const _SlotsList({
     required this.slots,
-    required this.peakTimes,
+    required this.isPeak,
     required this.onTapSlot,
   });
 
@@ -367,7 +367,7 @@ class _SlotsList extends StatelessWidget {
           final slot = slots[i];
           return TimeSlotChip(
             slot: slot,
-            isPeak: peakTimes.contains(slot.time),
+            isPeak: isPeak(slot.time),
             onTap: () => onTapSlot(slot.time),
           );
         },

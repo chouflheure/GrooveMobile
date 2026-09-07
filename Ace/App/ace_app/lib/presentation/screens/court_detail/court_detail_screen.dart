@@ -124,6 +124,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _DateSelector(
+                          windowDays: court.policy.bookingWindowDays,
                           selectedDate: _selectedDate,
                           onSelect: (date) => setState(() {
                             _selectedDate = date;
@@ -193,6 +194,7 @@ class _CourtDetailScreenState extends ConsumerState<CourtDetailScreen> {
       unavailablePeriods: template.unavailablePeriods,
       availabilityOverrides: template.availabilityOverrides,
       peakHours: template.peakHours,
+      policy: template.policy,
     );
   }
 
@@ -480,18 +482,20 @@ class _AmenitiesGrid extends StatelessWidget {
 }
 
 class _DateSelector extends StatelessWidget {
+  final int windowDays;
   final DateTime selectedDate;
   final ValueChanged<DateTime> onSelect;
 
-  const _DateSelector({required this.selectedDate, required this.onSelect});
+  const _DateSelector({
+    required this.windowDays,
+    required this.selectedDate,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
     final today = AppConstants.today();
-    final days = List.generate(
-      AppConstants.bookingCalendarDays,
-      (i) => today.add(Duration(days: i)),
-    );
+    final days = List.generate(windowDays, (i) => today.add(Duration(days: i)));
     return SizedBox(
       height: 64,
       child: ListView.separated(
@@ -582,14 +586,6 @@ class _SlotsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _HourLegendDot(color: AppColors.offPeakHour, label: 'Heure creuse'),
-            const SizedBox(width: AppSpacing.md),
-            _HourLegendDot(color: AppColors.peakHour, label: 'Heure pleine'),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
@@ -605,29 +601,6 @@ class _SlotsSection extends StatelessWidget {
               )
               .toList(),
         ),
-      ],
-    );
-  }
-}
-
-class _HourLegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-
-  const _HourLegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: AppTypography.labelSmall),
       ],
     );
   }

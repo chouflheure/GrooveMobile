@@ -1,9 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/booking_model.dart';
-import '../models/court_model.dart';
+
+/// Marker for every booking-rule violation `createBooking` (the Cloud
+/// Function that owns all booking creation, see `BookingRepository.create`)
+/// can report back — lets UI code catch "any policy violation" at once
+/// while each subtype still carries its own user-facing message.
+abstract class BookingValidationException implements Exception {}
 
 /// Thrown when a booking is attempted on a slot another booking already holds.
-class SlotAlreadyBookedException implements Exception {
+class SlotAlreadyBookedException implements BookingValidationException {
   const SlotAlreadyBookedException();
 
   @override
@@ -12,7 +18,7 @@ class SlotAlreadyBookedException implements Exception {
 }
 
 /// Thrown when the booker isn't a member of the club the court belongs to.
-class ClubMismatchException implements Exception {
+class ClubMismatchException implements BookingValidationException {
   const ClubMismatchException();
 
   @override
@@ -21,7 +27,7 @@ class ClubMismatchException implements Exception {
 }
 
 /// Thrown when the court is closed for the whole day of the booking.
-class CourtClosedException implements Exception {
+class CourtClosedException implements BookingValidationException {
   const CourtClosedException();
 
   @override
@@ -30,7 +36,7 @@ class CourtClosedException implements Exception {
 
 /// Thrown when the slot's time falls outside a restricted-hours window
 /// that applies to the booking's date.
-class SlotOutsideHoursException implements Exception {
+class SlotOutsideHoursException implements BookingValidationException {
   const SlotOutsideHoursException();
 
   @override
@@ -38,8 +44,8 @@ class SlotOutsideHoursException implements Exception {
 }
 
 /// Thrown when the booker already holds an outstanding "heure pleine" slot
-/// — only one can be held at once, across every court.
-class PeakHourLimitExceededException implements Exception {
+/// — capped per the court's `BookingPolicy.peakHourLimit`, across every court.
+class PeakHourLimitExceededException implements BookingValidationException {
   const PeakHourLimitExceededException();
 
   @override
@@ -48,170 +54,102 @@ class PeakHourLimitExceededException implements Exception {
       'qu\'elle soit passée pour en reprendre une.';
 }
 
-/// Thrown when the booker already holds 2h of outstanding "heure creuse"
-/// slots — no more than that can be held at once, across every court.
-class OffPeakHourLimitExceededException implements Exception {
+/// Thrown when the booker already holds too many outstanding "heure
+/// creuse" slots — capped per the court's `BookingPolicy.offPeakHourLimit`,
+/// across every court.
+class OffPeakHourLimitExceededException implements BookingValidationException {
   const OffPeakHourLimitExceededException();
 
   @override
   String toString() =>
-      'Tu as déjà 2h de réservations en heure creuse en cours. Attends '
+      'Tu as déjà trop de réservations en heure creuse en cours. Attends '
       'qu\'une d\'elles soit passée pour en reprendre une autre.';
 }
 
+/// Thrown when the booking's date falls outside the court's
+/// `BookingPolicy.bookingWindowDays`.
+class BookingWindowExceededException implements BookingValidationException {
+  final String message;
+  const BookingWindowExceededException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the booker already has `BookingPolicy.maxSlotsPerDay` slots
+/// on this same court on this same day.
+class DailyLimitExceededException implements BookingValidationException {
+  final String message;
+  const DailyLimitExceededException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the booker already has `BookingPolicy.maxSlotsPerWeek` slots
+/// on this same court within the policy's week window.
+class WeeklyLimitExceededException implements BookingValidationException {
+  final String message;
+  const WeeklyLimitExceededException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class BookingRepository {
-  BookingRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  BookingRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'europe-west9');
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('bookings');
 
-  CollectionReference<Map<String, dynamic>> get _usersCollection =>
-      _firestore.collection('users');
-
   static String _dateKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-  /// Creates a booking, using `${courtId}_${date}_${startTime}` as the
-  /// document id so Firestore's transaction get+set gives us an atomic
-  /// "only one active booking per slot" guarantee — Firestore transactions
-  /// can only read a specific document, not a query, so the uniqueness key
-  /// has to live in the id itself.
+  /// Creates a booking via the `createBooking` Cloud Function — every
+  /// business rule (club membership, court closures, the court's
+  /// `BookingPolicy` limits) is enforced there with Admin SDK privileges,
+  /// since `firestore.rules` denies writing to `bookings` directly. Using
+  /// `${courtId}_${date}_${startTime}` as the document id is what lets that
+  /// function's own transaction guarantee "only one active booking per
+  /// slot" atomically.
   Future<void> create(BookingModel booking) async {
-    final docRef = _collection.doc(booking.slotKey);
-    final courtRef = _firestore.collection('courts').doc(booking.courtId);
-    final bookerRef = _usersCollection.doc(booking.userId);
-
-    // A real player booking (never the internal slot-blocking kind an
-    // event creates) is capped at 1 outstanding "heure pleine" slot and 2h
-    // of outstanding "heure creuse" slots at a time, across every court.
-    // Firestore transactions can only read specific documents, not run a
-    // query, so this has to happen as a plain read before the transaction
-    // rather than inside it — a small, accepted race window for what's a
-    // soft fairness rule, not a hard uniqueness constraint like the slot
-    // itself (which the transaction below still enforces atomically).
-    var isPeak = false;
-    if (!booking.isEventBlock) {
-      final courtSnap = await courtRef.get();
-      final peakHours =
-          (courtSnap.data()?['peakHours'] as List?)?.cast<String>() ??
-          const [];
-      isPeak = peakHours.contains(booking.startTime);
-      // Admins are exempt — the cap is a fairness rule for regular players,
-      // not a hard capacity limit.
-      final isAdmin = (await _firestore
-              .collection('admin')
-              .doc(booking.userId)
-              .get())
-          .exists;
-      if (!isAdmin) {
-        await _checkHourLimit(userId: booking.userId, isPeak: isPeak);
-      }
+    try {
+      await _functions.httpsCallable('createBooking').call(booking.toJson());
+    } on FirebaseFunctionsException catch (e) {
+      throw _mapException(e);
     }
-
-    await _firestore.runTransaction((tx) async {
-      // Firestore transactions require every read before any write, so the
-      // club-membership check runs first.
-      final courtSnap = await tx.get(courtRef);
-      final bookerSnap = await tx.get(bookerRef);
-      final clubId = courtSnap.data()?['clubId'] as String?;
-      final clubIds =
-          (bookerSnap.data()?['clubIds'] as List?)?.cast<String>() ?? const [];
-      if (clubId != null && clubId.isNotEmpty && !clubIds.contains(clubId)) {
-        throw const ClubMismatchException();
-      }
-
-      final periodsJson = courtSnap.data()?['unavailablePeriods'] as List?;
-      final periods =
-          periodsJson
-              ?.map(
-                (p) => UnavailablePeriod.fromJson(p as Map<String, dynamic>),
-              )
-              .toList() ??
-          const [];
-      if (periods.any((p) => p.covers(booking.date))) {
-        throw const CourtClosedException();
-      }
-
-      final overridesJson = courtSnap.data()?['availabilityOverrides'] as List?;
-      final overrides =
-          overridesJson
-              ?.map(
-                (p) => AvailabilityOverride.fromJson(p as Map<String, dynamic>),
-              )
-              .toList() ??
-          const [];
-      final activeOverride = overrides
-          .where((o) => o.covers(booking.date))
-          .firstOrNull;
-      if (activeOverride != null &&
-          !activeOverride.allowsTime(booking.startTime)) {
-        throw const SlotOutsideHoursException();
-      }
-
-      final existing = await tx.get(docRef);
-      if (existing.exists) {
-        final status = existing.data()?['status'] as String?;
-        if (status != BookingStatus.cancelled.jsonValue) {
-          throw const SlotAlreadyBookedException();
-        }
-      }
-      tx.set(
-        docRef,
-        _withDateKey(
-          booking.copyWith(id: docRef.id, isPeakHour: isPeak),
-        ),
-      );
-
-      // Link the booking on both players' profiles — the `bookings`
-      // collection (queried by userId) is still the source of truth, this
-      // is just a reference kept on each user doc.
-      tx.update(_usersCollection.doc(booking.userId), {
-        'bookingIds': FieldValue.arrayUnion([docRef.id]),
-      });
-      if (booking.partnerId != null && booking.partnerId!.isNotEmpty) {
-        tx.update(_usersCollection.doc(booking.partnerId), {
-          'bookingIds': FieldValue.arrayUnion([docRef.id]),
-        });
-      }
-    });
   }
 
-  /// Counts this user's outstanding (not cancelled, not yet ended) bookings
-  /// of the given peak/off-peak kind — as booker or invited partner, same
-  /// as [watchByUser] — and throws if adding one more would break the
-  /// 1h-peak / 2h-off-peak cap.
-  Future<void> _checkHourLimit({
-    required String userId,
-    required bool isPeak,
-  }) async {
-    final snapshot = await _collection
-        .where(
-          Filter.or(
-            Filter('userId', isEqualTo: userId),
-            Filter('partnerId', isEqualTo: userId),
-          ),
-        )
-        .get();
-
-    final now = DateTime.now();
-    var outstanding = 0;
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      if (data['status'] == BookingStatus.cancelled.jsonValue) continue;
-      if (data['isEventBlock'] == true) continue;
-      if ((data['isPeakHour'] as bool? ?? false) != isPeak) continue;
-      if (BookingModel.fromJson(data).endDateTime.isBefore(now)) continue;
-      outstanding++;
-    }
-
-    final limit = isPeak ? 1 : 2;
-    if (outstanding + 1 > limit) {
-      throw isPeak
-          ? const PeakHourLimitExceededException()
-          : const OffPeakHourLimitExceededException();
+  Exception _mapException(FirebaseFunctionsException e) {
+    final reason = e.details is Map ? (e.details as Map)['reason'] : null;
+    final message = e.message ?? e.toString();
+    switch (reason) {
+      case 'slot_taken':
+        return const SlotAlreadyBookedException();
+      case 'club_mismatch':
+        return const ClubMismatchException();
+      case 'court_closed':
+        return const CourtClosedException();
+      case 'outside_hours':
+        return const SlotOutsideHoursException();
+      case 'peak_limit':
+        return const PeakHourLimitExceededException();
+      case 'off_peak_limit':
+        return const OffPeakHourLimitExceededException();
+      case 'window_exceeded':
+        return BookingWindowExceededException(message);
+      case 'daily_limit':
+        return DailyLimitExceededException(message);
+      case 'weekly_limit':
+        return WeeklyLimitExceededException(message);
+      default:
+        return Exception(message);
     }
   }
 

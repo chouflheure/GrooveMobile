@@ -283,13 +283,7 @@ class _BookingConfirmationSheetState
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            e is SlotAlreadyBookedException ||
-                e is ClubMismatchException ||
-                e is CourtClosedException ||
-                e is SlotOutsideHoursException ||
-                e is PeakHourLimitExceededException ||
-                e is OffPeakHourLimitExceededException
+        _errorMessage = e is BookingValidationException
             ? e.toString()
             : 'Une erreur est survenue, réessaie.';
       });

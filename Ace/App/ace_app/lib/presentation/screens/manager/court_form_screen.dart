@@ -16,8 +16,14 @@ import 'manager_view_model.dart';
 class CourtFormScreen extends ConsumerStatefulWidget {
   final CourtModel? court;
   final List<ClubModel> clubs;
+  final List<BookingScenario> scenarios;
 
-  const CourtFormScreen({super.key, required this.court, required this.clubs});
+  const CourtFormScreen({
+    super.key,
+    required this.court,
+    required this.clubs,
+    required this.scenarios,
+  });
 
   @override
   ConsumerState<CourtFormScreen> createState() => _CourtFormScreenState();
@@ -65,7 +71,16 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
   bool _isSaving = false;
   bool _isDeleting = false;
 
+  late String? _scenarioId = widget.court?.scenarioId;
+
   bool get _isEditing => widget.court != null;
+
+  /// The scenario currently selected, if any — drives whether the hour
+  /// picker below shows the peak/off-peak distinction at all.
+  BookingScenario? get _selectedScenario =>
+      widget.scenarios.where((s) => s.id == _scenarioId).firstOrNull;
+
+  bool get _peakHoursEnabled => _selectedScenario?.policy.peakHoursEnabled ?? true;
 
   // One hour after the last bookable start time, so an admin can pick an
   // end boundary that actually includes that last slot.
@@ -175,6 +190,7 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
       availabilityOverrides: _overrides,
       // A time can only be "peak" if it's actually offered.
       peakHours: _peakTimes.where(_selectedTimes.contains).toList(),
+      scenarioId: _scenarioId,
     );
 
     final ok = await ref
@@ -292,7 +308,12 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             children: widget.clubs.map((c) {
               final isSelected = _clubId == c.id;
               return GestureDetector(
-                onTap: () => setState(() => _clubId = c.id),
+                onTap: () => setState(() {
+                  _clubId = c.id;
+                  // A scenario belongs to one club — drop the selection if
+                  // it no longer matches.
+                  if (_selectedScenario?.clubId != c.id) _scenarioId = null;
+                }),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
@@ -469,28 +490,46 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
           Text.rich(
             TextSpan(
               style: AppTypography.bodySmall,
-              children: [
-                const TextSpan(
-                  text: 'Clique sur un horaire pour le faire passer par : '
-                      'non proposé (gris) → ',
-                ),
-                TextSpan(
-                  text: 'heure creuse',
-                  style: TextStyle(
-                    color: AppColors.offPeakHour,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const TextSpan(text: ' (vert) → '),
-                TextSpan(
-                  text: 'heure pleine',
-                  style: TextStyle(
-                    color: AppColors.peakHour,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const TextSpan(text: ' (bleu).'),
-              ],
+              children: _peakHoursEnabled
+                  ? [
+                      const TextSpan(
+                        text: 'Clique sur un horaire pour le faire passer par : '
+                            'non proposé (gris) → ',
+                      ),
+                      TextSpan(
+                        text: 'heure creuse',
+                        style: TextStyle(
+                          color: AppColors.offPeakHour,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const TextSpan(text: ' (bleu) → '),
+                      TextSpan(
+                        text: 'heure pleine',
+                        style: TextStyle(
+                          color: AppColors.peakHour,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const TextSpan(text: ' (vert).'),
+                    ]
+                  : [
+                      const TextSpan(
+                        text: 'Clique sur un horaire pour le faire passer par : '
+                            'non proposé (gris) → ',
+                      ),
+                      TextSpan(
+                        text: 'proposé',
+                        style: TextStyle(
+                          color: AppColors.peakHour,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: ' (vert). Le scénario de ce terrain désactive '
+                            'la distinction heure creuse/pleine.',
+                      ),
+                    ],
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -499,12 +538,25 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
             runSpacing: AppSpacing.sm,
             children: AppConstants.timeSlots.map((t) {
               final isSelected = _selectedTimes.contains(t);
-              final isPeak = _peakTimes.contains(t);
+              // Without the peak/off-peak distinction, an offered hour is
+              // always rendered (and toggled) as the single "green" state —
+              // `AppColors.peakHour`, matched below by forcing `isPeak: true`.
+              final isPeak = !_peakHoursEnabled || _peakTimes.contains(t);
               return _HourStateChip(
                 time: t,
                 isOffered: isSelected,
                 isPeak: isPeak,
                 onTap: () => setState(() {
+                  if (!_peakHoursEnabled) {
+                    // Only two states: not offered <-> offered.
+                    if (isSelected) {
+                      _selectedTimes.remove(t);
+                      _peakTimes.remove(t);
+                    } else {
+                      _selectedTimes.add(t);
+                    }
+                    return;
+                  }
                   if (!isSelected) {
                     // Not offered -> heure creuse.
                     _selectedTimes.add(t);
@@ -519,6 +571,48 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
                 }),
               );
             }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _Label('Scénario de réservation'),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            "Contrôle comment ce terrain se réserve : jours affichés à "
+            "l'avance, heures creuses/pleines, limites imposées à un joueur. "
+            "Géré depuis \"Gérer la disponibilité\".",
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Builder(
+            builder: (context) {
+              final clubScenarios = widget.scenarios
+                  .where((s) => s.clubId == _clubId)
+                  .toList();
+              if (clubScenarios.isEmpty) {
+                return Text(
+                  "Aucun scénario pour ce club — ce terrain utilise les "
+                  "règles par défaut.",
+                  style: AppTypography.bodySmall,
+                );
+              }
+              return Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  _ScenarioChip(
+                    label: 'Aucun (règles par défaut)',
+                    isSelected: _scenarioId == null,
+                    onTap: () => setState(() => _scenarioId = null),
+                  ),
+                  ...clubScenarios.map(
+                    (s) => _ScenarioChip(
+                      label: s.name,
+                      isSelected: _scenarioId == s.id,
+                      onTap: () => setState(() => _scenarioId = s.id),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Plages horaires spéciales'),
@@ -760,6 +854,44 @@ class _HourStateChip extends StatelessWidget {
           style: AppTypography.labelMedium.copyWith(
             color: isOffered ? Colors.white : AppColors.textSecondary,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScenarioChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ScenarioChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.background,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.labelMedium.copyWith(
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),

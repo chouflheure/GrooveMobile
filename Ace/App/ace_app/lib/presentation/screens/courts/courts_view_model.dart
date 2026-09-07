@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
+import '../../../data/repositories/booking_scenario_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
 import '../auth/auth_view_model.dart';
@@ -89,16 +91,32 @@ class CourtsState {
 
 const _sentinel = Object();
 
+/// The assigned scenario's policy always wins when it still exists, so
+/// editing a scenario updates every court using it live; `court.policy`
+/// itself only carries the legacy embedded fallback (or defaults) for a
+/// court with no scenario, or one whose scenario got deleted.
+BookingPolicy _resolvePolicy(
+  CourtModel court,
+  Map<String, BookingScenario> scenariosById,
+) => scenariosById[court.scenarioId]?.policy ?? court.policy;
+
 class CourtsViewModel extends StateNotifier<CourtsState> {
   CourtsViewModel(
     this._courtRepository,
     this._bookingRepository,
     this._clubRepository,
+    this._scenarioRepository,
     this._userClubIds,
   ) : super(const CourtsState()) {
     state = state.copyWith(isLoading: true);
     _courtsSubscription = _courtRepository.watchAll().listen((courts) {
       _rawCourts = courts;
+      _recompute();
+    });
+    _scenariosSubscription = _scenarioRepository.watchAll().listen((
+      scenarios,
+    ) {
+      _scenariosById = {for (final s in scenarios) s.id: s};
       _recompute();
     });
     _bookingsSubscription = _bookingRepository
@@ -128,6 +146,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
   final CourtRepository _courtRepository;
   final BookingRepository _bookingRepository;
   final ClubRepository _clubRepository;
+  final BookingScenarioRepository _scenarioRepository;
   // Null for guests (scoped to the demo club only, see `_mockClubId`); a
   // signed-in player only ever sees courts belonging to a club they're a
   // member of.
@@ -136,9 +155,11 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
   late final StreamSubscription<List<CourtModel>> _courtsSubscription;
   late final StreamSubscription<Map<String, Set<String>>> _bookingsSubscription;
   late final StreamSubscription<List<ClubModel>> _clubsSubscription;
+  late final StreamSubscription<List<BookingScenario>> _scenariosSubscription;
 
   List<CourtModel> _rawCourts = const [];
   Map<String, Set<String>> _bookedSlots = const {};
+  Map<String, BookingScenario> _scenariosById = const {};
 
   void _recompute() {
     final today = AppConstants.today();
@@ -173,6 +194,8 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
         unavailablePeriods: court.unavailablePeriods,
         availabilityOverrides: court.availabilityOverrides,
         peakHours: court.peakHours,
+        scenarioId: court.scenarioId,
+        policy: _resolvePolicy(court, _scenariosById),
       );
     }).toList();
     state = state.copyWith(courts: courts, isLoading: false);
@@ -195,6 +218,7 @@ class CourtsViewModel extends StateNotifier<CourtsState> {
     _courtsSubscription.cancel();
     _bookingsSubscription.cancel();
     _clubsSubscription.cancel();
+    _scenariosSubscription.cancel();
     super.dispose();
   }
 }
@@ -211,9 +235,51 @@ final clubRepositoryProvider = Provider<ClubRepository>(
   (_) => ClubRepository(),
 );
 
-final courtByIdProvider = StreamProvider.family<CourtModel?, String>(
-  (ref, id) => ref.watch(courtRepositoryProvider).watchById(id),
+final scenarioRepositoryProvider = Provider<BookingScenarioRepository>(
+  (_) => BookingScenarioRepository(),
 );
+
+final scenariosProvider = StreamProvider<List<BookingScenario>>(
+  (ref) => ref.watch(scenarioRepositoryProvider).watchAll(),
+);
+
+/// Joins the live court document with the live scenario list so a single
+/// court's detail screen also picks up a scenario edit instantly, the same
+/// way `CourtsViewModel._recompute` does for the courts list.
+final courtByIdProvider = StreamProvider.family<CourtModel?, String>((
+  ref,
+  id,
+) {
+  final courtRepository = ref.watch(courtRepositoryProvider);
+  final scenarioRepository = ref.watch(scenarioRepositoryProvider);
+  return Rx.combineLatest2(
+    courtRepository.watchById(id),
+    scenarioRepository.watchAll(),
+    (CourtModel? court, List<BookingScenario> scenarios) {
+      if (court == null) return null;
+      final scenariosById = {for (final s in scenarios) s.id: s};
+      return CourtModel(
+        id: court.id,
+        name: court.name,
+        type: court.type,
+        surface: court.surface,
+        location: court.location,
+        pricePerHour: court.pricePerHour,
+        rating: court.rating,
+        imageUrl: court.imageUrl,
+        description: court.description,
+        amenities: court.amenities,
+        availableSlots: court.availableSlots,
+        clubId: court.clubId,
+        unavailablePeriods: court.unavailablePeriods,
+        availabilityOverrides: court.availabilityOverrides,
+        peakHours: court.peakHours,
+        scenarioId: court.scenarioId,
+        policy: _resolvePolicy(court, scenariosById),
+      );
+    },
+  );
+});
 
 final clubsProvider = StreamProvider<List<ClubModel>>(
   (ref) => ref.watch(clubRepositoryProvider).watchAll(),
@@ -236,6 +302,7 @@ final courtsViewModelProvider =
         ref.watch(courtRepositoryProvider),
         ref.watch(bookingRepositoryProvider),
         ref.watch(clubRepositoryProvider),
+        ref.watch(scenarioRepositoryProvider),
         ref.watch(currentUserProvider).valueOrNull?.clubIds,
       ),
     );

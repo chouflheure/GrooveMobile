@@ -2,7 +2,7 @@ name: ace_app
 description: "CourtConnect - Application de réservation de terrains de tennis"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.11.0
@@ -30,6 +30,7 @@ dependencies:
   firebase_remote_config: ^5.4.2
   firebase_messaging: ^15.2.5
   firebase_storage: ^12.4.10
+  cloud_functions: ^5.3.4
   flutter_local_notifications: ^18.0.1
   image_picker: ^1.1.2
   # firebase_auth: ^5.0.0

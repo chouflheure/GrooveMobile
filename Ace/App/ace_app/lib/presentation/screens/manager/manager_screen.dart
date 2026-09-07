@@ -12,6 +12,7 @@ import 'event_form_screen.dart';
 import 'group_chat_form_screen.dart';
 import 'manager_view_model.dart';
 import 'match_form_screen.dart';
+import 'scenario_form_screen.dart';
 
 class ManagerScreen extends ConsumerWidget {
   const ManagerScreen({super.key});
@@ -54,6 +55,8 @@ class ManagerScreen extends ConsumerWidget {
                   const _MatchOrganizerSection(),
                   const SizedBox(height: AppSpacing.xxl),
                   _ClubsManagementSection(state: state),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _ScenariosManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _CourtsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
@@ -423,6 +426,102 @@ class _ClubsManagementSection extends StatelessWidget {
   }
 }
 
+class _ScenariosManagementSection extends StatelessWidget {
+  final ManagerState state;
+
+  const _ScenariosManagementSection({required this.state});
+
+  void _openForm(BuildContext context, {BookingScenario? scenario}) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ScenarioFormScreen(scenario: scenario, clubs: state.clubs),
+      ),
+    );
+  }
+
+  /// A short summary line for a scenario's list row, e.g.
+  /// "10 jours · max 1/jour · heures creuses/pleines désactivées".
+  String _summary(BookingScenario scenario) {
+    final p = scenario.policy;
+    final parts = <String>['${p.bookingWindowDays} jours'];
+    if (p.maxSlotsPerDay != null) parts.add('max ${p.maxSlotsPerDay}/jour');
+    if (p.maxSlotsPerWeek != null) {
+      parts.add('max ${p.maxSlotsPerWeek}/semaine');
+    }
+    if (!p.peakHoursEnabled) parts.add('heures creuses/pleines désactivées');
+    return parts.join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.rule_rounded,
+      title: 'Gérer la disponibilité',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (state.scenarios.isEmpty)
+            Text(
+              'Aucun scénario pour le moment.',
+              style: AppTypography.bodySmall,
+            )
+          else
+            ...state.scenarios.map((s) {
+              final clubName = state.clubs
+                  .where((cl) => cl.id == s.clubId)
+                  .firstOrNull
+                  ?.name;
+              return GestureDetector(
+                onTap: () => _openForm(context, scenario: s),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(s.name, style: AppTypography.headlineSmall),
+                            Text(
+                              '${_summary(s)}'
+                              '${clubName != null ? ' · $clubName' : ''}',
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Ajouter un scénario'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CourtsManagementSection extends StatelessWidget {
   final ManagerState state;
 
@@ -431,7 +530,11 @@ class _CourtsManagementSection extends StatelessWidget {
   void _openForm(BuildContext context, {CourtModel? court}) {
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => CourtFormScreen(court: court, clubs: state.clubs),
+        builder: (_) => CourtFormScreen(
+          court: court,
+          clubs: state.clubs,
+          scenarios: state.scenarios,
+        ),
       ),
     );
   }

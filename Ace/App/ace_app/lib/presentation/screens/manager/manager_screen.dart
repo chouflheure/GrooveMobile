@@ -208,6 +208,7 @@ class _ActiveBookingsSection extends StatefulWidget {
 class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
   final _searchController = TextEditingController();
   String _query = '';
+  String? _selectedCourtId;
 
   @override
   void dispose() {
@@ -219,9 +220,12 @@ class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
       widget.state.players.where((u) => u.id == b.userId).firstOrNull?.name;
 
   bool _matches(List<BookingModel> group) {
+    final first = group.first;
+    if (_selectedCourtId != null && first.courtId != _selectedCourtId) {
+      return false;
+    }
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return true;
-    final first = group.first;
     final courtMatch = first.courtName.toLowerCase().contains(q);
     final timeMatch = group.any(
       (b) => b.startTime.contains(q) || b.endTime.contains(q),
@@ -234,11 +238,24 @@ class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
     return courtMatch || timeMatch || playerMatch;
   }
 
+  // Only courts that currently have an active booking — filtering by a
+  // court with nothing to cancel would just be a dead-end chip.
+  List<(String, String)> _courtsWithActiveBookings() {
+    final byId = <String, String>{};
+    for (final b in widget.state.activeBookings) {
+      byId[b.courtId] = b.courtName;
+    }
+    final entries = byId.entries.map((e) => (e.key, e.value)).toList();
+    entries.sort((a, b) => a.$2.compareTo(b.$2));
+    return entries;
+  }
+
   @override
   Widget build(BuildContext context) {
     final groups = _groupBookings(
       widget.state.activeBookings,
     ).where(_matches).toList();
+    final courts = _courtsWithActiveBookings();
     return _SectionCard(
       icon: Icons.event_busy_rounded,
       title: 'Annuler une réservation',
@@ -279,6 +296,33 @@ class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
               ),
             ),
           ),
+          if (courts.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('Tous les terrains'),
+                    selected: _selectedCourtId == null,
+                    onSelected: (_) =>
+                        setState(() => _selectedCourtId = null),
+                  ),
+                  for (final court in courts) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    FilterChip(
+                      label: Text(court.$2),
+                      selected: _selectedCourtId == court.$1,
+                      onSelected: (_) => setState(
+                        () => _selectedCourtId =
+                            _selectedCourtId == court.$1 ? null : court.$1,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           if (groups.isEmpty)
             Text(

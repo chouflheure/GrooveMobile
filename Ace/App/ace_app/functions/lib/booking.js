@@ -264,6 +264,12 @@ exports.createBooking = onCall({ region: "europe-west9" }, async (request) => {
       id: bookingId,
       isPeakHour: isPeak,
       dateKey,
+      // Who actually called this function — not necessarily `userId` (an
+      // admin booking a match between two other players sets `userId` to
+      // one of the players, not themselves). `onBookingCreated` uses this
+      // to skip notifying whoever just created the booking about their own
+      // action.
+      createdByUserId: uid,
     });
 
     tx.update(db.collection("users").doc(userId), {

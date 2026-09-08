@@ -147,17 +147,25 @@ exports.onTournamentCreated = onDocumentCreated("tournaments/{tournamentId}", as
  * A booking was created — notify whoever was put on it without being the
  * one who booked it: the invited partner always, and (for a booking an
  * admin made on someone's behalf, `isAdminBooking`) the player themselves
- * too, since neither of them initiated it. A player booking their own
- * slot solo doesn't need telling. Internal event-blocking bookings
- * (`isEventBlock`) aren't a real reservation and are skipped.
+ * too, since neither of them initiated it. Whoever actually called
+ * `createBooking` (`createdByUserId`) never gets notified about their own
+ * action — for a normal booking that's already just `userId`, but an admin
+ * scheduling a match they're also playing in (`userId`/`partnerId` is one
+ * of the two players, not necessarily the admin) needs this too. A player
+ * booking their own slot solo doesn't need telling. Internal
+ * event-blocking bookings (`isEventBlock`) aren't a real reservation and
+ * are skipped.
  */
 exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (event) => {
   const booking = event.data && event.data.data();
   if (!booking || booking.isEventBlock) return;
 
-  const recipientIds = booking.isAdminBooking
-    ? [booking.userId, booking.partnerId].filter(Boolean)
-    : [booking.partnerId].filter(Boolean);
+  const candidateIds = booking.isAdminBooking
+    ? [booking.userId, booking.partnerId]
+    : [booking.partnerId];
+  const recipientIds = candidateIds.filter(
+    (id) => id && id !== booking.createdByUserId,
+  );
   if (recipientIds.length === 0) return;
 
   // The title names the opponent, which depends on who's receiving it — the

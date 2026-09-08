@@ -64,11 +64,22 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
       );
     }
 
+    // `startTournamentMatchForm` sets `form.title` directly (no typing
+    // involved) — seed the locally-controlled field to match, once.
+    if (form.title != null && _titleController.text != form.title) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _titleController.text = form.title!,
+      );
+    }
+
+    final tournamentMatch = form.tournamentMatch;
+    final isTournamentMode = tournamentMatch != null;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         scrolledUnderElevation: 0,
-        title: const Text('Créer un match'),
+        title: Text(isTournamentMode ? 'Programmer le match' : 'Créer un match'),
         leading: GestureDetector(
           onTap: () => Navigator.of(context, rootNavigator: true).pop(),
           child: const Icon(Icons.arrow_back_rounded),
@@ -90,7 +101,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Joueur A (optionnel)',
+                      isTournamentMode ? 'Joueur A' : 'Joueur A (optionnel)',
                       style: AppTypography.labelLarge,
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -98,19 +109,21 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                       player: state.players
                           .where((u) => u.id == form.playerAId)
                           .firstOrNull,
-                      onTap: () async {
-                        final result = await PlayerPickerSheet.show(
-                          context,
-                          players: state.players,
-                          selectedPlayerId: form.playerAId,
-                          title: 'Joueur A',
-                        );
-                        if (result == PlayerPickerSheet.clearSelection) {
-                          vm.setPlayerA(null);
-                        } else if (result is UserModel) {
-                          vm.setPlayerA(result.id);
-                        }
-                      },
+                      onTap: isTournamentMode
+                          ? null
+                          : () async {
+                              final result = await PlayerPickerSheet.show(
+                                context,
+                                players: state.players,
+                                selectedPlayerId: form.playerAId,
+                                title: 'Joueur A',
+                              );
+                              if (result == PlayerPickerSheet.clearSelection) {
+                                vm.setPlayerA(null);
+                              } else if (result is UserModel) {
+                                vm.setPlayerA(result.id);
+                              }
+                            },
                     ),
                   ],
                 ),
@@ -121,7 +134,7 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Joueur B (optionnel)',
+                      isTournamentMode ? 'Joueur B' : 'Joueur B (optionnel)',
                       style: AppTypography.labelLarge,
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -129,26 +142,29 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
                       player: state.players
                           .where((u) => u.id == form.playerBId)
                           .firstOrNull,
-                      onTap: () async {
-                        final result = await PlayerPickerSheet.show(
-                          context,
-                          players: state.players,
-                          selectedPlayerId: form.playerBId,
-                          title: 'Joueur B',
-                        );
-                        if (result == PlayerPickerSheet.clearSelection) {
-                          vm.setPlayerB(null);
-                        } else if (result is UserModel) {
-                          vm.setPlayerB(result.id);
-                        }
-                      },
+                      onTap: isTournamentMode
+                          ? null
+                          : () async {
+                              final result = await PlayerPickerSheet.show(
+                                context,
+                                players: state.players,
+                                selectedPlayerId: form.playerBId,
+                                title: 'Joueur B',
+                              );
+                              if (result == PlayerPickerSheet.clearSelection) {
+                                vm.setPlayerB(null);
+                              } else if (result is UserModel) {
+                                vm.setPlayerB(result.id);
+                              }
+                            },
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          if (form.playerAId != null &&
+          if (!isTournamentMode &&
+              form.playerAId != null &&
               form.playerBId != null &&
               form.playerAId == form.playerBId) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -156,7 +172,9 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
               'Les deux joueurs doivent être différents.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.error),
             ),
-          ] else if (form.playerAId == null && form.playerBId == null) ...[
+          ] else if (!isTournamentMode &&
+              form.playerAId == null &&
+              form.playerBId == null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Laisse les deux vides pour juste bloquer le terrain, sans joueur.',
@@ -172,10 +190,14 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             onSelect: vm.setCourt,
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Titre (optionnel)', style: AppTypography.labelLarge),
+          Text(
+            isTournamentMode ? 'Titre' : 'Titre (optionnel)',
+            style: AppTypography.labelLarge,
+          ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: _titleController,
+            enabled: !isTournamentMode,
             style: AppTypography.bodyMedium,
             decoration: InputDecoration(
               hintText: 'Ex : Tournoi interne, Cours particulier...',
@@ -224,12 +246,20 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
             court: state.courts.where((c) => c.id == form.courtId).firstOrNull,
             allBookings: state.allBookings,
             players: state.players,
-            onAddMany: (slots) => slots.forEach(vm.addSlot),
+            singleSlot: isTournamentMode,
+            initialSlot: form.slots.firstOrNull,
+            onAddMany: isTournamentMode
+                ? (slots) => vm.setSingleSlot(slots.first)
+                : (slots) => slots.forEach(vm.addSlot),
             onCancelBooking: vm.cancelBooking,
           ),
           const SizedBox(height: AppSpacing.xl),
           AppButton(
-            label: form.isValid
+            label: isTournamentMode
+                ? (tournamentMatch.isScheduled
+                      ? 'Mettre à jour la programmation'
+                      : 'Programmer le match')
+                : form.isValid
                 ? 'Créer ${form.slots.length} créneau(x)'
                 : 'Choisir un terrain et un créneau',
             onTap: form.isValid ? () => _create(vm) : null,
@@ -243,12 +273,16 @@ class _MatchFormScreenState extends ConsumerState<MatchFormScreen> {
 
 class _PlayerField extends StatelessWidget {
   final UserModel? player;
-  final VoidCallback onTap;
+  // Null locks the field — used when a tournament match fixes both
+  // players and swapping them is a separate bracket-editing action, not
+  // something this form should also offer.
+  final VoidCallback? onTap;
 
   const _PlayerField({required this.player, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final locked = onTap == null;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -257,7 +291,7 @@ class _PlayerField extends StatelessWidget {
           vertical: AppSpacing.sm + 2,
         ),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: locked ? AppColors.surfaceVariant : AppColors.background,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: AppColors.border),
         ),
@@ -272,11 +306,12 @@ class _PlayerField extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(
-              Icons.search_rounded,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
+            if (!locked)
+              const Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
           ],
         ),
       ),
@@ -333,6 +368,11 @@ class _AddSlotButton extends ConsumerStatefulWidget {
   final List<UserModel> players;
   final ValueChanged<List<MatchSlot>> onAddMany;
   final ValueChanged<String> onCancelBooking;
+  // Tournament mode: a match is always exactly one court/date/time, so
+  // picking a new time replaces the current selection instead of adding to
+  // it, and the currently-scheduled slot (if rescheduling) is preselected.
+  final bool singleSlot;
+  final MatchSlot? initialSlot;
 
   const _AddSlotButton({
     required this.court,
@@ -340,6 +380,8 @@ class _AddSlotButton extends ConsumerStatefulWidget {
     required this.players,
     required this.onAddMany,
     required this.onCancelBooking,
+    this.singleSlot = false,
+    this.initialSlot,
   });
 
   @override
@@ -347,8 +389,10 @@ class _AddSlotButton extends ConsumerStatefulWidget {
 }
 
 class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
-  DateTime? _date = AppConstants.today();
-  final Set<String> _selectedTimes = {};
+  late DateTime? _date = widget.initialSlot?.date ?? AppConstants.today();
+  late final Set<String> _selectedTimes = {
+    if (widget.initialSlot != null) widget.initialSlot!.startTime,
+  };
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -367,6 +411,12 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
 
   void _toggleTime(String time) {
     setState(() {
+      if (widget.singleSlot) {
+        _selectedTimes
+          ..clear()
+          ..add(time);
+        return;
+      }
       if (_selectedTimes.contains(time)) {
         _selectedTimes.remove(time);
       } else {
@@ -606,7 +656,11 @@ class _AddSlotButtonState extends ConsumerState<_AddSlotButton> {
                   ? _add
                   : null,
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: Text('Ajouter ${_selectedTimes.length} créneau(x)'),
+              label: Text(
+                widget.singleSlot
+                    ? 'Choisir ce créneau'
+                    : 'Ajouter ${_selectedTimes.length} créneau(x)',
+              ),
             ),
           ),
         ],

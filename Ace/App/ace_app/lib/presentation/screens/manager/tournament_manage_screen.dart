@@ -3,13 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import 'manager_view_model.dart';
+import 'match_form_screen.dart';
 
 /// Admin's tournament control room — a round is always composed the same
 /// way, whether it's the very first (from the registered players) or a
@@ -242,7 +242,7 @@ class _TournamentManageScreenState
       builder: (dialogContext) => AlertDialog(
         title: const Text('Supprimer ce tournoi ?'),
         content: Text(
-          '"${tournament.title}" sera définitivement supprimé. Les réservations déjà programmées ne seront pas annulées.',
+          '"${tournament.title}" sera définitivement supprimé. Les créneaux déjà programmés pour ses matchs seront annulés.',
         ),
         actions: [
           TextButton(
@@ -263,7 +263,7 @@ class _TournamentManageScreenState
     setState(() => _isDeleting = true);
     final ok = await ref
         .read(managerViewModelProvider.notifier)
-        .deleteTournament(tournament.id, tournament.title);
+        .deleteTournament(tournament);
     if (!mounted) return;
     setState(() => _isDeleting = false);
     if (ok) Navigator.of(context, rootNavigator: true).pop();
@@ -271,24 +271,14 @@ class _TournamentManageScreenState
 
   /// Single sheet for everything a tapped match card can need: swap out a
   /// known player (only while this is the latest round and it hasn't been
-  /// played yet — `canEditRoster`; an earlier round is history, no longer
-  /// editable), set/change its court, date and time once both players are
-  /// known, and declare the winner. Rescheduling cancels the previous
-  /// booking (if any) before creating the new one, same as picking a slot
-  /// an event is taking over.
+  /// played yet — `canEditRoster`), schedule it (pushes `MatchFormScreen`,
+  /// the same full-featured court/slot picker used for a regular match —
+  /// see `startTournamentMatchForm`), and declare the winner.
   Future<void> _openMatchSheet(
     ManagerState state,
     TournamentModel tournament,
     TournamentMatch match,
   ) async {
-    final clubCourts = state.courts
-        .where((c) => c.clubId == tournament.clubId)
-        .toList();
-    String? courtId =
-        match.courtId ?? (clubCourts.length == 1 ? clubCourts.first.id : null);
-    DateTime date = match.date ?? AppConstants.today();
-    String time = match.startTime ?? AppConstants.timeSlots.first;
-    bool isScheduling = false;
     final roundMatches = tournament.matchesInRound(match.round);
     final canEditRoster = match.round == tournament.roundCount &&
         roundMatches.every((m) => m.winnerId == null);
@@ -361,87 +351,23 @@ class _TournamentManageScreenState
                   ),
                 ],
                 if (match.isReadyToPlay) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Text('Terrain et horaire', style: AppTypography.labelLarge),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: sheetContext,
-                            initialDate: date,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (picked != null) {
-                            setSheetState(
-                              () => date = DateTime(
-                                picked.year,
-                                picked.month,
-                                picked.day,
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                        label: Text(
-                          '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
+                  const SizedBox(height: AppSpacing.lg),
+                  AppButton(
+                    label: match.isScheduled
+                        ? 'Modifier la programmation'
+                        : 'Programmer ce match',
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      ref
+                          .read(managerViewModelProvider.notifier)
+                          .startTournamentMatchForm(tournament, match);
+                      Navigator.of(context, rootNavigator: true).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MatchFormScreen(),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: time,
-                        items: AppConstants.timeSlots
-                            .map(
-                              (t) => DropdownMenuItem(value: t, child: Text(t)),
-                            )
-                            .toList(),
-                        onChanged: (t) {
-                          if (t != null) setSheetState(() => time = t);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                CourtPicker(
-                  courts: clubCourts,
-                  selectedCourtId: courtId,
-                  onSelect: (id) => setSheetState(() => courtId = id),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppButton(
-                  label: match.isScheduled
-                      ? 'Mettre à jour le créneau'
-                      : 'Programmer',
-                  isLoading: isScheduling,
-                  onTap: courtId == null
-                      ? null
-                      : () async {
-                          final court = clubCourts.firstWhere(
-                            (c) => c.id == courtId,
-                          );
-                          setSheetState(() => isScheduling = true);
-                          await ref
-                              .read(managerViewModelProvider.notifier)
-                              .scheduleTournamentMatch(
-                                tournament,
-                                match,
-                                court: court,
-                                date: date,
-                                startTime: time,
-                              );
-                          if (sheetContext.mounted) {
-                            setSheetState(() => isScheduling = false);
-                          }
-                        },
-                ),
+                      );
+                    },
+                  ),
                 ],
                 if (match.isReadyToPlay && !match.isPlayed) ...[
                   const SizedBox(height: AppSpacing.xl),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -253,39 +254,89 @@ class _EventsSection extends StatelessWidget {
   }
 }
 
-class _AppBar extends StatelessWidget implements PreferredSizeWidget {
+/// Shows the current club's logo + name once one is unambiguous — either
+/// the club picked in `_ClubFilterBar`, or the only club there is to show
+/// (most players belong to just one, in which case that filter bar doesn't
+/// even render — see `CourtsScreen`). Falls back to the generic app
+/// branding for a guest or an unfiltered multi-club view, where there's no
+/// single club to represent.
+class _AppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(courtsViewModelProvider);
+    final club = state.selectedClubId != null
+        ? state.clubs.where((c) => c.id == state.selectedClubId).firstOrNull
+        : (state.clubs.length == 1 ? state.clubs.single : null);
+
     return AppBar(
       scrolledUnderElevation: 0,
       title: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.sports_tennis_rounded,
-              color: Colors.white,
-              size: 18,
-            ),
-          ),
+          _AppBarLogo(imageUrl: club?.imageUrl),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            'CourtConnect',
-            style: AppTypography.headlineLarge.copyWith(
-              color: AppColors.primary,
+          Expanded(
+            child: Text(
+              club?.name ?? AppConstants.appName,
+              style: AppTypography.headlineLarge.copyWith(
+                color: AppColors.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
       actions: const [],
+    );
+  }
+}
+
+class _AppBarLogo extends StatelessWidget {
+  final String? imageUrl;
+
+  const _AppBarLogo({this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl == null || imageUrl!.isEmpty) return const _FallbackMark();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: CachedNetworkImage(
+        imageUrl: imageUrl!,
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+        placeholder: (_, _) => Container(
+          width: 44,
+          height: 44,
+          color: AppColors.surfaceVariant,
+        ),
+        errorWidget: (_, _, _) => const _FallbackMark(),
+      ),
+    );
+  }
+}
+
+class _FallbackMark extends StatelessWidget {
+  const _FallbackMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Icon(
+        Icons.sports_tennis_rounded,
+        color: Colors.white,
+        size: 24,
+      ),
     );
   }
 }

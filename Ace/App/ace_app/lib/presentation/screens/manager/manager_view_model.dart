@@ -35,6 +35,12 @@ class MatchForm {
   final String? playerBId;
   final String? title;
   final List<MatchSlot> slots;
+  // Set only when this form is scheduling a tournament match (see
+  // `ManagerViewModel.startTournamentMatchForm`) — `MatchFormScreen` reads
+  // this to lock the player fields, restrict to a single slot, and
+  // `createMatch` reads it to write the result back onto the bracket.
+  final TournamentModel? tournament;
+  final TournamentMatch? tournamentMatch;
 
   const MatchForm({
     this.courtId,
@@ -42,13 +48,17 @@ class MatchForm {
     this.playerBId,
     this.title,
     this.slots = const [],
+    this.tournament,
+    this.tournamentMatch,
   });
 
   /// Players are optional — an admin can block off a slot with no one
-  /// attached to it. If both are set they must be different people.
+  /// attached to it. If both are set they must be different people. A
+  /// tournament match is always exactly one court/date/time, not a series,
+  /// so it needs exactly one slot rather than just "at least one".
   bool get isValid =>
       courtId != null &&
-      slots.isNotEmpty &&
+      (tournamentMatch != null ? slots.length == 1 : slots.isNotEmpty) &&
       (playerAId == null || playerBId == null || playerAId != playerBId);
 
   MatchForm copyWith({
@@ -57,6 +67,8 @@ class MatchForm {
     Object? playerBId = _sentinel,
     Object? title = _sentinel,
     List<MatchSlot>? slots,
+    Object? tournament = _sentinel,
+    Object? tournamentMatch = _sentinel,
   }) {
     return MatchForm(
       courtId: courtId ?? this.courtId,
@@ -64,6 +76,12 @@ class MatchForm {
       playerBId: playerBId == _sentinel ? this.playerBId : playerBId as String?,
       title: title == _sentinel ? this.title : title as String?,
       slots: slots ?? this.slots,
+      tournament: tournament == _sentinel
+          ? this.tournament
+          : tournament as TournamentModel?,
+      tournamentMatch: tournamentMatch == _sentinel
+          ? this.tournamentMatch
+          : tournamentMatch as TournamentMatch?,
     );
   }
 }
@@ -259,6 +277,34 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     );
   }
 
+  /// Replaces the whole slot list with just `slot` — used in tournament
+  /// mode, where a match is always exactly one court/date/time rather than
+  /// a series to accumulate (see `MatchForm.isValid`).
+  void setSingleSlot(MatchSlot slot) {
+    state = state.copyWith(form: state.form.copyWith(slots: [slot]));
+  }
+
+  /// Loads the shared match form with a tournament match's context —
+  /// `MatchFormScreen` reads `form.tournamentMatch` to lock the player
+  /// fields and restrict scheduling to a single slot, and `createMatch`
+  /// reads it afterward to write the result back onto the bracket. Called
+  /// by `TournamentManageScreen` right before pushing that screen.
+  void startTournamentMatchForm(TournamentModel tournament, TournamentMatch match) {
+    state = state.copyWith(
+      form: MatchForm(
+        courtId: match.courtId,
+        playerAId: match.playerAId,
+        playerBId: match.playerBId,
+        title: '${tournament.title} — Tour ${match.round}',
+        slots: match.isScheduled
+            ? [MatchSlot(date: match.date!, startTime: match.startTime!)]
+            : const [],
+        tournament: tournament,
+        tournamentMatch: match,
+      ),
+    );
+  }
+
   void removeSlot(int index) {
     final slots = [...state.form.slots]..removeAt(index);
     state = state.copyWith(form: state.form.copyWith(slots: slots));
@@ -293,6 +339,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
 
     var succeeded = 0;
     final failures = <String>[];
+    BookingModel? createdBooking;
 
     for (final slot in form.slots) {
       final booking = BookingModel(
@@ -315,6 +362,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
       try {
         await _bookingRepository.create(booking);
         succeeded++;
+        createdBooking = booking;
       } catch (e) {
         failures.add(
           '${slot.startTime} le ${slot.date.day}/${slot.date.month} : $e',
@@ -322,12 +370,41 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
       }
     }
 
+    // Scheduling a tournament match — exactly one slot in this mode (see
+    // `MatchForm.isValid`), so a lone success is *the* result. Write it back
+    // onto the bracket, then cancel whatever booking it's replacing (if
+    // any) only now that the new one is confirmed to exist — cancelling
+    // first, like the old dedicated flow did, would leave the match with no
+    // booking at all if the create above had failed.
+    final tournament = form.tournament;
+    final tournamentMatch = form.tournamentMatch;
+    if (tournament != null && tournamentMatch != null && createdBooking != null) {
+      if (tournamentMatch.bookingId != null) {
+        try {
+          await _bookingRepository.cancel(tournamentMatch.bookingId!);
+        } catch (_) {
+          // Best effort — the new booking already exists either way.
+        }
+      }
+      await _tournamentRepository.scheduleMatch(
+        tournament,
+        tournamentMatch,
+        courtId: court.id,
+        courtName: court.name,
+        date: createdBooking.date,
+        startTime: createdBooking.startTime,
+        bookingId: createdBooking.slotKey,
+      );
+    }
+
     // The provider can be rebuilt (e.g. `allUsersProvider` re-emitting)
     // while these awaits are in flight — writing to `state` after
     // `dispose()` ran throws, so bail out instead.
     if (!mounted) return;
 
-    final summary = playerA == null
+    final summary = tournamentMatch != null
+        ? 'Match programmé sur ${court.name}.'
+        : playerA == null
         ? 'Créneau(x) bloqué(s) sur ${court.name}.'
         : playerB == null
         ? '$succeeded créneau(x) programmé(s) pour ${playerA.name}.'
@@ -477,10 +554,23 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
-  Future<bool> deleteTournament(String tournamentId, String title) async {
+  /// Deletes the tournament and cancels every court slot it had scheduled
+  /// (any match with a `bookingId` — see `scheduleTournamentMatch`), so a
+  /// removed tournament doesn't leave its matches sitting on the courts'
+  /// calendars as phantom bookings.
+  Future<bool> deleteTournament(TournamentModel tournament) async {
     try {
-      await _tournamentRepository.delete(tournamentId);
-      if (mounted) state = state.copyWith(message: '$title supprimé.');
+      final bookingIds = tournament.matches
+          .map((m) => m.bookingId)
+          .whereType<String>()
+          .toSet();
+      await Future.wait(
+        bookingIds.map((id) => _bookingRepository.cancel(id)),
+      );
+      await _tournamentRepository.delete(tournament.id);
+      if (mounted) {
+        state = state.copyWith(message: '${tournament.title} supprimé.');
+      }
       return true;
     } catch (e) {
       if (mounted) {
@@ -555,75 +645,6 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     } catch (e) {
       if (mounted) {
         state = state.copyWith(message: 'Erreur : $e');
-      }
-      return false;
-    }
-  }
-
-  /// Schedules one tournament match on a court/date/time — creates a real
-  /// two-player booking (same shape `createMatch` above builds, so both
-  /// players see it and get the usual push notification) and links it back
-  /// onto the match.
-  Future<bool> scheduleTournamentMatch(
-    TournamentModel tournament,
-    TournamentMatch match, {
-    required CourtModel court,
-    required DateTime date,
-    required String startTime,
-  }) async {
-    if (match.playerAId == null || match.playerBId == null) return false;
-    final playerA = state.players
-        .where((u) => u.id == match.playerAId)
-        .firstOrNull;
-    final playerB = state.players
-        .where((u) => u.id == match.playerBId)
-        .firstOrNull;
-    if (playerA == null) return false;
-
-    // Rescheduling an already-scheduled match — cancel its old booking
-    // first so it doesn't linger as a stale reservation once the new one
-    // (at a different slotKey, if the court/date/time changed) is created.
-    if (match.bookingId != null) {
-      try {
-        await _bookingRepository.cancel(match.bookingId!);
-      } catch (_) {
-        // Fall through — worst case the old slot stays booked under its own
-        // id while the new one below still goes through.
-      }
-    }
-
-    final booking = BookingModel(
-      id: '',
-      courtId: court.id,
-      courtName: court.name,
-      userId: playerA.id,
-      partnerId: playerB?.id,
-      partnerName: playerB?.name,
-      date: date,
-      startTime: startTime,
-      endTime: _addHours(startTime, 1),
-      status: BookingStatus.confirmed,
-      price: court.pricePerHour,
-      createdAt: DateTime.now(),
-      isAdminBooking: true,
-      courtAddress: court.location,
-      title: '${tournament.title} — Tour ${match.round}',
-    );
-    try {
-      await _bookingRepository.create(booking);
-      await _tournamentRepository.scheduleMatch(
-        tournament,
-        match,
-        courtId: court.id,
-        courtName: court.name,
-        date: date,
-        startTime: startTime,
-        bookingId: booking.slotKey,
-      );
-      return true;
-    } catch (e) {
-      if (mounted) {
-        state = state.copyWith(message: 'Erreur lors de la programmation : $e');
       }
       return false;
     }

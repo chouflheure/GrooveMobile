@@ -39,6 +39,15 @@ class UserRepository {
     return _collection.doc(user.id).set(user.toJson());
   }
 
+  /// Atomically spends one invitation credit — used right before creating a
+  /// booking with an external guest on a paying court, so a double-tap or a
+  /// slow network can't spend more than the user actually has.
+  Future<void> spendInvitationCredit(String userId) {
+    return _collection.doc(userId).update({
+      'invitationCredits': FieldValue.increment(-1),
+    });
+  }
+
   Future<UserModel?> fetchById(String id) async {
     final doc = await _collection.doc(id).get();
     if (!doc.exists) return null;

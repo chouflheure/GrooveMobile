@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
@@ -65,11 +67,13 @@ class _BookingConfirmationSheetState
     extends ConsumerState<BookingConfirmationSheet> {
   UserModel? _selectedPartner;
   String _searchQuery = '';
+  bool _hasExternalPlayer = false;
   bool _isLoading = false;
   // Shown in place of the confirm button rather than as a SnackBar, so it
   // stays visible until the player actually does something about it.
   String? _errorMessage;
   final _searchController = TextEditingController();
+  final _guestNameController = TextEditingController();
 
   String get _endTime {
     final parts = widget.selectedSlot.split(':');
@@ -105,6 +109,7 @@ class _BookingConfirmationSheetState
   @override
   void dispose() {
     _searchController.dispose();
+    _guestNameController.dispose();
     super.dispose();
   }
 
@@ -191,47 +196,89 @@ class _BookingConfirmationSheetState
                     style: AppTypography.bodySmall,
                   ),
                 ],
-                const SizedBox(height: AppSpacing.lg),
-                _SearchBar(
-                  controller: _searchController,
-                  onChanged: (q) => setState(() => _searchQuery = q),
+                const SizedBox(height: AppSpacing.md),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _hasExternalPlayer = !_hasExternalPlayer;
+                    _selectedPartner = null;
+                    _errorMessage = null;
+                  }),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _hasExternalPlayer,
+                        onChanged: (v) => setState(() {
+                          _hasExternalPlayer = v ?? false;
+                          _selectedPartner = null;
+                          _errorMessage = null;
+                        }),
+                        activeColor: AppColors.primary,
+                      ),
+                      Expanded(
+                        child: Text(
+                          "Un des joueurs n'est pas membre du club",
+                          style: AppTypography.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                if (_hasExternalPlayer)
+                  _SearchBar(
+                    controller: _guestNameController,
+                    onChanged: (_) => setState(() {}),
+                    hint: "Nom de l'invité",
+                    icon: Icons.person_outline_rounded,
+                  )
+                else
+                  _SearchBar(
+                    controller: _searchController,
+                    onChanged: (q) => setState(() => _searchQuery = q),
+                  ),
               ],
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xxl,
-                AppSpacing.md,
-                AppSpacing.xxl,
-                AppSpacing.xxl,
-              ),
-              children: _filteredPartners
-                  .map(
-                    (user) => _PartnerTile(
-                      user: user,
-                      isSelected: _selectedPartner?.id == user.id,
-                      isFavorite: favorites.contains(user.id),
-                      onSelect: () => setState(() {
-                        _selectedPartner = _selectedPartner?.id == user.id
-                            ? null
-                            : user;
-                        _errorMessage = null;
-                      }),
-                      onViewProfile: () =>
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(
-                              builder: (_) => UserProfileScreen(user: user),
-                            ),
-                          ),
+            child: _hasExternalPlayer
+                ? const SizedBox.shrink()
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xxl,
+                      AppSpacing.md,
+                      AppSpacing.xxl,
+                      AppSpacing.xxl,
                     ),
-                  )
-                  .toList(),
-            ),
+                    children: _filteredPartners
+                        .map(
+                          (user) => _PartnerTile(
+                            user: user,
+                            isSelected: _selectedPartner?.id == user.id,
+                            isFavorite: favorites.contains(user.id),
+                            onSelect: () => setState(() {
+                              _selectedPartner = _selectedPartner?.id == user.id
+                                  ? null
+                                  : user;
+                              _errorMessage = null;
+                            }),
+                            onViewProfile: () =>
+                                Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => UserProfileScreen(user: user),
+                                  ),
+                                ),
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
           _BottomBar(
-            selectedPartner: _selectedPartner,
+            canConfirm: _hasExternalPlayer
+                ? _guestNameController.text.trim().isNotEmpty
+                : _selectedPartner != null,
+            missingSelectionLabel: _hasExternalPlayer
+                ? "Renseigne le nom de l'invité"
+                : 'Sélectionner un partenaire',
             price: _price,
             isLoading: _isLoading,
             errorMessage: _errorMessage,
@@ -243,20 +290,101 @@ class _BookingConfirmationSheetState
     );
   }
 
+  /// Gates a booking that pairs a paying court with an external guest
+  /// behind the booker's invitation credits — asks to spend one if they
+  /// have any, otherwise sends them to pay outside the app and blocks the
+  /// booking. Returns whether the booking should actually go ahead; the
+  /// credit itself is only spent once the booking succeeds (see
+  /// `_confirm`), so a failed attempt (e.g. slot just taken) doesn't cost
+  /// the player a credit for nothing.
+  Future<bool> _resolveExternalGuestGate(UserModel currentUser) async {
+    if (currentUser.invitationCredits > 0) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Utiliser un crédit d\'invitation ?'),
+          content: Text(
+            'Ce terrain est payant et ton invité n\'est pas membre du club. '
+            'Cette réservation utilisera 1 crédit d\'invitation (il t\'en '
+            'restera ${currentUser.invitationCredits - 1}).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Confirmer'),
+            ),
+          ],
+        ),
+      );
+      return confirmed == true;
+    }
+
+    if (!mounted) return false;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Plus de crédit d\'invitation'),
+        content: const Text(
+          "Ce terrain est payant et tu n'as plus de crédit pour inviter un "
+          "joueur extérieur du club. Tu peux régler en ligne pour débloquer "
+          "cette réservation.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              launchUrl(
+                Uri.parse(AppConstants.externalGuestPaymentUrl),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+            child: const Text('Payer en ligne'),
+          ),
+        ],
+      ),
+    );
+    return false;
+  }
+
   Future<void> _confirm() async {
-    if (_selectedPartner == null) return;
-    final currentUserId = ref.read(currentUserProvider).valueOrNull?.id;
-    if (currentUserId == null) return;
+    final guestName = _guestNameController.text.trim();
+    if (_hasExternalPlayer ? guestName.isEmpty : _selectedPartner == null) {
+      return;
+    }
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    if (currentUser == null) return;
+
+    // Only the credit-available branch of the gate can return true — the
+    // no-credit branch always blocks — so reaching here with this flag set
+    // means a credit needs spending once the booking actually succeeds.
+    final spendsCredit = _hasExternalPlayer && _price > 0;
+    if (spendsCredit) {
+      final canProceed = await _resolveExternalGuestGate(currentUser);
+      if (!canProceed) return;
+    }
+
     setState(() => _isLoading = true);
 
     final booking = BookingModel(
       id: '',
       courtId: widget.court.id,
       courtName: widget.court.name,
-      userId: currentUserId,
-      partnerId: _selectedPartner!.id,
-      partnerName:
-          '${_selectedPartner!.name.split(' ').first} ${_selectedPartner!.name.split(' ').last[0]}.',
+      userId: currentUser.id,
+      // An external guest isn't an app user — no `partnerId`, just their
+      // name for display (the server-side club-membership check on the
+      // partner is skipped for exactly this case, see `createBooking`).
+      partnerId: _hasExternalPlayer ? null : _selectedPartner!.id,
+      partnerName: _hasExternalPlayer
+          ? guestName
+          : '${_selectedPartner!.name.split(' ').first} ${_selectedPartner!.name.split(' ').last[0]}.',
       date: widget.date,
       startTime: widget.selectedSlot,
       endTime: _endTime,
@@ -264,10 +392,16 @@ class _BookingConfirmationSheetState
       status: BookingStatus.confirmed,
       price: _price,
       createdAt: DateTime.now(),
+      hasExternalPlayer: _hasExternalPlayer,
     );
 
     try {
       await ref.read(profileViewModelProvider.notifier).addBooking(booking);
+      if (spendsCredit) {
+        await ref
+            .read(userRepositoryProvider)
+            .spendInvitationCredit(currentUser.id);
+      }
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -373,8 +507,15 @@ class _Row extends StatelessWidget {
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final String hint;
+  final IconData icon;
 
-  const _SearchBar({required this.controller, required this.onChanged});
+  const _SearchBar({
+    required this.controller,
+    required this.onChanged,
+    this.hint = 'Rechercher un joueur…',
+    this.icon = Icons.search_rounded,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -382,14 +523,11 @@ class _SearchBar extends StatelessWidget {
       controller: controller,
       onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Rechercher un joueur…',
+        hintText: hint,
         hintStyle: AppTypography.bodyMedium.copyWith(
           color: AppColors.textTertiary,
         ),
-        prefixIcon: const Icon(
-          Icons.search_rounded,
-          color: AppColors.textSecondary,
-        ),
+        prefixIcon: Icon(icon, color: AppColors.textSecondary),
         filled: true,
         fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
@@ -544,7 +682,8 @@ class _PartnerTile extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  final UserModel? selectedPartner;
+  final bool canConfirm;
+  final String missingSelectionLabel;
   final double price;
   final bool isLoading;
   final String? errorMessage;
@@ -552,7 +691,8 @@ class _BottomBar extends StatelessWidget {
   final VoidCallback onDismissError;
 
   const _BottomBar({
-    required this.selectedPartner,
+    required this.canConfirm,
+    required this.missingSelectionLabel,
     required this.price,
     required this.isLoading,
     required this.errorMessage,
@@ -580,10 +720,8 @@ class _BottomBar extends StatelessWidget {
       child: error != null
           ? _ErrorBanner(message: error, onDismiss: onDismissError)
           : AppButton(
-              label: selectedPartner == null
-                  ? 'Sélectionner un partenaire'
-                  : confirmLabel,
-              onTap: selectedPartner == null || isLoading ? null : onConfirm,
+              label: canConfirm ? confirmLabel : missingSelectionLabel,
+              onTap: !canConfirm || isLoading ? null : onConfirm,
               isLoading: isLoading,
             ),
     );

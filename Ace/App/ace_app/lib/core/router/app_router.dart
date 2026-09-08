@@ -7,6 +7,7 @@ import '../../presentation/screens/auth/register_screen.dart';
 import '../../presentation/screens/courts/courts_screen.dart';
 import '../../presentation/screens/court_detail/court_detail_screen.dart';
 import '../../presentation/screens/event_detail/event_detail_screen.dart';
+import '../../presentation/screens/tournament/tournament_detail_screen.dart';
 import '../../presentation/screens/community/community_screen.dart';
 import '../../data/models/models.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
@@ -95,6 +96,13 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final event = state.extra as ClubEventModel;
         return EventDetailScreen(event: event);
+      },
+    ),
+    GoRoute(
+      path: '/tournament/:id',
+      builder: (context, state) {
+        final tournament = state.extra as TournamentModel;
+        return TournamentDetailScreen(tournament: tournament);
       },
     ),
   ],

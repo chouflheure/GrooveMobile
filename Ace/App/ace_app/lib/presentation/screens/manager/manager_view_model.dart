@@ -8,9 +8,11 @@ import '../../../data/repositories/booking_scenario_repository.dart';
 import '../../../data/repositories/club_event_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
+import '../../../data/repositories/tournament_repository.dart';
 import '../auth/auth_view_model.dart';
 import '../courts/club_event_providers.dart';
 import '../courts/courts_view_model.dart';
+import '../courts/tournament_providers.dart';
 
 /// One planned slot within a multi-slot match — a court + player pair is
 /// picked once for the whole match, this only carries the per-occurrence
@@ -70,6 +72,7 @@ class ManagerState {
   final List<CourtModel> courts;
   final List<ClubModel> clubs;
   final List<BookingScenario> scenarios;
+  final List<TournamentModel> tournaments;
   final List<UserModel> players;
   final List<UserModel> admins;
   final List<BookingModel> allBookings;
@@ -83,6 +86,7 @@ class ManagerState {
     this.courts = const [],
     this.clubs = const [],
     this.scenarios = const [],
+    this.tournaments = const [],
     this.players = const [],
     this.admins = const [],
     this.allBookings = const [],
@@ -106,6 +110,7 @@ class ManagerState {
     List<CourtModel>? courts,
     List<ClubModel>? clubs,
     List<BookingScenario>? scenarios,
+    List<TournamentModel>? tournaments,
     List<UserModel>? players,
     List<UserModel>? admins,
     List<BookingModel>? allBookings,
@@ -119,6 +124,7 @@ class ManagerState {
       courts: courts ?? this.courts,
       clubs: clubs ?? this.clubs,
       scenarios: scenarios ?? this.scenarios,
+      tournaments: tournaments ?? this.tournaments,
       players: players ?? this.players,
       admins: admins ?? this.admins,
       allBookings: allBookings ?? this.allBookings,
@@ -140,6 +146,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     this._clubRepository,
     this._clubEventRepository,
     this._scenarioRepository,
+    this._tournamentRepository,
     List<UserModel> allUsers,
     this._currentUserId,
     this._adminClubIds,
@@ -181,6 +188,15 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
             .toList(),
       );
     });
+    _tournamentsSubscription = _tournamentRepository.watchAll().listen((
+      tournaments,
+    ) {
+      state = state.copyWith(
+        tournaments: tournaments
+            .where((t) => _adminClubIds.contains(t.clubId))
+            .toList(),
+      );
+    });
   }
 
   final CourtRepository _courtRepository;
@@ -188,6 +204,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   final ClubRepository _clubRepository;
   final ClubEventRepository _clubEventRepository;
   final BookingScenarioRepository _scenarioRepository;
+  final TournamentRepository _tournamentRepository;
   final String? _currentUserId;
   // An admin only administers the club(s) they're a member of.
   final List<String> _adminClubIds;
@@ -196,6 +213,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   late final StreamSubscription<List<ClubModel>> _clubsSubscription;
   late final StreamSubscription<List<ClubEventModel>> _eventsSubscription;
   late final StreamSubscription<List<BookingScenario>> _scenariosSubscription;
+  late final StreamSubscription<List<TournamentModel>> _tournamentsSubscription;
 
   List<CourtModel> _rawCourts = const [];
   List<BookingModel> _rawBookings = const [];
@@ -429,6 +447,161 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     }
   }
 
+  /// Creates or updates a tournament's own info (title/club/description) —
+  /// `isNew` decides which. Participants, the bracket and match scheduling
+  /// are all separate actions below, once the tournament itself exists.
+  Future<bool> saveTournament(
+    TournamentModel tournament, {
+    required bool isNew,
+  }) async {
+    try {
+      if (isNew) {
+        await _tournamentRepository.create(tournament);
+        if (mounted) {
+          state = state.copyWith(message: '${tournament.title} créé.');
+        }
+      } else {
+        await _tournamentRepository.update(tournament);
+        if (mounted) {
+          state = state.copyWith(message: '${tournament.title} mis à jour.');
+        }
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(
+          message: 'Erreur lors de l\'enregistrement : $e',
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<bool> deleteTournament(String tournamentId, String title) async {
+    try {
+      await _tournamentRepository.delete(tournamentId);
+      if (mounted) state = state.copyWith(message: '$title supprimé.');
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la suppression : $e');
+      }
+      return false;
+    }
+  }
+
+  /// Admin-side add/remove — separate from the player-facing self-service
+  /// toggle (`TournamentRepository.setParticipating`, called directly from
+  /// `TournamentDetailScreen`), both just flip the same `participantIds`.
+  Future<void> setTournamentParticipant(
+    TournamentModel tournament,
+    String userId,
+    bool participating,
+  ) {
+    return _tournamentRepository.setParticipating(
+      tournament.id,
+      userId,
+      participating,
+    );
+  }
+
+  Future<bool> generateTournamentBracket(TournamentModel tournament) async {
+    try {
+      await _tournamentRepository.generateBracket(tournament);
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors du tirage : $e');
+      }
+      return false;
+    }
+  }
+
+  Future<bool> setTournamentMatchWinner(
+    TournamentModel tournament,
+    TournamentMatch match,
+    String winnerId,
+  ) async {
+    try {
+      await _tournamentRepository.setMatchWinner(tournament, match, winnerId);
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur : $e');
+      }
+      return false;
+    }
+  }
+
+  /// Schedules one tournament match on a court/date/time — creates a real
+  /// two-player booking (same shape `createMatch` above builds, so both
+  /// players see it and get the usual push notification) and links it back
+  /// onto the match.
+  Future<bool> scheduleTournamentMatch(
+    TournamentModel tournament,
+    TournamentMatch match, {
+    required CourtModel court,
+    required DateTime date,
+    required String startTime,
+  }) async {
+    if (match.playerAId == null || match.playerBId == null) return false;
+    final playerA = state.players
+        .where((u) => u.id == match.playerAId)
+        .firstOrNull;
+    final playerB = state.players
+        .where((u) => u.id == match.playerBId)
+        .firstOrNull;
+    if (playerA == null) return false;
+
+    // Rescheduling an already-scheduled match — cancel its old booking
+    // first so it doesn't linger as a stale reservation once the new one
+    // (at a different slotKey, if the court/date/time changed) is created.
+    if (match.bookingId != null) {
+      try {
+        await _bookingRepository.cancel(match.bookingId!);
+      } catch (_) {
+        // Fall through — worst case the old slot stays booked under its own
+        // id while the new one below still goes through.
+      }
+    }
+
+    final booking = BookingModel(
+      id: '',
+      courtId: court.id,
+      courtName: court.name,
+      userId: playerA.id,
+      partnerId: playerB?.id,
+      partnerName: playerB?.name,
+      date: date,
+      startTime: startTime,
+      endTime: _addHours(startTime, 1),
+      status: BookingStatus.confirmed,
+      price: court.pricePerHour,
+      createdAt: DateTime.now(),
+      isAdminBooking: true,
+      courtAddress: court.location,
+      title: '${tournament.title} — Tour ${match.round}',
+    );
+    try {
+      await _bookingRepository.create(booking);
+      await _tournamentRepository.scheduleMatch(
+        tournament,
+        match,
+        courtId: court.id,
+        courtName: court.name,
+        date: date,
+        startTime: startTime,
+        bookingId: booking.slotKey,
+      );
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur lors de la programmation : $e');
+      }
+      return false;
+    }
+  }
+
   /// Creates a club event on behalf of the current admin. When the event has
   /// a start/end time and courts were selected, also books every hourly
   /// slot in that range on each of those courts so they show as occupied.
@@ -576,6 +749,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     _clubsSubscription.cancel();
     _eventsSubscription.cancel();
     _scenariosSubscription.cancel();
+    _tournamentsSubscription.cancel();
     super.dispose();
   }
 }
@@ -588,6 +762,7 @@ final managerViewModelProvider =
         ref.watch(clubRepositoryProvider),
         ref.watch(clubEventRepositoryProvider),
         ref.watch(scenarioRepositoryProvider),
+        ref.watch(tournamentRepositoryProvider),
         ref.watch(allUsersProvider).valueOrNull ?? const [],
         ref.watch(currentUserProvider).valueOrNull?.id,
         ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],

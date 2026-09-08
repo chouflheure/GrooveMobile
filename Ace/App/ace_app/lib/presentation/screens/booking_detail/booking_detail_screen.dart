@@ -107,6 +107,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 value: '${_booking.startTime} – ${_booking.endTime}',
               ),
               _InfoRow(label: 'Tarif', value: '${_booking.price.toInt()}€'),
+              if (_booking.hasExternalPlayer)
+                _InfoRow(label: 'Joueur extérieur', value: 'Oui'),
             ],
           ),
           if (partner != null) ...[

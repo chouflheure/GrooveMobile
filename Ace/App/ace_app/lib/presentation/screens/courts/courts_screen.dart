@@ -12,6 +12,7 @@ import '../auth/auth_view_model.dart';
 import '../court_detail/court_detail_screen.dart';
 import 'club_event_providers.dart';
 import 'courts_view_model.dart';
+import 'tournament_providers.dart';
 
 class CourtsScreen extends ConsumerWidget {
   const CourtsScreen({super.key});
@@ -31,6 +32,15 @@ class CourtsScreen extends ConsumerWidget {
               .toList()
         : allEvents
               .where((e) => currentUser.clubIds.contains(e.clubId))
+              .toList();
+    final allTournaments =
+        ref.watch(tournamentsProvider).valueOrNull ?? const [];
+    final tournaments = currentUser == null
+        ? allTournaments
+              .where((t) => state.clubs.any((c) => c.id == t.clubId))
+              .toList()
+        : allTournaments
+              .where((t) => currentUser.clubIds.contains(t.clubId))
               .toList();
 
     return Scaffold(
@@ -67,7 +77,7 @@ class CourtsScreen extends ConsumerWidget {
                 AppSpacing.lg,
                 AppSpacing.lg,
                 AppSpacing.lg,
-                events.isEmpty
+                events.isEmpty && tournaments.isEmpty
                     ? AppSpacing.lg + MediaQuery.paddingOf(context).bottom
                     : 0,
               ),
@@ -123,8 +133,85 @@ class CourtsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          if (tournaments.isNotEmpty)
+            const SliverToBoxAdapter(child: SizedBox(height: 15)),
+          if (tournaments.isNotEmpty)
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: _TournamentsSection(
+                  tournaments: tournaments,
+                  onTap: (t) => context.push('/tournament/${t.id}', extra: t),
+                ),
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _TournamentsSection extends StatelessWidget {
+  final List<TournamentModel> tournaments;
+  final ValueChanged<TournamentModel> onTap;
+
+  const _TournamentsSection({required this.tournaments, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Tournois internes', style: AppTypography.headlineMedium),
+        const SizedBox(height: AppSpacing.md),
+        ...tournaments.map(
+          (t) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: GestureDetector(
+              onTap: () => onTap(t),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.emoji_events_rounded,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.title, style: AppTypography.headlineSmall),
+                          Text(
+                            '${t.participantIds.length} inscrit(s) · ${t.clubName}',
+                            style: AppTypography.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

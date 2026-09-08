@@ -45,6 +45,8 @@ dependencies:
   shared_preferences: ^2.3.3
   add_2_calendar: 3.1.0
   package_info_plus: ^10.2.1
+  pdf: ^3.11.1
+  printing: ^5.13.4
 
 dependency_overrides:
   # path_provider_foundation 2.6.0 switched to Dart's experimental

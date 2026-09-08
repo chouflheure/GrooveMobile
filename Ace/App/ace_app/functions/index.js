@@ -110,6 +110,40 @@ exports.onClubEventCreated = onDocumentCreated("events/{eventId}", async (event)
 });
 
 /**
+ * A club created a new internal tournament — notify every member of that
+ * club, same as `onClubEventCreated`. Skipped when the admin already
+ * pre-selected a roster at creation (`participantIds` non-empty) — that's
+ * the whole point of picking players up front instead of opening
+ * registration, so blasting the entire club would defeat it. Later
+ * tournament lifecycle (bracket drawn, match scheduled) needs no push code
+ * of its own either: match scheduling creates a real two-player booking,
+ * which `onBookingCreated` below already notifies both players about.
+ */
+exports.onTournamentCreated = onDocumentCreated("tournaments/{tournamentId}", async (event) => {
+  const tournament = event.data && event.data.data();
+  if (!tournament || !tournament.clubId) return;
+  if ((tournament.participantIds || []).length > 0) return;
+
+  const db = admin.firestore();
+  const snapshot = await db
+    .collection("users")
+    .where("clubIds", "array-contains", tournament.clubId)
+    .get();
+
+  const recipientIds = snapshot.docs.map((doc) => doc.id);
+  if (recipientIds.length === 0) return;
+
+  await sendPushToUserIds(recipientIds, {
+    title: "Nouveau tournoi au club",
+    body: tournament.title || "Un nouveau tournoi a été créé.",
+  }, {
+    type: "tournament",
+    tournamentId: event.params.tournamentId,
+    clubId: tournament.clubId,
+  });
+});
+
+/**
  * A booking was created — notify whoever was put on it without being the
  * one who booked it: the invited partner always, and (for a booking an
  * admin made on someone's behalf, `isAdminBooking`) the player themselves

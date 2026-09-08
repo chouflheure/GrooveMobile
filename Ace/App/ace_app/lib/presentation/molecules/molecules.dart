@@ -1,4 +1,5 @@
 export 'stat_card.dart';
+export 'tournament_bracket.dart';
 export 'time_slot_chip.dart';
 export 'slot_availability_chip.dart';
 export 'court_picker.dart';

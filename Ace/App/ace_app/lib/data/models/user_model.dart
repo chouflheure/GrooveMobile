@@ -94,6 +94,11 @@ class UserModel extends Equatable {
   final List<String> bookingIds;
   // Clubs this player is a member of — a user may belong to more than one.
   final List<String> clubIds;
+  // How many "invitation credits" this player has left — spent one at a
+  // time to book a paying court with an external (non-member) guest
+  // instead of being sent to pay externally. Granted/topped up by hand for
+  // now (Firestore console or a future Manager UI), not self-service.
+  final int invitationCredits;
 
   const UserModel({
     required this.id,
@@ -112,6 +117,7 @@ class UserModel extends Equatable {
     this.notifications = const {},
     this.bookingIds = const [],
     this.clubIds = const [],
+    this.invitationCredits = 3,
   });
 
   /// Whether a given notification kind is on — defaults to off if the user
@@ -145,6 +151,7 @@ class UserModel extends Equatable {
     Map<String, bool>? notifications,
     List<String>? bookingIds,
     List<String>? clubIds,
+    int? invitationCredits,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -165,6 +172,7 @@ class UserModel extends Equatable {
       notifications: notifications ?? this.notifications,
       bookingIds: bookingIds ?? this.bookingIds,
       clubIds: clubIds ?? this.clubIds,
+      invitationCredits: invitationCredits ?? this.invitationCredits,
     );
   }
 
@@ -202,6 +210,7 @@ class UserModel extends Equatable {
     clubIds: json['clubIds'] != null
         ? List<String>.from(json['clubIds'] as List)
         : const [],
+    invitationCredits: json['invitationCredits'] as int? ?? 3,
   );
 
   Map<String, dynamic> toJson() => {
@@ -222,6 +231,7 @@ class UserModel extends Equatable {
     'notifications': notifications,
     'bookingIds': bookingIds,
     'clubIds': clubIds,
+    'invitationCredits': invitationCredits,
   };
 
   @override

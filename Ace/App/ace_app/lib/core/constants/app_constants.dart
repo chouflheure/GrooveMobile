@@ -71,6 +71,13 @@ class AppConstants {
 
   static const double bookingDurationHours = 1;
 
+  // TODO: remplacer par l'URL réelle de la page de paiement (Google Form ou
+  // équivalent) une fois créée — voir BookingConfirmationSheet, ouverte
+  // quand un joueur sans crédit d'invitation tente de réserver un terrain
+  // payant avec un invité extérieur.
+  static const String externalGuestPaymentUrl =
+      'https://forms.google.com/REPLACE_ME';
+
   /// How many days ahead the court detail screen's date picker shows.
   static const int bookingCalendarDays = 10;
 

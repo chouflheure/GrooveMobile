@@ -6,7 +6,11 @@ import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import 'admin_schedule_screen.dart';
 import 'club_form_screen.dart';
+import 'occupancy_stats_screen.dart';
+import 'tournament_form_screen.dart';
+import 'tournament_manage_screen.dart';
 import 'court_form_screen.dart';
 import 'event_form_screen.dart';
 import 'group_chat_form_screen.dart';
@@ -52,6 +56,8 @@ class ManagerScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const _ScheduleSection(),
+                  const SizedBox(height: AppSpacing.xxl),
                   const _MatchOrganizerSection(),
                   const SizedBox(height: AppSpacing.xxl),
                   _ClubsManagementSection(state: state),
@@ -61,6 +67,8 @@ class ManagerScreen extends ConsumerWidget {
                   _CourtsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _EventsManagementSection(state: state),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _TournamentsManagementSection(state: state),
                   const SizedBox(height: AppSpacing.xxl),
                   _GroupChatSection(players: state.players),
                   const SizedBox(height: AppSpacing.xxl),
@@ -106,6 +114,49 @@ class _SectionCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleSection extends StatelessWidget {
+  const _ScheduleSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.grid_view_rounded,
+      title: 'Planning',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Vue d'ensemble de tous les terrains, heure par heure, pour un jour donné.",
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const AdminScheduleScreen()),
+              ),
+              icon: const Icon(Icons.grid_view_rounded, size: 18),
+              label: const Text('Voir le planning'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(builder: (_) => const OccupancyStatsScreen()),
+              ),
+              icon: const Icon(Icons.bar_chart_rounded, size: 18),
+              label: const Text("Statistiques d'occupation"),
+            ),
+          ),
         ],
       ),
     );
@@ -341,7 +392,8 @@ class _BookingRow extends StatelessWidget {
                   ),
                 Text(
                   '${first.date.day.toString().padLeft(2, '0')}/${first.date.month.toString().padLeft(2, '0')} · $timeRange'
-                  '${first.partnerName != null ? ' · avec ${first.partnerName}' : ''}',
+                  '${first.partnerName != null ? ' · avec ${first.partnerName}' : ''}'
+                  '${first.hasExternalPlayer ? ' · joueur extérieur' : ''}',
                   style: AppTypography.bodySmall,
                 ),
               ],
@@ -514,6 +566,112 @@ class _ScenariosManagementSection extends StatelessWidget {
               onPressed: () => _openForm(context),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Ajouter un scénario'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TournamentsManagementSection extends StatelessWidget {
+  final ManagerState state;
+
+  const _TournamentsManagementSection({required this.state});
+
+  void _openForm(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => TournamentFormScreen(
+          tournament: null,
+          clubs: state.clubs,
+          players: state.players,
+        ),
+      ),
+    );
+  }
+
+  void _openManage(BuildContext context, TournamentModel tournament) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => TournamentManageScreen(tournament: tournament),
+      ),
+    );
+  }
+
+  String _statusLabel(TournamentStatus status) {
+    switch (status) {
+      case TournamentStatus.registration:
+        return 'Inscriptions ouvertes';
+      case TournamentStatus.inProgress:
+        return 'En cours';
+      case TournamentStatus.completed:
+        return 'Terminé';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.emoji_events_rounded,
+      title: 'Tournois internes',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (state.tournaments.isEmpty)
+            Text(
+              'Aucun tournoi pour le moment.',
+              style: AppTypography.bodySmall,
+            )
+          else
+            ...state.tournaments.map((t) {
+              final clubName = state.clubs
+                  .where((cl) => cl.id == t.clubId)
+                  .firstOrNull
+                  ?.name;
+              return GestureDetector(
+                onTap: () => _openManage(context, t),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t.title, style: AppTypography.headlineSmall),
+                            Text(
+                              '${_statusLabel(t.status)} · '
+                              '${t.participantIds.length} inscrit(s)'
+                              '${clubName != null ? ' · $clubName' : ''}',
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Ajouter un tournoi'),
             ),
           ),
         ],

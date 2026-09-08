@@ -48,6 +48,11 @@ class BookingModel extends Equatable {
   // (BookingRepository) doesn't need to re-fetch the court for every
   // existing booking it counts.
   final bool isPeakHour;
+  // Purely informational — the booker flagged that one of the players isn't
+  // a club member (a guest). Doesn't affect the club-membership check on
+  // the actual `partnerId`; just lets admins spot/track guest play (e.g. in
+  // the planning grid or an accounting export).
+  final bool hasExternalPlayer;
 
   const BookingModel({
     required this.id,
@@ -70,6 +75,7 @@ class BookingModel extends Equatable {
     this.title,
     this.isEventBlock = false,
     this.isPeakHour = false,
+    this.hasExternalPlayer = false,
   });
 
   bool get isConfirmed => status == BookingStatus.confirmed;
@@ -131,6 +137,7 @@ class BookingModel extends Equatable {
     title: json['title'] as String?,
     isEventBlock: json['isEventBlock'] as bool? ?? false,
     isPeakHour: json['isPeakHour'] as bool? ?? false,
+    hasExternalPlayer: json['hasExternalPlayer'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -154,6 +161,7 @@ class BookingModel extends Equatable {
     'title': title,
     'isEventBlock': isEventBlock,
     'isPeakHour': isPeakHour,
+    'hasExternalPlayer': hasExternalPlayer,
   };
 
   BookingModel copyWith({

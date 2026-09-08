@@ -105,7 +105,7 @@ exports.createBooking = onCall({ region: "europe-west9" }, async (request) => {
   }
 
   const data = request.data || {};
-  const { courtId, userId, partnerId, startTime, isEventBlock } = data;
+  const { courtId, userId, partnerId, startTime, isEventBlock, hasExternalPlayer } = data;
   const dateIso = data.date;
   if (!courtId || !userId || !startTime || !dateIso) {
     throw new HttpsError("invalid-argument", "Requête de réservation incomplète.");
@@ -130,9 +130,11 @@ exports.createBooking = onCall({ region: "europe-west9" }, async (request) => {
   // firestore.rules: a regular booking always takes two players (even on a
   // club-less/legacy court) and must stay within the court's club; an
   // admin only needs to be in it themselves (or the court has no club at
-  // all, the legacy/unset case).
+  // all, the legacy/unset case). An external guest isn't an app user at
+  // all, so there's no partner account to require or club-check — the
+  // booker's own membership is still enforced below either way.
   const clubId = court.clubId || "";
-  if (!isAdmin && !isEventBlock && !partnerId) {
+  if (!isAdmin && !isEventBlock && !hasExternalPlayer && !partnerId) {
     throw new HttpsError("invalid-argument", "Un partenaire est requis pour cette réservation.");
   }
   if (clubId) {
@@ -144,7 +146,7 @@ exports.createBooking = onCall({ region: "europe-west9" }, async (request) => {
     if (!bookerClubs.includes(clubId)) {
       fail("club_mismatch", "Vous devez être membre du club de ce terrain pour le réserver.");
     }
-    if (!isAdmin) {
+    if (!isAdmin && partnerId) {
       const partnerClubs = (partnerSnap.data() || {}).clubIds || [];
       if (!partnerClubs.includes(clubId)) {
         fail("club_mismatch", "Vous devez être membre du club de ce terrain pour le réserver.");

@@ -175,6 +175,7 @@ class _BookingConfirmationSheetState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                /*
                 if (!keyboardOpen) ...[
                   _CourtSummaryCard(
                     court: widget.court,
@@ -184,7 +185,7 @@ class _BookingConfirmationSheetState
                     price: _price,
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                ],
+                ],*/
                 Text(
                   'Inviter un partenaire',
                   style: AppTypography.headlineMedium,
@@ -264,7 +265,8 @@ class _BookingConfirmationSheetState
                             onViewProfile: () =>
                                 Navigator.of(context, rootNavigator: true).push(
                                   MaterialPageRoute(
-                                    builder: (_) => UserProfileScreen(user: user),
+                                    builder: (_) =>
+                                        UserProfileScreen(user: user),
                                   ),
                                 ),
                           ),

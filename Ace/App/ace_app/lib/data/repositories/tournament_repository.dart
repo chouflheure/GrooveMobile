@@ -50,11 +50,23 @@ class TournamentRepository {
     });
   }
 
-  /// Closes registration and draws the bracket — random seeding, byes for
-  /// anyone left over once the participant count is rounded up to the next
-  /// power of 2 (see `generateBracketMatches`).
-  Future<void> generateBracket(TournamentModel tournament) {
-    final matches = generateBracketMatches(tournament.participantIds);
+  /// Composes and appends the next round — `round = tournament.roundCount +
+  /// 1` (1 if no round exists yet). `pairs` becomes that round's real
+  /// matches, `byePlayers` its auto-resolved solo ones (see
+  /// `buildRoundMatches`); whoever fed into this round from the previous one
+  /// gets `feedsRound`/`feedsPosition`/`feedsSideA` written onto their match
+  /// there (see `attachFeeds`) so the bracket can draw the connector. Both
+  /// the admin's manual pairing and a random draw (shuffled client-side —
+  /// see `TournamentManageScreen`) go through this same entry point,
+  /// whatever round it's for.
+  Future<void> composeRound(
+    TournamentModel tournament,
+    List<(String, String)> pairs,
+    List<String> byePlayers,
+  ) {
+    final round = tournament.roundCount + 1;
+    final newRound = buildRoundMatches(round, pairs, byePlayers);
+    final matches = attachFeeds(tournament.matches, round - 1, newRound);
     return update(
       tournament.copyWith(
         status: TournamentStatus.inProgress,
@@ -63,16 +75,20 @@ class TournamentRepository {
     );
   }
 
-  /// Records who won `match` and advances them into their next-round slot
-  /// (see `advanceWinner`); flips the tournament to `completed` once the
-  /// final's winner is set.
+  /// Records who won `match` (see `setWinner`) — no auto-propagation, since
+  /// the next round only exists once the admin composes it. Flips the
+  /// tournament to `completed` once this was the round's only match (i.e.
+  /// its two players were the whole remaining field) and it now has a
+  /// winner.
   Future<void> setMatchWinner(
     TournamentModel tournament,
     TournamentMatch match,
     String winnerId,
   ) {
-    final matches = advanceWinner(tournament.matches, match, winnerId);
-    final isFinal = match.round == tournament.roundCount;
+    final matches = setWinner(tournament.matches, match, winnerId);
+    final isFinal =
+        match.round == tournament.roundCount &&
+        tournament.matchesInRound(match.round).length == 1;
     return update(
       tournament.copyWith(
         matches: matches,
@@ -105,6 +121,32 @@ class TournamentRepository {
           )
         else
           m,
+    ];
+    return update(tournament.copyWith(matches: matches));
+  }
+
+  /// Swaps two players wherever each currently sits in the bracket (any
+  /// round, any side) — lets the admin adjust a draw without regenerating
+  /// it. The caller (see `TournamentManageScreen`) only offers this while
+  /// no match anywhere has a winner yet, so there's no risk of moving a
+  /// player out from under a result that already happened.
+  Future<void> swapPlayers(
+    TournamentModel tournament,
+    String playerAId,
+    String playerBId,
+  ) {
+    String? swapped(String? current) {
+      if (current == playerAId) return playerBId;
+      if (current == playerBId) return playerAId;
+      return current;
+    }
+
+    final matches = [
+      for (final m in tournament.matches)
+        m.copyWith(
+          playerAId: swapped(m.playerAId),
+          playerBId: swapped(m.playerBId),
+        ),
     ];
     return update(tournament.copyWith(matches: matches));
   }

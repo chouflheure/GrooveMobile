@@ -1,132 +1,92 @@
-import 'dart:math';
-
 import '../../data/models/tournament_model.dart';
 
-/// Smallest power of 2 that is `>= n` (bracket sizes only ever come in
-/// powers of 2 — byes fill the gap when the real participant count isn't
-/// one already).
-int _bracketSizeFor(int n) {
-  var size = 1;
-  while (size < n) {
-    size *= 2;
-  }
-  return size;
-}
-
-/// Builds every round of a single-elimination bracket for `participantIds`,
-/// pre-populated with `TBD` (both players null) beyond round 1. Byes are
-/// resolved immediately: a round-1 match with only one real player already
-/// carries its `winnerId` and that winner is placed straight into their
-/// round-2 slot, so the admin never has to "play" a bye.
-///
-/// A `random` can be injected for deterministic tests; production calls
-/// leave it null and get a real shuffle.
-List<TournamentMatch> generateBracketMatches(
-  List<String> participantIds, {
-  Random? random,
-}) {
-  final rng = random ?? Random();
-  final shuffled = List<String>.of(participantIds)..shuffle(rng);
-
-  final size = _bracketSizeFor(shuffled.length);
-  final byes = size - shuffled.length;
-
-  // Deal `byes` matches a single real player + an empty slot, and the rest
-  // two real players each — never two empty slots in the same match, which
-  // a naive "shuffle everyone (including nulls) then pair up" risks
-  // whenever `byes >= 2` (an unplayable, unwinnable match). `byes` is
-  // always `< size / 2` (the match count) by definition of "smallest power
-  // of 2 >= n", so there's always enough real matches to hold the rest.
-  final pairs = <List<String?>>[];
-  var idx = 0;
-  for (var i = 0; i < byes; i++) {
-    pairs.add([shuffled[idx], null]);
-    idx++;
-  }
-  while (idx < shuffled.length) {
-    pairs.add([shuffled[idx], shuffled[idx + 1]]);
-    idx += 2;
-  }
-  pairs.shuffle(rng); // randomize which bracket position gets a bye
-
-  var round1 = <TournamentMatch>[];
-  for (var i = 0; i < pairs.length; i++) {
-    final a = pairs[i][0];
-    final b = pairs[i][1];
-    round1.add(
+/// Builds the matches for one freshly-composed round: one entry per pair
+/// (in order), then one entry per bye player — a solo match with
+/// `playerBId: null` and `winnerId` already set to `playerAId`, since a bye
+/// needs no result from the admin. Positions run continuously across both
+/// groups. Knows nothing about any other round — see
+/// `TournamentRepository.composeRound` for how this plugs into the rest of
+/// the bracket.
+List<TournamentMatch> buildRoundMatches(
+  int round,
+  List<(String, String)> pairs,
+  List<String> byePlayers,
+) {
+  final matches = <TournamentMatch>[];
+  for (final p in pairs) {
+    matches.add(
       TournamentMatch(
-        round: 1,
-        position: i,
-        playerAId: a,
-        playerBId: b,
-        // Exactly one side empty -> the other side auto-wins the bye.
-        winnerId: (a == null) != (b == null) ? (a ?? b) : null,
+        round: round,
+        position: matches.length,
+        playerAId: p.$1,
+        playerBId: p.$2,
       ),
     );
   }
-
-  final matches = <TournamentMatch>[...round1];
-  var roundMatches = round1;
-  var round = 2;
-  while (roundMatches.length > 1) {
-    final nextCount = roundMatches.length ~/ 2;
-    final nextRound = List.generate(
-      nextCount,
-      (i) => TournamentMatch(round: round, position: i),
+  for (final playerId in byePlayers) {
+    matches.add(
+      TournamentMatch(
+        round: round,
+        position: matches.length,
+        playerAId: playerId,
+        winnerId: playerId,
+      ),
     );
-    matches.addAll(nextRound);
-    roundMatches = nextRound;
-    round++;
   }
-
-  // Propagate round-1 byes into round 2 immediately. This never cascades
-  // further: byes are always fewer than half the bracket size (by
-  // definition of "smallest power of 2 >= n"), so even in the unlikely case
-  // two byes feed the same round-2 slot, that slot ends up with two real
-  // (bye-winning) players — a normal match, not a further bye.
-  var result = matches;
-  for (final m in round1) {
-    if (m.winnerId != null) {
-      result = advanceWinner(result, m, m.winnerId!);
-    }
-  }
-  return result;
+  return matches;
 }
 
-/// Records `winnerId` on `match` and, unless it was the final, places that
-/// winner into their slot (`position ~/ 2`, side A if `position` was even
-/// else B) in the next round. Returns a new list; doesn't mutate `matches`.
-List<TournamentMatch> advanceWinner(
+/// Writes `feedsRound`/`feedsPosition`/`feedsSideA` onto whichever match in
+/// `sourceRound` produced each player now appearing in `newRound` — so the
+/// bracket can draw a connector line from where a player came from to where
+/// they landed. Returns a full, updated match list (`allMatches`'s round
+/// `sourceRound` entries replaced, everything else untouched, `newRound`
+/// appended). A no-op on the source round when `sourceRound < 1` (composing
+/// round 1 — nothing feeds into it).
+List<TournamentMatch> attachFeeds(
+  List<TournamentMatch> allMatches,
+  int sourceRound,
+  List<TournamentMatch> newRound,
+) {
+  if (sourceRound < 1) return [...allMatches, ...newRound];
+
+  final feedsByWinner = <String, (int, bool)>{};
+  for (final m in newRound) {
+    if (m.playerAId != null) feedsByWinner[m.playerAId!] = (m.position, true);
+    if (m.playerBId != null) {
+      feedsByWinner[m.playerBId!] = (m.position, false);
+    }
+  }
+
+  final updated = [
+    for (final m in allMatches)
+      if (m.round == sourceRound &&
+          m.winnerId != null &&
+          feedsByWinner.containsKey(m.winnerId))
+        m.copyWith(
+          feedsRound: newRound.first.round,
+          feedsPosition: feedsByWinner[m.winnerId]!.$1,
+          feedsSideA: feedsByWinner[m.winnerId]!.$2,
+        )
+      else
+        m,
+  ];
+  return [...updated, ...newRound];
+}
+
+/// Records `winnerId` on `match`. No propagation — the next round doesn't
+/// exist yet until the admin composes it (`TournamentRepository.composeRound`
+/// then calls `attachFeeds` to wire this match up to it).
+List<TournamentMatch> setWinner(
   List<TournamentMatch> matches,
   TournamentMatch match,
   String winnerId,
 ) {
-  final maxRound = matches.map((m) => m.round).reduce((a, b) => a > b ? a : b);
-  var updated = [
+  return [
     for (final m in matches)
       if (m.round == match.round && m.position == match.position)
         m.copyWith(winnerId: winnerId)
       else
         m,
   ];
-  if (match.round == maxRound) return updated;
-
-  final nextRound = match.round + 1;
-  final nextPosition = match.position ~/ 2;
-  final nextIndex = updated.indexWhere(
-    (m) => m.round == nextRound && m.position == nextPosition,
-  );
-  if (nextIndex == -1) return updated;
-
-  final next = updated[nextIndex];
-  final placedOnA = match.position.isEven;
-  final updatedNext = placedOnA
-      ? next.copyWith(playerAId: winnerId)
-      : next.copyWith(playerBId: winnerId);
-  updated = [
-    for (var i = 0; i < updated.length; i++)
-      if (i == nextIndex) updatedNext else updated[i],
-  ];
-
-  return updated;
 }

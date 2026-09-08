@@ -12,15 +12,30 @@ extension TournamentStatusJson on TournamentStatus {
       );
 }
 
-/// One slot in a single-elimination bracket. `round` is 1-indexed (1 = first
-/// round); `position` is this match's index within its round, and is what
-/// bracket advancement math (`position ~/ 2` in the next round) is based on.
+/// One slot in a single-elimination bracket, composed by the admin one round
+/// at a time (see `TournamentRepository.composeRound`) rather than generated
+/// as a whole tree upfront — so round N+1 can freely mix any winners/byes
+/// from round N. `round` is 1-indexed; `position` is this match's index
+/// within its round, purely for display ordering. A bye ("exempt" player) is
+/// a match with `playerBId == null` and `winnerId` already set to
+/// `playerAId` at composition time — no admin action needed to resolve it.
 class TournamentMatch extends Equatable {
   final int round;
   final int position;
   final String? playerAId;
   final String? playerBId;
   final String? winnerId;
+  // Where this match's winner (or bye) landed in the round that was
+  // composed after it — null until that next round exists, and permanently
+  // null for whichever match turns out to be the final. Written
+  // retroactively onto this round by `TournamentRepository.composeRound`
+  // when the *next* round is composed (see `attachFeeds` in
+  // bracket_generator.dart) — used purely to draw the bracket's connector
+  // lines, since pairing is chosen freely each round rather than computed
+  // by a fixed formula.
+  final int? feedsRound;
+  final int? feedsPosition;
+  final bool? feedsSideA;
   // Scheduling — unset until the admin assigns a court/date/time. Creating
   // that assignment also creates a real two-player `BookingModel` (so both
   // players see it and get the usual "you were added to this match" push);
@@ -37,6 +52,9 @@ class TournamentMatch extends Equatable {
     this.playerAId,
     this.playerBId,
     this.winnerId,
+    this.feedsRound,
+    this.feedsPosition,
+    this.feedsSideA,
     this.courtId,
     this.courtName,
     this.date,
@@ -44,8 +62,6 @@ class TournamentMatch extends Equatable {
     this.bookingId,
   });
 
-  bool get isBye =>
-      (playerAId == null) != (playerBId == null) && winnerId != null;
   bool get isReadyToPlay => playerAId != null && playerBId != null;
   bool get isScheduled => courtId != null;
   bool get isPlayed => winnerId != null;
@@ -54,6 +70,9 @@ class TournamentMatch extends Equatable {
     Object? playerAId = _sentinel,
     Object? playerBId = _sentinel,
     Object? winnerId = _sentinel,
+    Object? feedsRound = _sentinel,
+    Object? feedsPosition = _sentinel,
+    Object? feedsSideA = _sentinel,
     Object? courtId = _sentinel,
     Object? courtName = _sentinel,
     Object? date = _sentinel,
@@ -66,6 +85,11 @@ class TournamentMatch extends Equatable {
       playerAId: playerAId == _sentinel ? this.playerAId : playerAId as String?,
       playerBId: playerBId == _sentinel ? this.playerBId : playerBId as String?,
       winnerId: winnerId == _sentinel ? this.winnerId : winnerId as String?,
+      feedsRound: feedsRound == _sentinel ? this.feedsRound : feedsRound as int?,
+      feedsPosition: feedsPosition == _sentinel
+          ? this.feedsPosition
+          : feedsPosition as int?,
+      feedsSideA: feedsSideA == _sentinel ? this.feedsSideA : feedsSideA as bool?,
       courtId: courtId == _sentinel ? this.courtId : courtId as String?,
       courtName: courtName == _sentinel ? this.courtName : courtName as String?,
       date: date == _sentinel ? this.date : date as DateTime?,
@@ -81,6 +105,9 @@ class TournamentMatch extends Equatable {
         playerAId: json['playerAId'] as String?,
         playerBId: json['playerBId'] as String?,
         winnerId: json['winnerId'] as String?,
+        feedsRound: json['feedsRound'] as int?,
+        feedsPosition: json['feedsPosition'] as int?,
+        feedsSideA: json['feedsSideA'] as bool?,
         courtId: json['courtId'] as String?,
         courtName: json['courtName'] as String?,
         date: json['date'] != null ? DateTime.parse(json['date'] as String) : null,
@@ -94,6 +121,9 @@ class TournamentMatch extends Equatable {
     'playerAId': playerAId,
     'playerBId': playerBId,
     'winnerId': winnerId,
+    'feedsRound': feedsRound,
+    'feedsPosition': feedsPosition,
+    'feedsSideA': feedsSideA,
     'courtId': courtId,
     'courtName': courtName,
     'date': date?.toIso8601String(),

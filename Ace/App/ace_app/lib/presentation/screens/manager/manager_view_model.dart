@@ -505,13 +505,21 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     );
   }
 
-  Future<bool> generateTournamentBracket(TournamentModel tournament) async {
+  /// Composes and appends the next round (1 if none exists yet) — `pairs`
+  /// from the admin's manual composer or a client-side random shuffle,
+  /// `byePlayers` whoever's left over. See
+  /// `TournamentRepository.composeRound`.
+  Future<bool> composeTournamentRound(
+    TournamentModel tournament,
+    List<(String, String)> pairs,
+    List<String> byePlayers,
+  ) async {
     try {
-      await _tournamentRepository.generateBracket(tournament);
+      await _tournamentRepository.composeRound(tournament, pairs, byePlayers);
       return true;
     } catch (e) {
       if (mounted) {
-        state = state.copyWith(message: 'Erreur lors du tirage : $e');
+        state = state.copyWith(message: 'Erreur lors de la composition du tour : $e');
       }
       return false;
     }
@@ -524,6 +532,25 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   ) async {
     try {
       await _tournamentRepository.setMatchWinner(tournament, match, winnerId);
+      return true;
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(message: 'Erreur : $e');
+      }
+      return false;
+    }
+  }
+
+  /// Swaps two players in the drawn bracket — only meaningful, and only
+  /// offered by the UI, before any match has a winner (see
+  /// `TournamentManageScreen`).
+  Future<bool> swapTournamentPlayers(
+    TournamentModel tournament,
+    String playerAId,
+    String playerBId,
+  ) async {
+    try {
+      await _tournamentRepository.swapPlayers(tournament, playerAId, playerBId);
       return true;
     } catch (e) {
       if (mounted) {

@@ -311,12 +311,10 @@ class _ProposeSlotModalState extends ConsumerState<ProposeSlotModal> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Une erreur est survenue, réessaie.'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppSnackbar.show(
+          context,
+          message: 'Une erreur est survenue, réessaie.',
+          type: AppSnackbarType.error,
         );
       }
     }

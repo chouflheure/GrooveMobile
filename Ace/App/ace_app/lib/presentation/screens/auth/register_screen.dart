@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../atoms/atoms.dart';
 import 'auth_view_model.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -32,12 +33,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (_passwordController.text != _confirmController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Les mots de passe ne correspondent pas.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppSnackbar.show(
+        context,
+        message: 'Les mots de passe ne correspondent pas.',
+        type: AppSnackbarType.error,
       );
       return;
     }
@@ -54,13 +53,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } else {
       final error = ref.read(authViewModelProvider).errorMessage;
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackbar.show(context, message: error, type: AppSnackbarType.error);
       }
     }
   }

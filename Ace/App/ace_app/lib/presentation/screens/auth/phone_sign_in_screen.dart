@@ -48,14 +48,11 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
       // instead of leaving the app in a broken signed-in state.
       await ref.read(authRepositoryProvider).signOut();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+      AppSnackbar.show(
+        context,
+        message:
             "Ce numéro n'est lié à aucun compte. Connecte-toi par email puis lie-le depuis ton profil.",
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
+        type: AppSnackbarType.error,
       );
       phoneVm.reset();
       return;
@@ -70,12 +67,10 @@ class _PhoneSignInScreenState extends ConsumerState<PhoneSignInScreen> {
     ref.listen(phoneAuthViewModelProvider, (prev, next) {
       if (next.errorMessage != null &&
           next.errorMessage != prev?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppSnackbar.show(
+          context,
+          message: next.errorMessage!,
+          type: AppSnackbarType.error,
         );
       }
     });

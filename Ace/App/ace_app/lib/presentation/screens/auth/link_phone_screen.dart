@@ -45,26 +45,20 @@ class _LinkPhoneScreenState extends ConsumerState<LinkPhoneScreen> {
         // credential that works for sign-in but no matching profile field.
         await ref.read(authRepositoryProvider).unlinkPhoneCredential();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Le numéro n'a pas pu être enregistré sur ton profil, réessaie.",
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppSnackbar.show(
+          context,
+          message: "Le numéro n'a pas pu être enregistré sur ton profil, réessaie.",
+          type: AppSnackbarType.error,
         );
         ref.read(phoneAuthViewModelProvider.notifier).reset();
         return;
       }
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Numéro de téléphone lié à ton compte.'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ),
+    AppSnackbar.show(
+      context,
+      message: 'Numéro de téléphone lié à ton compte.',
+      type: AppSnackbarType.success,
     );
     Navigator.of(context, rootNavigator: true).pop();
   }
@@ -76,12 +70,10 @@ class _LinkPhoneScreenState extends ConsumerState<LinkPhoneScreen> {
     ref.listen(phoneAuthViewModelProvider, (prev, next) {
       if (next.errorMessage != null &&
           next.errorMessage != prev?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        AppSnackbar.show(
+          context,
+          message: next.errorMessage!,
+          type: AppSnackbarType.error,
         );
       }
     });

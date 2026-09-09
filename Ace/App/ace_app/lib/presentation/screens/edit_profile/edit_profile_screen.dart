@@ -56,11 +56,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       setState(() => _profileImageUrl = url);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Échec de l\'envoi de la photo : $e'),
-          backgroundColor: AppColors.error,
-        ),
+      AppSnackbar.show(
+        context,
+        message: 'Échec de l\'envoi de la photo : $e',
+        type: AppSnackbarType.error,
       );
     } finally {
       if (mounted) setState(() => _isUploadingPhoto = false);
@@ -189,22 +188,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           );
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profil mis à jour !'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppSnackbar.show(
+        context,
+        message: 'Profil mis à jour !',
+        type: AppSnackbarType.success,
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Une erreur est survenue, réessaie.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppSnackbar.show(
+        context,
+        message: 'Une erreur est survenue, réessaie.',
+        type: AppSnackbarType.error,
       );
     }
   }

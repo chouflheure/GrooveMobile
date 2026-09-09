@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../atoms/atoms.dart';
 import 'auth_view_model.dart';
 import 'forgot_password_screen.dart';
 import 'phone_sign_in_screen.dart';
@@ -40,13 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else {
       final error = ref.read(authViewModelProvider).errorMessage;
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackbar.show(context, message: error, type: AppSnackbarType.error);
       }
     }
   }

@@ -33,12 +33,14 @@ class ManagerScreen extends ConsumerWidget {
 
     if (state.message != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(state.message!),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-          ),
+        // `state.message` doubles as both the success confirmation and the
+        // error channel across this view model — no separate flag exists,
+        // so this is the only signal available to pick the right look.
+        final isError = state.message!.startsWith('Erreur');
+        AppSnackbar.show(
+          context,
+          message: state.message!,
+          type: isError ? AppSnackbarType.error : AppSnackbarType.success,
         );
         vm.clearMessage();
       });

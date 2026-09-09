@@ -232,12 +232,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     if (confirmed == true && mounted) {
       ref.read(profileViewModelProvider.notifier).cancelBooking(_booking.id);
       Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Réservation annulée.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppSnackbar.show(context, message: 'Réservation annulée.');
     }
   }
 
@@ -511,12 +506,10 @@ class _GateCodeCard extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: code));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Code copié !'),
-                      behavior: SnackBarBehavior.floating,
-                      duration: Duration(seconds: 2),
-                    ),
+                  AppSnackbar.show(
+                    context,
+                    message: 'Code copié !',
+                    duration: const Duration(seconds: 2),
                   );
                 },
                 child: Container(

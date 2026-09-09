@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../atoms/atoms.dart';
 
 /// An image URL field that can be filled either by typing a URL by hand or
 /// by picking a photo from the gallery and uploading it — whichever was
@@ -55,11 +56,10 @@ class _ImageUrlFieldState extends State<ImageUrlField> {
       widget.controller.text = url;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Échec de l\'envoi de la photo : $e'),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackbar.show(
+          context,
+          message: 'Échec de l\'envoi de la photo : $e',
+          type: AppSnackbarType.error,
         );
       }
     } finally {

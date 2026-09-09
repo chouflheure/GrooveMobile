@@ -406,14 +406,11 @@ class _BookingConfirmationSheetState
       }
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
+      AppSnackbar.show(
+        context,
+        message:
             'Réservation confirmée à ${widget.selectedSlot} sur ${widget.court.name} !',
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
+        type: AppSnackbarType.success,
       );
     } catch (e) {
       if (!mounted) return;

@@ -7,6 +7,7 @@ const admin = require("firebase-admin");
 const { sendPushToUserIds } = require("./lib/push");
 const { deleteAll } = require("./lib/firestore");
 const { createBooking } = require("./lib/booking");
+const { sendPasswordResetEmail } = require("./lib/password_reset");
 const {
   APP_TIMEZONE,
   dateKeyInTimeZone,
@@ -22,6 +23,11 @@ admin.initializeApp();
 // court's `BookingPolicy` defines is enforced here with Admin SDK
 // privileges instead of trusting the app.
 exports.createBooking = createBooking;
+
+// Sends the reset email ourselves via Mailgun, with our own design, instead
+// of Firebase Auth's automatic one (unstyled, easily flagged as spam) — see
+// AuthRepository.sendPasswordResetEmail on the client.
+exports.sendPasswordResetEmail = sendPasswordResetEmail;
 
 // Deployed in the same region as the Firestore database (europe-west9,
 // Paris) — mixing regions between the functions and the Firestore trigger

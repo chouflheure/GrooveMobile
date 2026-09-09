@@ -1,6 +1,7 @@
 import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -255,19 +256,41 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     );
   }
 
-  void _share(BuildContext context, String? address) {
+  Future<void> _share(BuildContext context, String? address) async {
     final dateStr = DateFormat(
       'EEEE d MMMM yyyy',
       'fr_FR',
     ).format(_booking.date);
+    final hasAddress = address != null && address.trim().isNotEmpty;
+    // A plain maps.google.com link auto-links as tappable text in Messages,
+    // Mail, WhatsApp, etc. — no custom UI needed for a "clickable" address.
+    final mapsUrl = hasAddress
+        ? 'https://maps.google.com/?q=${Uri.encodeComponent(address)}'
+        : null;
     final lines = [
-      'Réservation — ${_booking.courtName}',
-      _capitalize(dateStr),
-      '${_booking.startTime} – ${_booking.endTime}',
-      if (address != null && address.trim().isNotEmpty) address,
-      if (_booking.gateCode != null) "Code d'accès : ${_booking.gateCode}",
+      '🎾 Réservation — ${_booking.courtName}',
+      '📅 ${_capitalize(dateStr)}',
+      '⏰ ${_booking.startTime} – ${_booking.endTime}',
+      if (hasAddress) '📍 $address',
+      ?mapsUrl,
+      if (_booking.gateCode != null) "🔑 Code d'accès : ${_booking.gateCode}",
     ];
-    SharePlus.instance.share(ShareParams(text: lines.join('\n')));
+
+    final imageUrl = ref
+        .read(courtByIdProvider(_booking.courtId))
+        .valueOrNull
+        ?.imageUrl;
+    List<XFile>? files;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        final file = await DefaultCacheManager().getSingleFile(imageUrl);
+        files = [XFile(file.path)];
+      } catch (_) {
+        // Image unreachable (offline, broken URL) — share text only.
+      }
+    }
+
+    SharePlus.instance.share(ShareParams(text: lines.join('\n'), files: files));
   }
 }
 

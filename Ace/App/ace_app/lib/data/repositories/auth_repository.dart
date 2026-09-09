@@ -1,9 +1,23 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Thrown by [AuthRepository.sendPasswordResetEmail] when no account
+/// matches the given email — mirrors the `not-found` `HttpsError` the
+/// `sendPasswordResetEmail` Cloud Function reports for that case.
+class UserNotFoundException implements Exception {
+  const UserNotFoundException();
+
+  @override
+  String toString() => 'Aucun compte associé à cet email.';
+}
+
 class AuthRepository {
-  AuthRepository({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
+  AuthRepository({FirebaseAuth? auth, FirebaseFunctions? functions})
+    : _auth = auth ?? FirebaseAuth.instance,
+      _functions = functions ?? FirebaseFunctions.instanceFor(region: 'europe-west9');
 
   final FirebaseAuth _auth;
+  final FirebaseFunctions _functions;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -28,8 +42,19 @@ class AuthRepository {
 
   Future<void> signOut() => _auth.signOut();
 
-  Future<void> sendPasswordResetEmail(String email) {
-    return _auth.sendPasswordResetEmail(email: email);
+  /// Sends the reset email ourselves via a Cloud Function (Mailgun) instead
+  /// of Firebase Auth's own automatic email — see `functions/lib/password_reset.js`.
+  /// The reset link itself is still a real Firebase Auth action link;
+  /// only who sends the email, and its design, changes.
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _functions
+          .httpsCallable('sendPasswordResetEmail')
+          .call({'email': email});
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found') throw const UserNotFoundException();
+      rethrow;
+    }
   }
 
   /// Starts Firebase's phone verification flow. `onCodeSent` fires once the

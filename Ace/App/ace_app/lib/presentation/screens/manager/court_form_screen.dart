@@ -30,10 +30,34 @@ class CourtFormScreen extends ConsumerStatefulWidget {
 }
 
 class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
-  // Pre-generated so a court's Storage image path is known up front, even
-  // before it's actually saved — the id it's created with matches this.
-  late final String _courtId =
-      widget.court?.id ?? FirebaseFirestore.instance.collection('courts').doc().id;
+  // A new court's id is `NomClub_NomTerrain_<id auto-généré>` — locked in
+  // the first time it's actually needed (photo upload or save), from
+  // whatever club/name are set at that moment, so the Storage image path
+  // and the final Firestore doc id always agree even if the admin keeps
+  // editing the name afterward. `_courtId` below is what everything reads.
+  String? _lockedCourtId;
+
+  String get _courtId {
+    if (widget.court != null) return widget.court!.id;
+    return _lockedCourtId ??= _buildNewCourtId();
+  }
+
+  String _buildNewCourtId() {
+    String sanitize(String s) => s.trim().replaceAll('/', '-');
+    final clubName = widget.clubs
+        .where((c) => c.id == _clubId)
+        .firstOrNull
+        ?.name ?? '';
+    final courtName = _nameController.text;
+    final suffix = FirebaseFirestore.instance.collection('courts').doc().id;
+    return '${sanitize(clubName)}_${sanitize(courtName)}_$suffix';
+  }
+
+  // A photo can only be uploaded once the id it'll be stored under is
+  // final — i.e. once club + name are actually filled in.
+  bool get _canUploadPhoto =>
+      _clubId != null && _nameController.text.trim().isNotEmpty;
+
   late final _nameController = TextEditingController(
     text: widget.court?.name ?? '',
   );
@@ -352,9 +376,20 @@ class _CourtFormScreenState extends ConsumerState<CourtFormScreen> {
           const SizedBox(height: AppSpacing.xs),
           ImageUrlField(
             controller: _imageUrlController,
-            onPickAndUpload: (file) => ref
-                .read(storageRepositoryProvider)
-                .uploadCourtImage(_courtId, file),
+            onPickAndUpload: (file) {
+              if (!_canUploadPhoto) {
+                AppSnackbar.show(
+                  context,
+                  message:
+                      'Renseigne le nom et le club du terrain avant d\'ajouter une photo.',
+                  type: AppSnackbarType.info,
+                );
+                return Future.value('');
+              }
+              return ref
+                  .read(storageRepositoryProvider)
+                  .uploadCourtImage(_courtId, file);
+            },
           ),
           const SizedBox(height: AppSpacing.lg),
           _Label('Description'),

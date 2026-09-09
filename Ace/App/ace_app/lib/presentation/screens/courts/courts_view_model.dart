@@ -7,7 +7,9 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/repositories/booking_scenario_repository.dart';
 import '../../../data/repositories/club_repository.dart';
+import '../../../data/repositories/club_contact_repository.dart';
 import '../../../data/repositories/court_repository.dart';
+import '../../../data/repositories/sav_repository.dart';
 import '../auth/auth_view_model.dart';
 
 class CourtsState {
@@ -237,6 +239,20 @@ final clubRepositoryProvider = Provider<ClubRepository>(
 
 final scenarioRepositoryProvider = Provider<BookingScenarioRepository>(
   (_) => BookingScenarioRepository(),
+);
+
+final savRepositoryProvider = Provider<SavRepository>((_) => SavRepository());
+
+final savContactsProvider = FutureProvider<List<SavContactModel>>(
+  (ref) => ref.watch(savRepositoryProvider).fetchAll(),
+);
+
+final clubContactRepositoryProvider = Provider<ClubContactRepository>(
+  (_) => ClubContactRepository(),
+);
+
+final clubContactsProvider = StreamProvider<List<ClubContactModel>>(
+  (ref) => ref.watch(clubContactRepositoryProvider).watchAll(),
 );
 
 final scenariosProvider = StreamProvider<List<BookingScenario>>(

@@ -109,9 +109,33 @@ service cloud.firestore {
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
     }
 
+    // Non-admin people an admin has chosen to surface as club contacts on
+    // players' profiles (e.g. a treasurer, a coach) — same admin/club
+    // scoping as `tournaments` above. Editing a `roleLabel` is a
+    // delete-then-recreate from the app, so no `update` is needed.
+    match /clubContacts/{contactId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && request.resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+      allow update: if false;
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        && resource.data.clubId in
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clubIds;
+    }
+
     // Presence of a doc here (not its contents) grants admin — managed by
     // hand in the console, not through the app.
     match /admin/{userId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Support contact info, entered by hand in the console — same idiom
+    // as `admin` above.
+    match /SAV/{id} {
       allow read: if true;
       allow write: if false;
     }

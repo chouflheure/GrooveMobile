@@ -144,6 +144,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             controller: _emailController,
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
+            enabled: false,
+            helperText: 'Non modifiable — c\'est ton identifiant de connexion.',
           ),
           const SizedBox(height: AppSpacing.md),
           _Field(
@@ -213,12 +215,16 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final IconData icon;
   final TextInputType keyboardType;
+  final bool enabled;
+  final String? helperText;
 
   const _Field({
     required this.label,
     required this.controller,
     required this.icon,
     this.keyboardType = TextInputType.text,
+    this.enabled = true,
+    this.helperText,
   });
 
   @override
@@ -231,11 +237,12 @@ class _Field extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          enabled: enabled,
           style: AppTypography.bodyMedium,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: enabled ? AppColors.surface : AppColors.surfaceVariant,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.md,
@@ -248,6 +255,10 @@ class _Field extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               borderSide: const BorderSide(color: AppColors.border),
             ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               borderSide: const BorderSide(
@@ -257,6 +268,15 @@ class _Field extends StatelessWidget {
             ),
           ),
         ),
+        if (helperText != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            helperText!,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
       ],
     );
   }

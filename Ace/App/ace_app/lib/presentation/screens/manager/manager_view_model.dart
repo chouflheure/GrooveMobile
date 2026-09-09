@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/booking_repository.dart';
 import '../../../data/repositories/booking_scenario_repository.dart';
+import '../../../data/repositories/club_contact_repository.dart';
 import '../../../data/repositories/club_event_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/court_repository.dart';
@@ -95,6 +96,7 @@ class ManagerState {
   final List<UserModel> admins;
   final List<BookingModel> allBookings;
   final List<ClubEventModel> events;
+  final List<ClubContactModel> clubContacts;
   final MatchForm form;
   final bool isLoading;
   final bool isSubmitting;
@@ -109,6 +111,7 @@ class ManagerState {
     this.admins = const [],
     this.allBookings = const [],
     this.events = const [],
+    this.clubContacts = const [],
     this.form = const MatchForm(),
     this.isLoading = false,
     this.isSubmitting = false,
@@ -133,6 +136,7 @@ class ManagerState {
     List<UserModel>? admins,
     List<BookingModel>? allBookings,
     List<ClubEventModel>? events,
+    List<ClubContactModel>? clubContacts,
     MatchForm? form,
     bool? isLoading,
     bool? isSubmitting,
@@ -147,6 +151,7 @@ class ManagerState {
       admins: admins ?? this.admins,
       allBookings: allBookings ?? this.allBookings,
       events: events ?? this.events,
+      clubContacts: clubContacts ?? this.clubContacts,
       form: form ?? this.form,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -165,6 +170,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     this._clubEventRepository,
     this._scenarioRepository,
     this._tournamentRepository,
+    this._clubContactRepository,
     List<UserModel> allUsers,
     this._currentUserId,
     this._adminClubIds,
@@ -215,6 +221,15 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
             .toList(),
       );
     });
+    _clubContactsSubscription = _clubContactRepository.watchAll().listen((
+      contacts,
+    ) {
+      state = state.copyWith(
+        clubContacts: contacts
+            .where((c) => _adminClubIds.contains(c.clubId))
+            .toList(),
+      );
+    });
   }
 
   final CourtRepository _courtRepository;
@@ -223,6 +238,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   final ClubEventRepository _clubEventRepository;
   final BookingScenarioRepository _scenarioRepository;
   final TournamentRepository _tournamentRepository;
+  final ClubContactRepository _clubContactRepository;
   final String? _currentUserId;
   // An admin only administers the club(s) they're a member of.
   final List<String> _adminClubIds;
@@ -232,6 +248,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   late final StreamSubscription<List<ClubEventModel>> _eventsSubscription;
   late final StreamSubscription<List<BookingScenario>> _scenariosSubscription;
   late final StreamSubscription<List<TournamentModel>> _tournamentsSubscription;
+  late final StreamSubscription<List<ClubContactModel>> _clubContactsSubscription;
 
   List<CourtModel> _rawCourts = const [];
   List<BookingModel> _rawBookings = const [];
@@ -790,6 +807,37 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     state = state.copyWith(message: null);
   }
 
+  /// Surfaces `userId` as a club contact with a free-text status label
+  /// (e.g. "Trésorier") on players' profiles, even though they're not an
+  /// app admin — see `ClubContactRepository`.
+  Future<bool> addClubContact(String clubId, String userId, String roleLabel) async {
+    try {
+      await _clubContactRepository.create(
+        ClubContactModel(
+          id: '',
+          clubId: clubId,
+          userId: userId,
+          roleLabel: roleLabel,
+          createdAt: DateTime.now(),
+        ),
+      );
+      return true;
+    } catch (e) {
+      if (mounted) state = state.copyWith(message: 'Erreur : $e');
+      return false;
+    }
+  }
+
+  Future<bool> removeClubContact(String contactId) async {
+    try {
+      await _clubContactRepository.delete(contactId);
+      return true;
+    } catch (e) {
+      if (mounted) state = state.copyWith(message: 'Erreur : $e');
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _courtsSubscription.cancel();
@@ -798,6 +846,7 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
     _eventsSubscription.cancel();
     _scenariosSubscription.cancel();
     _tournamentsSubscription.cancel();
+    _clubContactsSubscription.cancel();
     super.dispose();
   }
 }
@@ -811,6 +860,7 @@ final managerViewModelProvider =
         ref.watch(clubEventRepositoryProvider),
         ref.watch(scenarioRepositoryProvider),
         ref.watch(tournamentRepositoryProvider),
+        ref.watch(clubContactRepositoryProvider),
         ref.watch(allUsersProvider).valueOrNull ?? const [],
         ref.watch(currentUserProvider).valueOrNull?.id,
         ref.watch(currentUserProvider).valueOrNull?.clubIds ?? const [],

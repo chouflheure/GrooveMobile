@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
+import '../../../data/repositories/message_repository.dart';
 import '../../atoms/atoms.dart';
 import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
 import '../auth/link_phone_screen.dart';
 import '../booking_detail/booking_detail_screen.dart';
+import '../community/chat_screen.dart';
 import '../courts/club_event_providers.dart';
 import '../courts/courts_view_model.dart';
 import '../edit_profile/edit_profile_screen.dart';
@@ -75,6 +78,7 @@ class ProfileScreen extends ConsumerWidget {
                   )
                 : _BookingsSection(state: state, currentUserId: user.id),
           ),
+          SliverToBoxAdapter(child: _ClubContactsSection(user: user)),
           SliverToBoxAdapter(child: _SettingsSection()),
           const SliverToBoxAdapter(child: _VersionFooter()),
           SliverToBoxAdapter(
@@ -514,6 +518,192 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Who to contact for whichever club(s) `user` belongs to — the club's
+/// admin(s) (resolved the same way the rest of the app checks admin status,
+/// `UserModel.isAdmin`, intersected with shared `clubIds`, since there's no
+/// dedicated "club admin" field anywhere) plus anyone the admin has chosen
+/// to surface via `ClubContactModel` (e.g. a treasurer, a coach — not
+/// necessarily an admin). Deduped by user id: someone who's both an admin
+/// and separately listed as a contact only shows once, labeled "Admin".
+/// Hidden entirely when nobody is found for any of the user's clubs.
+class _ClubContactsSection extends ConsumerWidget {
+  final UserModel user;
+
+  const _ClubContactsSection({required this.user});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allUsers = ref.watch(allUsersProvider).valueOrNull ?? const [];
+    final clubContacts = ref.watch(clubContactsProvider).valueOrNull ?? const [];
+
+    final labelByUserId = <String, String>{};
+    for (final u in allUsers) {
+      if (u.isAdmin && u.clubIds.any(user.clubIds.contains)) {
+        labelByUserId[u.id] = 'Admin';
+      }
+    }
+    for (final contact in clubContacts) {
+      if (!user.clubIds.contains(contact.clubId)) continue;
+      labelByUserId.putIfAbsent(contact.userId, () => contact.roleLabel);
+    }
+    final entries = [
+      for (final entry in labelByUserId.entries)
+        if (allUsers.where((u) => u.id == entry.key).firstOrNull != null)
+          (
+            allUsers.where((u) => u.id == entry.key).first,
+            entry.value,
+          ),
+    ];
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Contacts du club', style: AppTypography.headlineSmall),
+          const SizedBox(height: AppSpacing.md),
+          for (var i = 0; i < entries.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpacing.md),
+            _ClubContactCard(
+              contact: entries[i].$1,
+              roleLabel: entries[i].$2,
+              currentUser: user,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ClubContactCard extends StatelessWidget {
+  final UserModel contact;
+  final String roleLabel;
+  final UserModel currentUser;
+
+  const _ClubContactCard({
+    required this.contact,
+    required this.roleLabel,
+    required this.currentUser,
+  });
+
+  Future<void> _email() => launchUrl(
+    Uri(scheme: 'mailto', path: contact.email),
+    mode: LaunchMode.externalApplication,
+  );
+
+  Future<void> _call() => launchUrl(
+    Uri(scheme: 'tel', path: contact.phone),
+    mode: LaunchMode.externalApplication,
+  );
+
+  void _message(BuildContext context) {
+    final conversationId = MessageRepository.conversationIdFor(
+      currentUser.id,
+      contact.id,
+    );
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          conversationId: conversationId,
+          otherParticipantIds: [contact.id],
+          title: contact.name,
+          avatarInitials: contact.initials,
+          avatarImageUrl: contact.profileImageUrl,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          AppAvatar(
+            initials: contact.initials,
+            imageUrl: contact.profileImageUrl,
+            size: 40,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(contact.name, style: AppTypography.headlineSmall),
+                    const SizedBox(width: AppSpacing.xs),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusFull,
+                        ),
+                      ),
+                      child: Text(
+                        roleLabel,
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                GestureDetector(
+                  onTap: _email,
+                  child: Text(
+                    contact.email,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                if (contact.phone != null && contact.phone!.isNotEmpty)
+                  GestureDetector(
+                    onTap: _call,
+                    child: Text(
+                      contact.phone!,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            onPressed: () => _message(context),
+            icon: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

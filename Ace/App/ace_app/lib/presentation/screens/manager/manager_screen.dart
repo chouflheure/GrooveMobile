@@ -3,9 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/utils/booking_grouping.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import '../../molecules/molecules.dart';
+import '../auth/auth_view_model.dart';
+import '../courts/courts_view_model.dart';
+import '../edit_profile/edit_profile_screen.dart';
 import 'admin_schedule_screen.dart';
 import 'club_form_screen.dart';
 import 'occupancy_stats_screen.dart';
@@ -75,6 +80,12 @@ class ManagerScreen extends ConsumerWidget {
                   _ActiveBookingsSection(state: state, vm: vm),
                   const SizedBox(height: AppSpacing.xxl),
                   _AdminsSection(admins: state.admins),
+                  const SizedBox(height: AppSpacing.xxl),
+                  _ClubContactsSection(state: state, vm: vm),
+                  const SizedBox(height: AppSpacing.xxl),
+                  const _ContactInfoSection(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  const _SavSection(),
                 ],
               ),
             ),
@@ -974,6 +985,328 @@ class _AdminsSection extends StatelessWidget {
                   )
                   .toList(),
             ),
+    );
+  }
+}
+
+/// Non-admin (or admin) people the admin has chosen to surface in
+/// "Contacts du club" on players' profiles — e.g. a treasurer or coach.
+/// Separate from `_AdminsSection` above, which only lists real admin
+/// accounts and isn't editable here.
+class _ClubContactsSection extends StatelessWidget {
+  final ManagerState state;
+  final ManagerViewModel vm;
+
+  const _ClubContactsSection({required this.state, required this.vm});
+
+  String _playerName(String userId) =>
+      state.players.where((u) => u.id == userId).firstOrNull?.name ??
+      'Joueur';
+
+  String _clubName(String clubId) =>
+      state.clubs.where((c) => c.id == clubId).firstOrNull?.name ?? '';
+
+  Future<void> _openAddSheet(BuildContext context) async {
+    String? clubId = state.clubs.length == 1 ? state.clubs.first.id : null;
+    UserModel? player;
+    final roleController = TextEditingController();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg + MediaQuery.paddingOf(sheetContext).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Ajouter un contact', style: AppTypography.headlineSmall),
+                if (state.clubs.length > 1) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Club', style: AppTypography.labelLarge),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: state.clubs
+                        .map(
+                          (c) => ChoiceChip(
+                            label: Text(c.name),
+                            selected: clubId == c.id,
+                            onSelected: (_) => setSheetState(() {
+                              clubId = c.id;
+                              player = null;
+                            }),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                Text('Personne', style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: clubId == null
+                      ? null
+                      : () async {
+                          final roster = state.players
+                              .where((u) => u.clubIds.contains(clubId))
+                              .toList();
+                          final picked = await PlayerPickerSheet.show(
+                            sheetContext,
+                            players: roster,
+                            selectedPlayerId: player?.id,
+                            title: 'Personne à contacter',
+                          );
+                          if (picked is UserModel) {
+                            setSheetState(() => player = picked);
+                          }
+                        },
+                  icon: const Icon(Icons.person_search_rounded, size: 16),
+                  label: Text(player?.name ?? 'Choisir une personne'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text('Statut', style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  controller: roleController,
+                  decoration: const InputDecoration(
+                    hintText: 'Ex : Trésorier, Coach...',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppButton(
+                  label: 'Ajouter',
+                  onTap: (clubId == null ||
+                          player == null ||
+                          roleController.text.trim().isEmpty)
+                      ? null
+                      : () async {
+                          final ok = await vm.addClubContact(
+                            clubId!,
+                            player!.id,
+                            roleController.text.trim(),
+                          );
+                          if (ok && sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.contact_page_outlined,
+      title: 'Contacts du club',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Personnes affichées sur le profil des joueurs, même si elles ne sont pas admin.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (state.clubContacts.isEmpty)
+            Text('Aucun contact ajouté.', style: AppTypography.bodySmall)
+          else
+            Column(
+              children: state.clubContacts
+                  .map(
+                    (contact) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _playerName(contact.userId),
+                                  style: AppTypography.headlineSmall,
+                                ),
+                                Text(
+                                  state.clubs.length > 1
+                                      ? '${contact.roleLabel} · ${_clubName(contact.clubId)}'
+                                      : contact.roleLabel,
+                                  style: AppTypography.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => vm.removeClubContact(contact.id),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: state.clubs.isEmpty
+                ? null
+                : () => _openAddSheet(context),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Ajouter un contact'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Read-only preview of what players see in "Contacter l'admin du club"
+/// (see `_AdminContactSection` in `profile_screen.dart`) — the actual
+/// editing happens on the existing profile-edit screen (nom/téléphone),
+/// reused here rather than duplicating a form; email is locked there too,
+/// same as for players.
+class _ContactInfoSection extends ConsumerWidget {
+  const _ContactInfoSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).valueOrNull;
+    if (user == null) return const SizedBox.shrink();
+
+    return _SectionCard(
+      icon: Icons.badge_outlined,
+      title: 'Mes informations de contact',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Coordonnées vues par les joueurs de ton club sur leur profil.',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(user.name, style: AppTypography.headlineSmall),
+          Text(user.email, style: AppTypography.bodySmall),
+          Text(
+            (user.phone == null || user.phone!.isEmpty)
+                ? 'Téléphone non renseigné'
+                : user.phone!,
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            ),
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            label: const Text('Modifier'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Support ("SAV") contacts — read-only, populated by hand in the Firebase
+/// console (see `SavRepository`).
+class _SavSection extends ConsumerWidget {
+  const _SavSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final contactsAsync = ref.watch(savContactsProvider);
+
+    return _SectionCard(
+      icon: Icons.support_agent_rounded,
+      title: 'Contacter le SAV',
+      child: contactsAsync.when(
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ),
+        error: (_, _) =>
+            Text('Impossible de charger le SAV.', style: AppTypography.bodySmall),
+        data: (contacts) => contacts.isEmpty
+            ? Text('Aucun contact SAV renseigné.', style: AppTypography.bodySmall)
+            : Column(
+                children: contacts
+                    .map(
+                      (c) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: _SavContactRow(contact: c),
+                      ),
+                    )
+                    .toList(),
+              ),
+      ),
+    );
+  }
+}
+
+class _SavContactRow extends StatelessWidget {
+  final SavContactModel contact;
+
+  const _SavContactRow({required this.contact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${contact.prenom} ${contact.nom}'.trim(),
+            style: AppTypography.headlineSmall,
+          ),
+          if (contact.mail != null && contact.mail!.isNotEmpty)
+            GestureDetector(
+              onTap: () => launchUrl(
+                Uri(scheme: 'mailto', path: contact.mail),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Text(
+                contact.mail!,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          if (contact.numero != null && contact.numero!.isNotEmpty)
+            GestureDetector(
+              onTap: () => launchUrl(
+                Uri(scheme: 'tel', path: contact.numero),
+                mode: LaunchMode.externalApplication,
+              ),
+              child: Text(
+                contact.numero!,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

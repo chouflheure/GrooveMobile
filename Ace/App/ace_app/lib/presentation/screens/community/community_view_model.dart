@@ -17,7 +17,7 @@ class CommunityState {
   final bool isLoading;
 
   const CommunityState({
-    this.activeTab = CommunityTab.announcements,
+    this.activeTab = CommunityTab.messages,
     this.announcements = const [],
     this.conversations = const [],
     this.allUsers = const [],

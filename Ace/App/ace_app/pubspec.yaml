@@ -2,7 +2,7 @@ name: ace_app
 description: "CourtConnect - Application de réservation de terrains de tennis"
 publish_to: 'none'
 
-version: 1.0.0+3
+version: 1.0.1+4
 
 environment:
   sdk: ^3.11.0

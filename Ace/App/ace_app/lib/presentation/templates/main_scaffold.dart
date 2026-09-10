@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../core/constants/app_typography.dart';
+import '../molecules/molecules.dart';
 import '../screens/auth/auth_view_model.dart';
 import '../screens/community/community_view_model.dart';
 
@@ -43,11 +45,30 @@ class MainScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final hasCommunityActivity =
-        ref.watch(hasNewAnnouncementProvider) ||
-        ref.watch(hasNewMessageProvider);
+    final hasNewMessage = ref.watch(hasNewMessageProvider);
+    final hasNewAnnouncement = ref.watch(hasNewAnnouncementProvider);
     final isAdmin =
         ref.watch(currentUserProvider).valueOrNull?.isAdmin ?? false;
+
+    // Web: a persistent top bar (logo + Message/Broadcast/Profil/Admin)
+    // replaces the bottom tab bar entirely — see `_WebTopBar`. Mobile and
+    // tablet keep today's bottom nav, untouched below.
+    if (kIsWeb) {
+      final communityTab = ref.watch(
+        communityViewModelProvider.select((s) => s.activeTab),
+      );
+      return Scaffold(
+        appBar: _WebTopBar(
+          location: location,
+          communityTab: communityTab,
+          isAdmin: isAdmin,
+          hasNewMessage: hasNewMessage,
+          hasNewAnnouncement: hasNewAnnouncement,
+        ),
+        body: child,
+      );
+    }
+
     final tabs = isAdmin ? [..._tabs, _managerTab] : _tabs;
 
     int currentIndex = tabs.indexWhere((t) => location.startsWith(t.path));
@@ -68,7 +89,7 @@ class MainScaffold extends ConsumerWidget {
       bottomNavigationBar: _BottomNav(
         tabs: tabs,
         currentIndex: currentIndex,
-        badgeIndex: hasCommunityActivity
+        badgeIndex: (hasNewMessage || hasNewAnnouncement)
             ? tabs.indexWhere((t) => t.path == '/community')
             : -1,
         onTap: (i) => context.go(tabs[i].path),
@@ -183,6 +204,146 @@ class _BottomNav extends StatelessWidget {
                 ),
               );
             }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Web-only persistent top bar — the brand mark (tap to go home) on the
+/// left, Message/Broadcast/Profil/Admin on the right. Message and
+/// Broadcast both route to `/community` (a single screen with its own
+/// internal Messages/Annonces tabs — see `CommunityViewModel`), setting
+/// the matching sub-tab on the way there so each button behaves like its
+/// own first-class destination.
+class _WebTopBar extends ConsumerWidget implements PreferredSizeWidget {
+  final String location;
+  final CommunityTab communityTab;
+  final bool isAdmin;
+  final bool hasNewMessage;
+  final bool hasNewAnnouncement;
+
+  const _WebTopBar({
+    required this.location,
+    required this.communityTab,
+    required this.isAdmin,
+    required this.hasNewMessage,
+    required this.hasNewAnnouncement,
+  });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isCommunity = location.startsWith('/community');
+
+    return AppBar(
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      title: GestureDetector(
+        onTap: () => context.go('/courts'),
+        child: const AppBrandMark(),
+      ),
+      actions: [
+        _WebNavButton(
+          icon: Icons.chat_bubble_outline_rounded,
+          activeIcon: Icons.chat_bubble_rounded,
+          label: 'Message',
+          isActive: isCommunity && communityTab == CommunityTab.messages,
+          showBadge: hasNewMessage,
+          onTap: () {
+            ref
+                .read(communityViewModelProvider.notifier)
+                .setTab(CommunityTab.messages);
+            context.go('/community');
+          },
+        ),
+        _WebNavButton(
+          icon: Icons.campaign_outlined,
+          activeIcon: Icons.campaign_rounded,
+          label: 'Broadcast',
+          isActive: isCommunity && communityTab == CommunityTab.announcements,
+          showBadge: hasNewAnnouncement,
+          onTap: () {
+            ref
+                .read(communityViewModelProvider.notifier)
+                .setTab(CommunityTab.announcements);
+            context.go('/community');
+          },
+        ),
+        _WebNavButton(
+          icon: Icons.person_outline_rounded,
+          activeIcon: Icons.person_rounded,
+          label: 'Profil',
+          isActive: location.startsWith('/profile'),
+          onTap: () => context.go('/profile'),
+        ),
+        if (isAdmin)
+          _WebNavButton(
+            icon: Icons.admin_panel_settings_outlined,
+            activeIcon: Icons.admin_panel_settings_rounded,
+            label: 'Admin',
+            isActive: location.startsWith('/manager'),
+            onTap: () => context.go('/manager'),
+          ),
+        const SizedBox(width: AppSpacing.md),
+      ],
+    );
+  }
+}
+
+class _WebNavButton extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final bool showBadge;
+  final VoidCallback onTap;
+
+  const _WebNavButton({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    this.showBadge = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive ? AppColors.primary : AppColors.textSecondary;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: TextButton.icon(
+        onPressed: onTap,
+        style: TextButton.styleFrom(foregroundColor: color),
+        icon: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(isActive ? activeIcon : icon, size: 20, color: color),
+            if (showBadge)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.surface, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        label: Text(
+          label,
+          style: AppTypography.labelMedium.copyWith(
+            color: color,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ),

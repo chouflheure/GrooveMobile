@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -758,10 +759,15 @@ class _SettingsSection extends ConsumerWidget {
               icon: Icons.shield_rounded,
               label: 'Manager',
               subtitle: 'Organiser des matchs et gérer les réservations',
-              onTap: () => Navigator.of(
-                context,
-                rootNavigator: true,
-              ).push(MaterialPageRoute(builder: (_) => const ManagerScreen())),
+              // Web: `/manager` is already a shell route (see app_router.dart)
+              // — go there directly so it stays under the shell's persistent
+              // top bar instead of pushing a standalone screen with its own
+              // back arrow.
+              onTap: () => kIsWeb
+                  ? context.go('/manager')
+                  : Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(builder: (_) => const ManagerScreen()),
+                    ),
             ),
           ],
           const SizedBox(height: AppSpacing.md),

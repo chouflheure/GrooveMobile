@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,7 +34,12 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // Web background push is handled by a service worker instead — nothing
+  // to register here, and notifications are off entirely on web for now
+  // (see `_CourtConnectAppState.initState`).
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  }
   await initializeDateFormatting('fr_FR');
   runApp(const ProviderScope(child: CourtConnectApp()));
 }
@@ -49,6 +55,13 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
   @override
   void initState() {
     super.initState();
+    // Notifications are off entirely on web for now: `firebase_messaging`
+    // web push needs its own VAPID key + service worker setup we haven't
+    // done, and `flutter_local_notifications` has no web implementation at
+    // all (calling it would throw `MissingPluginException`). Mobile and
+    // tablet (same OS, same plugin support either way) are unaffected.
+    if (kIsWeb) return;
+
     // One-time setup: ask the OS for notification permission, and keep the
     // device's FCM token in sync on whichever user is signed in whenever it
     // rotates (Firebase can reissue it at any time, not just on first run).
@@ -118,6 +131,7 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
   }
 
   void _registerTokenFor(UserModel? user) {
+    if (kIsWeb) return;
     debugPrint('PushNotification: _registerTokenFor user=${user?.id}');
     if (user == null) return;
     final repository = ref.read(pushNotificationRepositoryProvider);

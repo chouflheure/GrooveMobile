@@ -25,6 +25,9 @@ class TournamentMatch extends Equatable {
   final String? playerAId;
   final String? playerBId;
   final String? winnerId;
+  // Free-text score (e.g. "6-4, 6-3"), set alongside `winnerId` when the
+  // admin declares a result — optional, purely informational.
+  final String? score;
   // Where this match's winner (or bye) landed in the round that was
   // composed after it — null until that next round exists, and permanently
   // null for whichever match turns out to be the final. Written
@@ -52,6 +55,7 @@ class TournamentMatch extends Equatable {
     this.playerAId,
     this.playerBId,
     this.winnerId,
+    this.score,
     this.feedsRound,
     this.feedsPosition,
     this.feedsSideA,
@@ -70,6 +74,7 @@ class TournamentMatch extends Equatable {
     Object? playerAId = _sentinel,
     Object? playerBId = _sentinel,
     Object? winnerId = _sentinel,
+    Object? score = _sentinel,
     Object? feedsRound = _sentinel,
     Object? feedsPosition = _sentinel,
     Object? feedsSideA = _sentinel,
@@ -85,6 +90,7 @@ class TournamentMatch extends Equatable {
       playerAId: playerAId == _sentinel ? this.playerAId : playerAId as String?,
       playerBId: playerBId == _sentinel ? this.playerBId : playerBId as String?,
       winnerId: winnerId == _sentinel ? this.winnerId : winnerId as String?,
+      score: score == _sentinel ? this.score : score as String?,
       feedsRound: feedsRound == _sentinel ? this.feedsRound : feedsRound as int?,
       feedsPosition: feedsPosition == _sentinel
           ? this.feedsPosition
@@ -105,6 +111,7 @@ class TournamentMatch extends Equatable {
         playerAId: json['playerAId'] as String?,
         playerBId: json['playerBId'] as String?,
         winnerId: json['winnerId'] as String?,
+        score: json['score'] as String?,
         feedsRound: json['feedsRound'] as int?,
         feedsPosition: json['feedsPosition'] as int?,
         feedsSideA: json['feedsSideA'] as bool?,
@@ -121,6 +128,7 @@ class TournamentMatch extends Equatable {
     'playerAId': playerAId,
     'playerBId': playerBId,
     'winnerId': winnerId,
+    'score': score,
     'feedsRound': feedsRound,
     'feedsPosition': feedsPosition,
     'feedsSideA': feedsSideA,
@@ -138,6 +146,7 @@ class TournamentMatch extends Equatable {
     playerAId,
     playerBId,
     winnerId,
+    score,
     courtId,
     date,
     startTime,

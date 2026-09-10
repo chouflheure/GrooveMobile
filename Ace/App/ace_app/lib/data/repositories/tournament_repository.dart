@@ -83,9 +83,10 @@ class TournamentRepository {
   Future<void> setMatchWinner(
     TournamentModel tournament,
     TournamentMatch match,
-    String winnerId,
-  ) {
-    final matches = setWinner(tournament.matches, match, winnerId);
+    String winnerId, {
+    String? score,
+  }) {
+    final matches = setWinner(tournament.matches, match, winnerId, score: score);
     final isFinal =
         match.round == tournament.roundCount &&
         tournament.matchesInRound(match.round).length == 1;

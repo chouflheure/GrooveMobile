@@ -80,12 +80,13 @@ List<TournamentMatch> attachFeeds(
 List<TournamentMatch> setWinner(
   List<TournamentMatch> matches,
   TournamentMatch match,
-  String winnerId,
-) {
+  String winnerId, {
+  String? score,
+}) {
   return [
     for (final m in matches)
       if (m.round == match.round && m.position == match.position)
-        m.copyWith(winnerId: winnerId)
+        m.copyWith(winnerId: winnerId, score: score)
       else
         m,
   ];

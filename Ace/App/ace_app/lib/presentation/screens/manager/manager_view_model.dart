@@ -635,10 +635,16 @@ class ManagerViewModel extends StateNotifier<ManagerState> {
   Future<bool> setTournamentMatchWinner(
     TournamentModel tournament,
     TournamentMatch match,
-    String winnerId,
-  ) async {
+    String winnerId, {
+    String? score,
+  }) async {
     try {
-      await _tournamentRepository.setMatchWinner(tournament, match, winnerId);
+      await _tournamentRepository.setMatchWinner(
+        tournament,
+        match,
+        winnerId,
+        score: score,
+      );
       return true;
     } catch (e) {
       if (mounted) {

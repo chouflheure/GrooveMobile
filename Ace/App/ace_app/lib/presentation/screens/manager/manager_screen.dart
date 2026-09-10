@@ -350,6 +350,7 @@ class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
                   .map(
                     (g) => _BookingRow(
                       group: g,
+                      organizerName: _organizerName(g.first),
                       onCancel: () => _confirmCancel(context, widget.vm, g),
                     ),
                   )
@@ -415,9 +416,14 @@ class _ActiveBookingsSectionState extends State<_ActiveBookingsSection> {
 
 class _BookingRow extends StatelessWidget {
   final List<BookingModel> group;
+  final String? organizerName;
   final VoidCallback onCancel;
 
-  const _BookingRow({required this.group, required this.onCancel});
+  const _BookingRow({
+    required this.group,
+    required this.organizerName,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -447,9 +453,17 @@ class _BookingRow extends StatelessWidget {
                       color: AppColors.primary,
                     ),
                   ),
+                // Both participants, not just the partner — the organizer's
+                // own name was resolved but never actually shown here.
+                if (first.partnerName != null)
+                  Text(
+                    '${organizerName ?? 'Joueur'} vs ${first.partnerName}',
+                    style: AppTypography.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 Text(
                   '${first.date.day.toString().padLeft(2, '0')}/${first.date.month.toString().padLeft(2, '0')} · $timeRange'
-                  '${first.partnerName != null ? ' · avec ${first.partnerName}' : ''}'
                   '${first.hasExternalPlayer ? ' · joueur extérieur' : ''}',
                   style: AppTypography.bodySmall,
                 ),

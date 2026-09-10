@@ -280,8 +280,11 @@ class _TournamentManageScreenState
     TournamentMatch match,
   ) async {
     final roundMatches = tournament.matchesInRound(match.round);
-    final canEditRoster = match.round == tournament.roundCount &&
-        roundMatches.every((m) => m.winnerId == null);
+    // Per-match, not per-round: a result already recorded on some other
+    // match of this round shouldn't block editing the ones still unplayed.
+    final canEditRoster =
+        match.round == tournament.roundCount && match.winnerId == null;
+    final scoreController = TextEditingController(text: match.score ?? '');
 
     Future<void> swapPlayer(BuildContext sheetContext, String currentId) async {
       final roster = roundMatches
@@ -371,6 +374,15 @@ class _TournamentManageScreenState
                 ],
                 if (match.isReadyToPlay && !match.isPlayed) ...[
                   const SizedBox(height: AppSpacing.xl),
+                  Text('Score (optionnel)', style: AppTypography.labelLarge),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: scoreController,
+                    decoration: const InputDecoration(
+                      hintText: 'Ex : 6-4, 6-3',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
                   Text('Vainqueur', style: AppTypography.labelLarge),
                   const SizedBox(height: AppSpacing.sm),
                   ...[match.playerAId, match.playerBId].whereType<String>().map(
@@ -383,9 +395,15 @@ class _TournamentManageScreenState
                       ),
                       onTap: () async {
                         Navigator.of(sheetContext).pop();
+                        final score = scoreController.text.trim();
                         await ref
                             .read(managerViewModelProvider.notifier)
-                            .setTournamentMatchWinner(tournament, match, id);
+                            .setTournamentMatchWinner(
+                              tournament,
+                              match,
+                              id,
+                              score: score.isEmpty ? null : score,
+                            );
                       },
                     ),
                   ),

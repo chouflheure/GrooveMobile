@@ -334,7 +334,16 @@ class _MatchCard extends StatelessWidget {
               isWinner:
                   match.winnerId != null && match.winnerId == match.playerBId,
             ),
-            if (match.isScheduled)
+            if (match.score != null && match.score!.isNotEmpty)
+              Text(
+                match.score!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              )
+            else if (match.isScheduled)
               Text(
                 '${match.courtName} · ${match.startTime}',
                 maxLines: 1,
@@ -367,7 +376,7 @@ class _PlayerLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      label,
+      isWinner ? '$label 🏆' : label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: AppTypography.bodyMedium.copyWith(

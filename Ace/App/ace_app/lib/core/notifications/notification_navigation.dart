@@ -8,6 +8,7 @@ import '../../presentation/screens/community/chat_screen.dart';
 import '../../presentation/screens/community/community_view_model.dart';
 import '../../presentation/screens/courts/club_event_providers.dart';
 import '../../presentation/screens/courts/courts_view_model.dart';
+import '../../presentation/screens/courts/tournament_providers.dart';
 import '../router/app_router.dart';
 
 /// Routes a tapped push notification to the screen it's about, using the
@@ -29,6 +30,8 @@ Future<void> handleNotificationTap(WidgetRef ref, Map<String, dynamic> data) asy
       await _openBroadcast(ref, context, data['broadcastId'] as String?);
     case 'club_event':
       await _openClubEvent(ref, context, data['eventId'] as String?);
+    case 'tournament':
+      await _openTournament(ref, context, data['tournamentId'] as String?);
     case 'booking_created':
     case 'booking_cancelled':
     case 'booking_reminder':
@@ -113,6 +116,20 @@ Future<void> _openClubEvent(
   debugPrint('NotificationNav: _openClubEvent event=$event');
   if (event == null || !context.mounted) return;
   context.push('/event/${event.id}', extra: event);
+}
+
+Future<void> _openTournament(
+  WidgetRef ref,
+  BuildContext context,
+  String? tournamentId,
+) async {
+  if (tournamentId == null) return;
+  final tournament = await ref
+      .read(tournamentRepositoryProvider)
+      .getById(tournamentId);
+  debugPrint('NotificationNav: _openTournament tournament=$tournament');
+  if (tournament == null || !context.mounted) return;
+  context.push('/tournament/${tournament.id}', extra: tournament);
 }
 
 Future<void> _openBooking(

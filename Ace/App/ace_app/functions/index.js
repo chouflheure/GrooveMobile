@@ -5,6 +5,7 @@ const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
 const { sendPushToUserIds } = require("./lib/push");
+const { createNotifications } = require("./lib/notifications");
 const { deleteAll } = require("./lib/firestore");
 const { createBooking } = require("./lib/booking");
 const { sendPasswordResetEmail } = require("./lib/password_reset");
@@ -105,14 +106,17 @@ exports.onClubEventCreated = onDocumentCreated("events/{eventId}", async (event)
   const recipientIds = snapshot.docs.map((doc) => doc.id);
   if (recipientIds.length === 0) return;
 
-  await sendPushToUserIds(recipientIds, {
-    title: "Nouvel événement au club",
-    body: clubEvent.title || "Un nouvel événement a été créé.",
-  }, {
+  const title = "Nouvel événement au club";
+  const body = clubEvent.title || "Un nouvel événement a été créé.";
+  const data = {
     type: "club_event",
     eventId: event.params.eventId,
     clubId: clubEvent.clubId,
-  });
+  };
+  await Promise.all([
+    sendPushToUserIds(recipientIds, { title, body }, data),
+    createNotifications(recipientIds, { type: data.type, title, body, data }),
+  ]);
 });
 
 /**
@@ -139,14 +143,17 @@ exports.onTournamentCreated = onDocumentCreated("tournaments/{tournamentId}", as
   const recipientIds = snapshot.docs.map((doc) => doc.id);
   if (recipientIds.length === 0) return;
 
-  await sendPushToUserIds(recipientIds, {
-    title: "Nouveau tournoi au club",
-    body: tournament.title || "Un nouveau tournoi a été créé.",
-  }, {
+  const title = "Nouveau tournoi au club";
+  const body = tournament.title || "Un nouveau tournoi a été créé.";
+  const data = {
     type: "tournament",
     tournamentId: event.params.tournamentId,
     clubId: tournament.clubId,
-  });
+  };
+  await Promise.all([
+    sendPushToUserIds(recipientIds, { title, body }, data),
+    createNotifications(recipientIds, { type: data.type, title, body, data }),
+  ]);
 });
 
 /**
@@ -192,13 +199,15 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
   };
 
   await Promise.all(
-    recipientIds.map((recipientId) =>
-      sendPushToUserIds(
-        [recipientId],
-        { title: titleFor(recipientId), body: "Tu as été ajouté à ce match." },
-        { type: "booking_created", bookingId: event.params.bookingId },
-      ),
-    ),
+    recipientIds.map((recipientId) => {
+      const title = titleFor(recipientId);
+      const body = "Tu as été ajouté à ce match.";
+      const data = { type: "booking_created", bookingId: event.params.bookingId };
+      return Promise.all([
+        sendPushToUserIds([recipientId], { title, body }, data),
+        createNotifications([recipientId], { type: data.type, title, body, data }),
+      ]);
+    }),
   );
 });
 
@@ -217,13 +226,13 @@ exports.onBookingCancelled = onDocumentUpdated("bookings/{bookingId}", async (ev
   const recipientIds = [after.userId, after.partnerId].filter(Boolean);
   if (recipientIds.length === 0) return;
 
-  await sendPushToUserIds(recipientIds, {
-    title: "Créneau annulé",
-    body: `Ta réservation du ${after.startTime} sur ${after.courtName} a été annulée.`,
-  }, {
-    type: "booking_cancelled",
-    bookingId: event.params.bookingId,
-  });
+  const title = "Créneau annulé";
+  const body = `Ta réservation du ${after.startTime} sur ${after.courtName} a été annulée.`;
+  const data = { type: "booking_cancelled", bookingId: event.params.bookingId };
+  await Promise.all([
+    sendPushToUserIds(recipientIds, { title, body }, data),
+    createNotifications(recipientIds, { type: data.type, title, body, data }),
+  ]);
 });
 
 /**
@@ -271,15 +280,13 @@ exports.sendBookingReminders = onSchedule(
     await Promise.all(
       due.map(async ({ ref, booking }) => {
         const recipientIds = [booking.userId, booking.partnerId].filter(Boolean);
-        await sendPushToUserIds(
-          recipientIds,
-          {
-            title: "Rappel de match",
-            body: `Ton match sur ${booking.courtName} commence à ${booking.startTime}.`,
-          },
-          { type: "booking_reminder", bookingId: ref.id },
-          { prefKey: "Rappel de créneau" },
-        );
+        const title = "Rappel de match";
+        const body = `Ton match sur ${booking.courtName} commence à ${booking.startTime}.`;
+        const data = { type: "booking_reminder", bookingId: ref.id };
+        await Promise.all([
+          sendPushToUserIds(recipientIds, { title, body }, data, { prefKey: "Rappel de créneau" }),
+          createNotifications(recipientIds, { type: data.type, title, body, data }),
+        ]);
         await ref.update({ reminderSent: true });
       }),
     );

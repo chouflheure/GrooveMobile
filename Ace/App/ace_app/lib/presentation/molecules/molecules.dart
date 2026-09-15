@@ -1,4 +1,5 @@
 export 'app_brand_mark.dart';
+export 'notification_bell_button.dart';
 export 'stat_card.dart';
 export 'tournament_bracket.dart';
 export 'time_slot_chip.dart';

@@ -271,7 +271,7 @@ class _AppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       scrolledUnderElevation: 0,
       title: const AppBrandMark(),
-      actions: const [],
+      actions: const [NotificationBellButton(), SizedBox(width: AppSpacing.sm)],
     );
   }
 }

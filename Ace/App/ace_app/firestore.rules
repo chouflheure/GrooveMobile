@@ -133,6 +133,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // In-app "bell" notifications — created server-side alongside the
+    // matching push (see functions/lib/notifications.js). Private to their
+    // owner; the client may only flip `seen`/`clicked`, nothing else.
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if false;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen', 'clicked']);
+      allow delete: if false;
+    }
+
     // Support contact info, entered by hand in the console — same idiom
     // as `admin` above.
     match /SAV/{id} {

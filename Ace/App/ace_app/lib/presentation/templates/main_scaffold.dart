@@ -247,6 +247,8 @@ class _WebTopBar extends ConsumerWidget implements PreferredSizeWidget {
         child: const AppBrandMark(),
       ),
       actions: [
+        const NotificationBellButton(),
+        const SizedBox(width: AppSpacing.xs),
         _WebNavButton(
           icon: Icons.chat_bubble_outline_rounded,
           activeIcon: Icons.chat_bubble_rounded,

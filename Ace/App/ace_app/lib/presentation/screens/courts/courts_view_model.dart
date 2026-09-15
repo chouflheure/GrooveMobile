@@ -9,6 +9,7 @@ import '../../../data/repositories/booking_scenario_repository.dart';
 import '../../../data/repositories/club_repository.dart';
 import '../../../data/repositories/club_contact_repository.dart';
 import '../../../data/repositories/court_repository.dart';
+import '../../../data/repositories/notification_repository.dart';
 import '../../../data/repositories/sav_repository.dart';
 import '../auth/auth_view_model.dart';
 
@@ -254,6 +255,29 @@ final clubContactRepositoryProvider = Provider<ClubContactRepository>(
 final clubContactsProvider = StreamProvider<List<ClubContactModel>>(
   (ref) => ref.watch(clubContactRepositoryProvider).watchAll(),
 );
+
+final notificationRepositoryProvider = Provider<NotificationRepository>(
+  (_) => NotificationRepository(),
+);
+
+/// The current user's "bell" notifications, newest first — empty while
+/// signed out.
+final appNotificationsProvider = StreamProvider<List<AppNotificationModel>>((
+  ref,
+) {
+  final userId = ref.watch(
+    currentUserProvider.select((async) => async.valueOrNull?.id),
+  );
+  if (userId == null) return Stream.value(const []);
+  return ref.watch(notificationRepositoryProvider).watchForUser(userId);
+});
+
+/// How many of those haven't been "seen" yet (the bell page hasn't been
+/// opened since they arrived) — drives the badge shown on the bell icon.
+final unseenNotificationCountProvider = Provider<int>((ref) {
+  final list = ref.watch(appNotificationsProvider).valueOrNull ?? const [];
+  return list.where((n) => !n.seen).length;
+});
 
 final scenariosProvider = StreamProvider<List<BookingScenario>>(
   (ref) => ref.watch(scenarioRepositoryProvider).watchAll(),

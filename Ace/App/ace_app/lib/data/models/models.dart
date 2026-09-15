@@ -10,3 +10,4 @@ export 'announcement_model.dart';
 export 'message_model.dart';
 export 'sav_contact_model.dart';
 export 'club_contact_model.dart';
+export 'app_notification_model.dart';

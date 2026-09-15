@@ -1,3 +1,4 @@
+import 'package:app_badge_control_flutter/app_badge_control_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
@@ -14,6 +15,7 @@ import 'data/models/models.dart';
 import 'data/providers/app_startup_provider.dart';
 import 'data/providers/push_notification_provider.dart';
 import 'presentation/screens/auth/auth_view_model.dart';
+import 'presentation/screens/community/community_view_model.dart';
 import 'firebase_options.dart';
 import 'presentation/molecules/update_required_dialog.dart';
 
@@ -173,6 +175,22 @@ class _CourtConnectAppState extends ConsumerState<CourtConnectApp> {
     ref.listen<AsyncValue<UserModel?>>(currentUserProvider, (previous, next) {
       _registerTokenFor(next.value);
     });
+
+    // App icon badge (outside the app) — bell notifications not yet seen +
+    // unread messages + unseen announcements. Best-effort, updated whenever
+    // the app is running; not attempted on web (no notification system
+    // there — see `_CourtConnectAppState.initState`). iOS shows the real
+    // number; the plugin is a no-op for `updateBadgeCount` on Android
+    // (badge there follows the system notification tray instead).
+    if (!kIsWeb) {
+      ref.listen<int>(appIconBadgeCountProvider, (previous, count) {
+        if (count <= 0) {
+          AppBadgeControlFlutter.removeBadge();
+        } else {
+          AppBadgeControlFlutter.updateBadgeCount(count);
+        }
+      });
+    }
 
     return MaterialApp.router(
       title: 'CourtConnect',

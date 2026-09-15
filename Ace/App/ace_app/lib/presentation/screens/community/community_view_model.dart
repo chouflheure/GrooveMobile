@@ -6,6 +6,7 @@ import '../../../data/providers/tab_activity_provider.dart';
 import '../../../data/repositories/broadcast_repository.dart';
 import '../../../data/repositories/message_repository.dart';
 import '../auth/auth_view_model.dart';
+import '../courts/courts_view_model.dart';
 
 enum CommunityTab { announcements, messages }
 
@@ -250,4 +251,40 @@ final hasNewMessageProvider = Provider<bool>((ref) {
     tabActivityProvider.select((a) => a.lastSeenMessages),
   );
   return latest != null && (lastSeen == null || latest.isAfter(lastSeen));
+});
+
+/// Real counts (not just booleans) — used only to build the app icon's
+/// badge total (see `appIconBadgeCountProvider`), which needs an actual
+/// number rather than "is there something new".
+
+/// Total unread messages across every conversation — `unreadCount` is
+/// already tracked precisely per message (`isRead`) by `MessageRepository`,
+/// so this is just a sum, no new tracking needed.
+final totalUnreadMessagesProvider = Provider<int>((ref) {
+  final conversations = ref.watch(
+    communityViewModelProvider.select((s) => s.conversations),
+  );
+  return conversations.fold<int>(0, (sum, c) => sum + c.unreadCount);
+});
+
+/// Announcements posted since the Annonces tab was last opened.
+final newAnnouncementCountProvider = Provider<int>((ref) {
+  final announcements = ref.watch(
+    communityViewModelProvider.select((s) => s.announcements),
+  );
+  final lastSeen = ref.watch(
+    tabActivityProvider.select((a) => a.lastSeenAnnouncements),
+  );
+  if (lastSeen == null) return announcements.length;
+  return announcements.where((a) => a.createdAt.isAfter(lastSeen)).length;
+});
+
+/// The number posted on the app icon (outside the app) — bell
+/// notifications not yet seen, plus unread messages, plus unseen
+/// announcements. See `main.dart` for where this is actually applied.
+final appIconBadgeCountProvider = Provider<int>((ref) {
+  final int unseenNotifications = ref.watch(unseenNotificationCountProvider);
+  final int unreadMessages = ref.watch(totalUnreadMessagesProvider);
+  final int unseenAnnouncements = ref.watch(newAnnouncementCountProvider);
+  return unseenNotifications + unreadMessages + unseenAnnouncements;
 });

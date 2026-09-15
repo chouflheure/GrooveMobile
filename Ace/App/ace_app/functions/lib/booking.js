@@ -123,6 +123,21 @@ exports.createBooking = onCall({ region: "europe-west9" }, async (request) => {
   if (!courtSnap.exists) {
     throw new HttpsError("not-found", "Ce terrain n'existe plus.");
   }
+
+  // A regular player can only ever book as themselves — `userId` isn't
+  // just a label, it's who the booking is attributed to and whose policy
+  // quota it counts against. Without this check, any authenticated caller
+  // could pass someone else's uid here and create a booking (and burn
+  // their peak/off-peak allowance) in that person's name without their
+  // knowledge. Admins are exempt — organizing a match on behalf of two
+  // other players is the normal admin flow (see ManagerViewModel).
+  if (!isAdmin && userId !== uid) {
+    throw new HttpsError(
+      "permission-denied",
+      "Tu ne peux réserver que pour toi-même.",
+    );
+  }
+
   const court = courtSnap.data();
   const policy = await resolvePolicyForCourt(db, court);
 

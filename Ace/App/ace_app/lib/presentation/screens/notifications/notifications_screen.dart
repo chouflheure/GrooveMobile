@@ -41,6 +41,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     await handleNotificationTap(ref, notification.data);
   }
 
+  void _deleteNotification(String id) {
+    ref.read(notificationRepositoryProvider).delete(id);
+  }
+
   IconData _iconFor(String type) {
     switch (type) {
       case 'club_event':
@@ -100,81 +104,99 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
               ),
               itemCount: notifications.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppSpacing.sm),
+              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
               itemBuilder: (_, i) {
                 final notification = notifications[i];
                 final isUnclicked = !notification.clicked;
-                return GestureDetector(
-                  onTap: () => _openNotification(notification),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: isUnclicked
-                          ? AppColors.primaryContainer
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusLg,
-                      ),
-                      border: Border.all(color: AppColors.border),
+                return Dismissible(
+                  key: ValueKey(notification.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(
-                              AppSpacing.radiusMd,
-                            ),
-                          ),
-                          child: Icon(
-                            _iconFor(notification.type),
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    child: const Icon(
+                      Icons.delete_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onDismissed: (_) => _deleteNotification(notification.id),
+                  child: GestureDetector(
+                    onTap: () => _openNotification(notification),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: isUnclicked
+                            ? AppColors.primaryContainer
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
                         ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                notification.title,
-                                style: AppTypography.headlineSmall.copyWith(
-                                  fontWeight: isUnclicked
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                notification.body,
-                                style: AppTypography.bodySmall,
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                notification.timeAgo,
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.textTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isUnclicked)
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(top: 4),
-                            decoration: const BoxDecoration(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
+                            ),
+                            child: Icon(
+                              _iconFor(notification.type),
                               color: AppColors.primary,
-                              shape: BoxShape.circle,
+                              size: 20,
                             ),
                           ),
-                      ],
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  notification.title,
+                                  style: AppTypography.headlineSmall.copyWith(
+                                    fontWeight: isUnclicked
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  notification.body,
+                                  style: AppTypography.bodySmall,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  notification.timeAgo,
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isUnclicked)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(top: 4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );

@@ -38,4 +38,8 @@ class NotificationRepository {
   Future<void> markClicked(String id) {
     return _collection.doc(id).update({'clicked': true});
   }
+
+  Future<void> delete(String id) {
+    return _collection.doc(id).delete();
+  }
 }

@@ -5,6 +5,7 @@ import '../../presentation/screens/announcement_detail/announcement_detail_scree
 import '../../presentation/screens/auth/auth_view_model.dart';
 import '../../presentation/screens/booking_detail/booking_detail_screen.dart';
 import '../../presentation/screens/community/chat_screen.dart';
+import '../../presentation/screens/community/club_broadcast_screen.dart';
 import '../../presentation/screens/community/community_view_model.dart';
 import '../../presentation/screens/courts/club_event_providers.dart';
 import '../../presentation/screens/courts/courts_view_model.dart';
@@ -26,6 +27,8 @@ Future<void> handleNotificationTap(WidgetRef ref, Map<String, dynamic> data) asy
   switch (data['type']) {
     case 'message':
       await _openConversation(ref, context, data['conversationId'] as String?);
+    case 'club_broadcast':
+      await _openClubBroadcast(ref, context, data['clubId'] as String?);
     case 'broadcast':
       await _openBroadcast(ref, context, data['broadcastId'] as String?);
     case 'club_event':
@@ -102,6 +105,26 @@ Future<void> _openBroadcast(
         announcement: announcement,
         currentUserId: currentUserId,
       ),
+    ),
+  );
+}
+
+Future<void> _openClubBroadcast(
+  WidgetRef ref,
+  BuildContext context,
+  String? clubId,
+) async {
+  if (clubId == null) return;
+  final currentUser = ref.read(currentUserProvider).valueOrNull;
+  final clubs = ref.read(clubsProvider).valueOrNull ?? const [];
+  final club = clubs.where((c) => c.id == clubId).firstOrNull;
+  debugPrint('NotificationNav: _openClubBroadcast club=$club');
+  if (club == null || currentUser == null || !context.mounted) return;
+
+  Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute(
+      builder: (_) =>
+          ClubBroadcastScreen(club: club, canPost: currentUser.isAdmin),
     ),
   );
 }

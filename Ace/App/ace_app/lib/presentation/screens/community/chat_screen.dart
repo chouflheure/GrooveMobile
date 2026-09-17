@@ -7,6 +7,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../atoms/atoms.dart';
+import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
 import 'community_view_model.dart';
 
@@ -482,11 +483,12 @@ class _MessageBubble extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      message.content,
+                    LinkifiedText(
+                      text: message.content,
                       style: AppTypography.bodyMedium.copyWith(
                         color: isMe ? Colors.white : AppColors.textPrimary,
                       ),
+                      linkColor: isMe ? Colors.white : AppColors.primary,
                     ),
                     if (message.edited)
                       Padding(

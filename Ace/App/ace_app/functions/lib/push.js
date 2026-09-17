@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
+const { computeBadgeCount } = require("./badge");
 
 /**
  * Sends a push notification to a list of user ids, pulling their FCM
@@ -25,68 +26,69 @@ async function sendPushToUserIds(userIds, notification, data = {}, options = {})
     ...uniqueIds.map((id) => db.collection("users").doc(id)),
   );
 
-  const tokens = [];
-  const ownerByToken = new Map();
-
-  for (const doc of userDocs) {
-    if (!doc.exists) continue;
-    if (prefKey) {
-      const notifications = doc.get("notifications") || {};
-      if (notifications[prefKey] !== true) continue;
-    }
-    const userTokens = doc.get("fcmTokens");
-    if (!Array.isArray(userTokens)) continue;
-    for (const token of userTokens) {
-      tokens.push(token);
-      ownerByToken.set(token, doc.ref);
-    }
-  }
-
-  if (tokens.length === 0) return;
-
   const stringData = Object.fromEntries(
     Object.entries(data).map(([key, value]) => [key, String(value)]),
   );
 
-  const response = await admin.messaging().sendEachForMulticast({
-    tokens,
-    notification,
-    data: stringData,
-    // Without these, iOS/Android deliver the notification silently — no
-    // sound, no vibration — since "play the default alert" isn't implied,
-    // it has to be requested explicitly per platform.
-    android: {
-      priority: "high",
-      notification: { sound: "default", defaultVibrateTimings: true },
-    },
-    apns: {
-      payload: { aps: { sound: "default" } },
-    },
-  });
-
-  const staleTokensByOwner = new Map();
-  response.responses.forEach((result, index) => {
-    if (result.success) return;
-    const code = result.error && result.error.code;
-    if (
-      code === "messaging/invalid-registration-token" ||
-      code === "messaging/registration-token-not-registered"
-    ) {
-      const token = tokens[index];
-      const ownerRef = ownerByToken.get(token);
-      if (!staleTokensByOwner.has(ownerRef)) staleTokensByOwner.set(ownerRef, []);
-      staleTokensByOwner.get(ownerRef).push(token);
-    } else if (!result.success) {
-      logger.warn("push send failed", { code, message: result.error && result.error.message });
-    }
-  });
-
+  // Sent one recipient at a time (instead of one multicast for every token
+  // across every recipient) because the iOS badge count is per-recipient —
+  // `apns.payload.aps.badge` needs each person's own unseen count, not a
+  // number shared across the whole batch.
   await Promise.all(
-    [...staleTokensByOwner.entries()].map(([ref, staleTokens]) =>
-      ref.update({
-        fcmTokens: admin.firestore.FieldValue.arrayRemove(...staleTokens),
-      }),
-    ),
+    userDocs.map(async (doc) => {
+      if (!doc.exists) return;
+      if (prefKey) {
+        const notifications = doc.get("notifications") || {};
+        if (notifications[prefKey] !== true) return;
+      }
+      const tokens = doc.get("fcmTokens");
+      if (!Array.isArray(tokens) || tokens.length === 0) return;
+
+      const badge = await computeBadgeCount(doc.id).catch((error) => {
+        logger.warn("badge count failed", { userId: doc.id, message: error.message });
+        return undefined;
+      });
+
+      const response = await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification,
+        data: stringData,
+        // Without these, iOS/Android deliver the notification silently — no
+        // sound, no vibration — since "play the default alert" isn't
+        // implied, it has to be requested explicitly per platform.
+        android: {
+          priority: "high",
+          notification: { sound: "default", defaultVibrateTimings: true },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+              ...(badge === undefined ? {} : { badge }),
+            },
+          },
+        },
+      });
+
+      const staleTokens = [];
+      response.responses.forEach((result, index) => {
+        if (result.success) return;
+        const code = result.error && result.error.code;
+        if (
+          code === "messaging/invalid-registration-token" ||
+          code === "messaging/registration-token-not-registered"
+        ) {
+          staleTokens.push(tokens[index]);
+        } else {
+          logger.warn("push send failed", { code, message: result.error && result.error.message });
+        }
+      });
+      if (staleTokens.length > 0) {
+        await doc.ref.update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...staleTokens),
+        });
+      }
+    }),
   );
 }
 

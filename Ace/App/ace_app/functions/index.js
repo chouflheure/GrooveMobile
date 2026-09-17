@@ -42,9 +42,35 @@ setGlobalOptions({ region: "europe-west9", maxInstances: 10 });
  * (the club broadcast channel writes here too, but with an empty
  * `participantIds`, so it's a no-op here by construction).
  */
+const CLUB_BROADCAST_PREFIX = "club_broadcast_";
+
 exports.onMessageCreated = onDocumentCreated("messages/{messageId}", async (event) => {
   const message = event.data && event.data.data();
   if (!message) return;
+
+  // The club announcement channel writes here too (see
+  // `MessageRepository.sendBroadcastMessage`), with an empty
+  // `participantIds` since it has no fixed set of recipients — every club
+  // member is one instead, resolved the same way `onClubEventCreated` does.
+  if (message.conversationId && message.conversationId.startsWith(CLUB_BROADCAST_PREFIX)) {
+    const clubId = message.conversationId.slice(CLUB_BROADCAST_PREFIX.length);
+    const db = admin.firestore();
+    const snapshot = await db
+      .collection("users")
+      .where("clubIds", "array-contains", clubId)
+      .get();
+    const recipientIds = snapshot.docs
+      .map((doc) => doc.id)
+      .filter((id) => id !== message.senderId);
+    if (recipientIds.length === 0) return;
+
+    await sendPushToUserIds(
+      recipientIds,
+      { title: "Annonce du club", body: message.content || "" },
+      { type: "club_broadcast", clubId, conversationId: message.conversationId },
+    );
+    return;
+  }
 
   const recipientIds = (message.participantIds || []).filter(
     (id) => id && id !== message.senderId,
@@ -113,10 +139,10 @@ exports.onClubEventCreated = onDocumentCreated("events/{eventId}", async (event)
     eventId: event.params.eventId,
     clubId: clubEvent.clubId,
   };
-  await Promise.all([
-    sendPushToUserIds(recipientIds, { title, body }, data),
-    createNotifications(recipientIds, { type: data.type, title, body, data }),
-  ]);
+  // Written before the push (not in parallel) so the just-created bell
+  // notification is already counted when the push computes its badge number.
+  await createNotifications(recipientIds, { type: data.type, title, body, data });
+  await sendPushToUserIds(recipientIds, { title, body }, data);
 });
 
 /**
@@ -150,10 +176,8 @@ exports.onTournamentCreated = onDocumentCreated("tournaments/{tournamentId}", as
     tournamentId: event.params.tournamentId,
     clubId: tournament.clubId,
   };
-  await Promise.all([
-    sendPushToUserIds(recipientIds, { title, body }, data),
-    createNotifications(recipientIds, { type: data.type, title, body, data }),
-  ]);
+  await createNotifications(recipientIds, { type: data.type, title, body, data });
+  await sendPushToUserIds(recipientIds, { title, body }, data);
 });
 
 /**
@@ -203,10 +227,12 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
       const title = titleFor(recipientId);
       const body = "Tu as été ajouté à ce match.";
       const data = { type: "booking_created", bookingId: event.params.bookingId };
-      return Promise.all([
-        sendPushToUserIds([recipientId], { title, body }, data),
-        createNotifications([recipientId], { type: data.type, title, body, data }),
-      ]);
+      return createNotifications([recipientId], {
+        type: data.type,
+        title,
+        body,
+        data,
+      }).then(() => sendPushToUserIds([recipientId], { title, body }, data));
     }),
   );
 });
@@ -229,10 +255,8 @@ exports.onBookingCancelled = onDocumentUpdated("bookings/{bookingId}", async (ev
   const title = "Créneau annulé";
   const body = `Ta réservation du ${after.startTime} sur ${after.courtName} a été annulée.`;
   const data = { type: "booking_cancelled", bookingId: event.params.bookingId };
-  await Promise.all([
-    sendPushToUserIds(recipientIds, { title, body }, data),
-    createNotifications(recipientIds, { type: data.type, title, body, data }),
-  ]);
+  await createNotifications(recipientIds, { type: data.type, title, body, data });
+  await sendPushToUserIds(recipientIds, { title, body }, data);
 });
 
 /**
@@ -283,10 +307,10 @@ exports.sendBookingReminders = onSchedule(
         const title = "Rappel de match";
         const body = `Ton match sur ${booking.courtName} commence à ${booking.startTime}.`;
         const data = { type: "booking_reminder", bookingId: ref.id };
-        await Promise.all([
-          sendPushToUserIds(recipientIds, { title, body }, data, { prefKey: "Rappel de créneau" }),
-          createNotifications(recipientIds, { type: data.type, title, body, data }),
-        ]);
+        await createNotifications(recipientIds, { type: data.type, title, body, data });
+        await sendPushToUserIds(recipientIds, { title, body }, data, {
+          prefKey: "Rappel de créneau",
+        });
         await ref.update({ reminderSent: true });
       }),
     );

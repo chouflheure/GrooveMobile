@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/message_repository.dart';
 import '../../atoms/atoms.dart';
+import '../../molecules/molecules.dart';
 import '../auth/auth_view_model.dart';
 import 'community_view_model.dart';
 
@@ -300,6 +302,29 @@ class _AnnouncementBubble extends StatelessWidget {
     return parts.isEmpty || parts[0].isEmpty ? '?' : parts[0][0].toUpperCase();
   }
 
+  static const _weekdays = [
+    'Lundi',
+    'Mardi',
+    'Mercredi',
+    'Jeudi',
+    'Vendredi',
+    'Samedi',
+    'Dimanche',
+  ];
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDay = DateTime(time.year, time.month, time.day);
+    final diffDays = today.difference(messageDay).inDays;
+    final hhmm = DateFormat('HH:mm').format(time);
+
+    if (diffDays == 0) return hhmm;
+    if (diffDays == 1) return 'Hier $hhmm';
+    if (diffDays < 7) return '${_weekdays[time.weekday - 1]} $hhmm';
+    return '${DateFormat('dd/MM').format(time)} $hhmm';
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -342,18 +367,32 @@ class _AnnouncementBubble extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(message.content, style: AppTypography.bodyMedium),
-            if (message.edited)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  'modifié',
+            LinkifiedText(
+              text: message.content,
+              style: AppTypography.bodyMedium,
+              linkColor: AppColors.primary,
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  _formatTime(message.createdAt),
                   style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textTertiary,
-                    fontStyle: FontStyle.italic,
                   ),
                 ),
-              ),
+                if (message.edited) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    'modifié',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),
@@ -424,33 +463,32 @@ class _InputBar extends StatelessWidget {
               ),
             ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
                   style: AppTypography.bodyMedium,
+                  minLines: 1,
+                  maxLines: 10,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
                   decoration: InputDecoration(
                     hintText: 'Message pour tous les membres...',
                     hintStyle: AppTypography.bodySmall,
                     filled: true,
                     fillColor: AppColors.background,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusFull,
-                      ),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusFull,
-                      ),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusFull,
-                      ),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -458,8 +496,6 @@ class _InputBar extends StatelessWidget {
                       vertical: AppSpacing.sm,
                     ),
                   ),
-                  onSubmitted: (_) => onSend(),
-                  textInputAction: TextInputAction.send,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),

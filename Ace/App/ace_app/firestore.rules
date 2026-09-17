@@ -142,7 +142,7 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen', 'clicked']);
-      allow delete: if false;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Support contact info, entered by hand in the console — same idiom

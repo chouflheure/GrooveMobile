@@ -13,3 +13,4 @@ export 'announcement_card.dart';
 export 'booking_history_item.dart';
 export 'event_reservation_item.dart';
 export 'conversation_item.dart';
+export 'linkified_text.dart';
